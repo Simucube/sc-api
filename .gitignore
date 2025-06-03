@@ -1,0 +1,56 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.out
+*.app
+
+# Project files
+*.user
+
+# Compile folder
+cmake-build*/
+build*/
+
+.idea/
+
+*.TMP
+
+# Python cache
+__pycache__/
+*.pyd
+*.pyo
+
+# Python language server
+.ropeproject/
+
+# Pytest cache
+.pytest_cace/
+
+# Python package linking install files
+*.egg-info/

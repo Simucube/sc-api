@@ -1,0 +1,74 @@
+Checks: |
+    -*,
+
+    clang-diagnostic-*,
+    clang-analyzer-*,
+
+    # Annoying warnings about memset in crypto
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+    performance-*,
+    portability-*,
+    concurrency-*,
+    bugprone-*,
+
+    # Enable readability checks but disable magic number checks and uppercase literal suffix checks. And lot of other annoying checks
+    readability-*,
+    -readability-magic-numbers,
+    -bugprone-easily-swappable-parameters,
+    -readability-uppercase-literal-suffix,
+    -readability-identifier-length
+    -readability-braces-around-statements
+    -readability-else-after-return
+    -readability-container-data-pointer
+    -readability-simplify-boolean-expr
+    -readability-function-cognitive-complexity
+    -readability-isolate-declaration
+    -readability-use-anyofallof
+    -readability-redundant-member-init
+    -readability-static-definition-in-anonymous-namespace
+    -readability-qualified-auto
+    -readability-avoid-return-with-void-value
+
+    -performance-avoid-endl
+
+    cppcoreguidelines-slicing,
+
+    google-build-explicit-make-pair,
+    google-global-names-in-headers,
+
+    misc-redundant-expression,
+    misc-static-assert,
+    misc-uniqueptr-reset-release,
+    # misc-unused-parameters,
+    # misc-unused-using-decls,
+
+    modernize-use-nullptr,
+    modernize-use-override,
+    modernize-use-using,
+    modernize-shrink-to-fit,
+    modernize-use-bool-literals,
+    # modernize-use-default-member-init
+
+
+HeaderFilterRegex: '(libs|pal|pc|fw)/(?!crypto).*\.(h|hxx|cxx)$'
+
+FormatStyle:            file
+
+CheckOptions:
+    - key: bugprone-assert-side-effect.AssertMacros
+      value: 'Q_ASSERT,Q_ASSERT_X,Q_CHECK_PTR'
+    - key: bugprone-assert-side-effect.CheckFunctionCalls
+      value: '1'
+    - key: bugprone-suspicious-string-compare.WarnOnLogicalNotComparison
+      value: '1'
+
+      # Allow if statements that implicitly test for non-null pointer
+    - key: readability-implicit-bool-conversion.AllowPointerConditions
+      value: '1'
+
+    - key: bugprone-suspicious-string-compare.WarnOnLogicalNotComparison
+      value: '1'
+    - key: bugprone-dangling-handle.HandleClasses
+      value: 'std::basic_string_view;std::experimental::basic_string_view;sc::utils::Span'
+    - key: readability-identifier-length.MinimumParameterNameLength
+      value: '0'
