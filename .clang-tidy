@@ -69,6 +69,6 @@ CheckOptions:
     - key: bugprone-suspicious-string-compare.WarnOnLogicalNotComparison
       value: '1'
     - key: bugprone-dangling-handle.HandleClasses
-      value: 'std::basic_string_view;std::experimental::basic_string_view;sc::utils::Span'
+      value: 'std::basic_string_view;std::experimental::basic_string_view'
     - key: readability-identifier-length.MinimumParameterNameLength
       value: '0'
