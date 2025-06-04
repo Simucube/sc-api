@@ -270,8 +270,8 @@ public:
     std::shared_ptr<sim_data::SimData> getSimData();
 
     std::shared_ptr<core::device_info::FullInfo> getDeviceInfo();
-    VariableDefinitions                    getVariables();
-    TelemetryDefinitions                   getTelemetries();
+    VariableDefinitions                          getVariables();
+    TelemetryDefinitions                         getTelemetries();
 
     /** Tries to send command to the backend and calls callback asynchronously when result is received
      *

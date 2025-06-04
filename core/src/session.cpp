@@ -205,7 +205,7 @@ std::shared_ptr<device_info::FullInfo> Session::getDeviceInfo() {
 VariableDefinitions Session::getVariables() { return p_->var_provider_.definitions(); }
 
 TelemetryDefinitions Session::getTelemetries() {
-    if (p_) return {};
+    if (!p_) return {};
 
     p_->telemetry_.updateDefinitions();
     return p_->telemetry_.getDefinitions(shared_from_this());
