@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
             bool command_sent     = session->asyncCommand(std::move(req), [cmd_start_time](
                                                                           const sc_api::core::AsyncCommandResult& result) {
                 auto cmd_reply_time = std::chrono::high_resolution_clock::now();
-                assert(result.getResultCode() == 0);
+                assert(result.getResultCode() == sc_api::ResultCode::ok);
                 assert(result.getPayload());
 
                 sc_api::core::util::BsonReader r(result.getPayload());
