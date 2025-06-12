@@ -5,7 +5,35 @@ Simucube API is intended for interacting with Simucube devices and Tuner softwar
 SC-API provides interface to control and get information about Simucube devices.
 API allows generating force feedback effects and reading variable data from devices and Tuner.
 
-Current API implementation supports C++17.
+Current API implementation uses C++17.
+
+# Current state of API
+
+Currently API is mostly focused on needs of simulator developers and tools that want to directly interract with the devices.
+API does not currently offer way to edit or switch Tuner device profiles.
+This functionality will be implemented later and possibly with slightly different communication methods to make it easier to build external tools.
+
+Currently API is in alpha state and does not offer API or ABI compatibility to future API or Tuner versions.
+This API version is only designed to work with one specific Tuner version and using any other Tuner version will likely not work.
+In this early phase we want to be ably to make significant changes to the implementation if there is need for that and we don't want any limitations.
+This means that any API user has to rebuilt their application with new API version when new Tuner version is released.
+
+API version 1.0 will be the first stable version and from that onwards the ABI between API and the backend (Simucube Tuner) will be considered stable. At that point releasing
+application based on this API is safe to do without intention to keep up with updates to Tuner and API as application will continue to function.
+New functionality will be added, but old functionality is kept backwards compatible.
+
+Currently supported Tuner version: [Simucube Tuner 2.6.0](https://downloads.simucube.com/SimucubeTunerSetup-2.6.0.exe)
+
+# Contributing
+
+This project uses [Github issues](https://github.com/Simucube/sc-api/issues) for managing bug reports. Do note that during this phase, API is only guaranteed to work
+with the "Currently supported Tuner version" listed above.
+Try searching if there is already existing issue regarding the problem and only report issues that occur when using matching Tuner and API versions. 
+
+Feature requests and questions can also be asked through issues. Remember to tag the issue correctly.
+
+Pull requests are welcome, but we likely won't accept any that modify contents of core/ directory, because it is exported from internal sources.
+We'll try to move more of the functionality out of "core" over time and limit "core" to just contain low-level protocol.
 
 ## Common terms
 
@@ -18,7 +46,8 @@ Current API implementation supports C++17.
 - **Action** - Binary formatted command that is sent through UDP and won't be replied. Used for low latency telemetry and effect pipeline data
 - **Command** - BSON formatted request response protocol over TCP. Used for bidirectional async communication and configuration with Tuner
 
-# Features {#Features}
+
+# Features
 
 ## Device info
 
@@ -76,29 +105,13 @@ Telemetry definition:
 
 ## Sim data
 
-- A way to give Simucube Tuner information about the current simulator state and play session
+Allows giving and receiving information about the current simulator state and play session:
   - Allows Simucube Tuner to identify currently running game and used vehicle
   - Allows API users to fetch this information from other sources
-- 
-
-# Doxygen html documentation
-
-Generated HTML documentation is available by opening sc-api/docs/html/index.html
-It contains more information about the API and its usage.
+  
+Data is represented by BSON document that is shared through shared memory block and can be updated with commands.
 
 
-# Directory structure
 
-```
-    SimucubeTuner/
-        tuner.exe - Use this to start Simucube Tuner that handles all communication between sc-api and devices
-    sc-api/
-        docs/ - Documentation
-            html/ - Generated Doxygen documentation and some handwritten general documentation
-        inc/ - API include directory
-        src/ - API source files
-        examples/ - Simple example applications demonstrating API features
-        view/ - Tools for helping to interact with SC-API
-            sc-api-view.exe - Allows viewing and plotting variable data and which should help with debugging effects and seeing what data is available. It can also save the full device information BSON data as a JSON file.
-            sc-api-test_tool.exe - Allows viewing device information data by device and configuring pipelines to generate simple ffb effects for ActivePedals.
-```
+
+
