@@ -5,17 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 option(SC_API_PYTHON "Enable building Python bindings (Python libraries and pybind11 required)" OFF)
-option(SC_API_EXAMPLES "Enable building example applications" ${sc_api_IS_TOP_LEVEL})
-option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${sc_api_IS_TOP_LEVEL})
+option(SC_API_EXAMPLES "Enable building example applications" ${SimucubeAPI_IS_TOP_LEVEL})
+option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${SimucubeAPI_IS_TOP_LEVEL})
 
-option(SC_API_DEFINE_WINNT "Define _WIN32_WINNT" ${sc_api_IS_TOP_LEVEL})
+option(SC_API_DEFINE_WINNT "Define _WIN32_WINNT" ${SimucubeAPI_IS_TOP_LEVEL})
 if (SC_API_DEFINE_WINNT)
     add_compile_definitions(_WIN32_WINNT=0x0601)
 endif()
 
 # Core part of the API is directly exported from Simucube internal sources
 add_subdirectory(core)
-include(cmake/dependencies.cmake)
 
 add_library(sc-api
     inc/sc-api/api.h
