@@ -28,13 +28,10 @@ class TelemetryDefinitions;
 
 namespace sim_data {
 class SimData;
+class SimDataUpdateBuilder;
 }
 
 class FfbPipeline;
-
-namespace sim_data_builder {
-class SimDataUpdateBuilder;
-}
 
 /** Different options for establishing secure session that are supported by the current version of the backend
  */
@@ -294,17 +291,17 @@ public:
 
     /** Execute command to replace Sim data based on the given build
      */
-    bool blockingReplaceSimData(sim_data_builder::SimDataUpdateBuilder& builder);
+    bool blockingReplaceSimData(sim_data::SimDataUpdateBuilder& builder);
 
-    bool asyncReplaceSimData(sim_data_builder::SimDataUpdateBuilder&        builder,
+    bool asyncReplaceSimData(sim_data::SimDataUpdateBuilder&                builder,
                              std::function<void(const AsyncCommandResult&)> result_cb);
 
     /** Execute command to update Sim data based on the given builder.
      *
      * Values are replaced but any unreferenced data is left to previous values.
      */
-    bool blockingUpdateSimData(sim_data_builder::SimDataUpdateBuilder& builder);
-    bool asyncUpdateSimData(sim_data_builder::SimDataUpdateBuilder&        builder,
+    bool blockingUpdateSimData(sim_data::SimDataUpdateBuilder& builder);
+    bool asyncUpdateSimData(sim_data::SimDataUpdateBuilder&                builder,
                             std::function<void(const AsyncCommandResult&)> result_cb);
 
     class PeriodicTimerHandle {

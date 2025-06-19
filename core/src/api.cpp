@@ -77,14 +77,14 @@ void Api::threadFunc() {
                 connected = false;
                 active_session->close();
 
-                {
-                    std::lock_guard lock(m_);
-                    active_session_ = nullptr;
-                }
-                active_session.reset();
-
                 // Wait a moment to avoid reopening closing session
-                std::this_thread::sleep_for(std::chrono::seconds(2));
+                std::unique_lock lock(m_);
+                active_session_ = nullptr;
+                cv_.wait_for(lock, std::chrono::seconds(1), [&]() {
+                    // Don't wait if running_ == false
+                    return !running_;
+                });
+                active_session.reset();
                 continue;
             }
 
@@ -130,7 +130,10 @@ void Api::threadFunc() {
 
         std::unique_lock lock(m_);
         if (!connected) {
-            cv_.wait_for(lock, k_disconnected_monitor_period);
+            cv_.wait_for(lock, k_disconnected_monitor_period, [&]() {
+                // Don't wait if running_ == false
+                return !running_;
+            });
         }
 
         add_notify_index = listeners.size();
@@ -155,7 +158,7 @@ void Api::threadFunc() {
         }
         listener_action_queue_.clear();
 
-        if (!running_) break;
+        bool closing = !running_;
 
         // Unlock main mutex before calling callbacks to avoid deadlocks if this callbacks want to add new listeners
         lock.unlock();
@@ -176,6 +179,8 @@ void Api::threadFunc() {
                 listeners[i]->listenerAdded(this, active_session);
             }
         }
+
+        if (closing) break;
     }
 
     if (active_session) {

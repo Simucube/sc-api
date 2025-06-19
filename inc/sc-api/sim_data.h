@@ -21,19 +21,19 @@ namespace sim_data {
 
 using namespace core::sim_data;
 
-using UpdateBuilder       = ::sc_api::core::sim_data_builder::SimDataUpdateBuilder;
+using UpdateBuilder       = ::sc_api::core::sim_data::SimDataUpdateBuilder;
 
-using VehiclesBuilder     = ::sc_api::core::sim_data_builder::TypedListBuilder<VehiclePropertyClass>;
-using VehicleBuilder      = ::sc_api::core::sim_data_builder::TypedBuilder<VehiclePropertyClass>;
-using ParticipantsBuilder = ::sc_api::core::sim_data_builder::TypedNumIdListBuilder<ParticipantPropertyClass>;
-using ParticipantBuilder  = ::sc_api::core::sim_data_builder::TypedBuilder<ParticipantPropertyClass>;
-using TracksBuilder       = ::sc_api::core::sim_data_builder::TypedListBuilder<TrackPropertyClass>;
-using TrackBuilder        = ::sc_api::core::sim_data_builder::TypedBuilder<TrackPropertyClass>;
-using TiresBuilder        = ::sc_api::core::sim_data_builder::TypedNumIdListBuilder<TirePropertyClass>;
-using TireBuilder         = ::sc_api::core::sim_data_builder::TypedBuilder<TirePropertyClass>;
-using SimBuilder          = ::sc_api::core::sim_data_builder::TypedBuilder<SimPropertyClass>;
-using SessionsBuilder     = ::sc_api::core::sim_data_builder::TypedListBuilder<SessionPropertyClass>;
-using SessionBuilder      = ::sc_api::core::sim_data_builder::TypedBuilder<SessionPropertyClass>;
+using VehiclesBuilder     = ::sc_api::core::sim_data::TypedListBuilder<VehiclePropertyClass>;
+using VehicleBuilder      = ::sc_api::core::sim_data::TypedBuilder<VehiclePropertyClass>;
+using ParticipantsBuilder = ::sc_api::core::sim_data::TypedNumIdListBuilder<ParticipantPropertyClass>;
+using ParticipantBuilder  = ::sc_api::core::sim_data::TypedBuilder<ParticipantPropertyClass>;
+using TracksBuilder       = ::sc_api::core::sim_data::TypedListBuilder<TrackPropertyClass>;
+using TrackBuilder        = ::sc_api::core::sim_data::TypedBuilder<TrackPropertyClass>;
+using TiresBuilder        = ::sc_api::core::sim_data::TypedNumIdListBuilder<TirePropertyClass>;
+using TireBuilder         = ::sc_api::core::sim_data::TypedBuilder<TirePropertyClass>;
+using SimBuilder          = ::sc_api::core::sim_data::TypedBuilder<SimPropertyClass>;
+using SessionsBuilder     = ::sc_api::core::sim_data::TypedListBuilder<SessionPropertyClass>;
+using SessionBuilder      = ::sc_api::core::sim_data::TypedBuilder<SessionPropertyClass>;
 
 }  // namespace sim_data
 

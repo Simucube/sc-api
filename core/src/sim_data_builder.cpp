@@ -1,6 +1,6 @@
 #include "sc-api/core/sim_data_builder.h"
 
-namespace sc_api::core::sim_data_builder {
+namespace sc_api::core::sim_data {
 
 static constexpr char k_hex[] = "0123456789abcdef";
 
@@ -148,4 +148,4 @@ void TypedBuilderBase::setImpl(std::string_view key, std::string_view val) { b_.
 
 void TypedBuilderBase::setImpl(std::string_view key, bool val) { b_.docAddElement(key, val); }
 
-}  // namespace sc_api::core::sim_data_builder
+}  // namespace sc_api::core::sim_data

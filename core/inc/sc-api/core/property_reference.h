@@ -8,7 +8,8 @@
 #define SC_API_CORE_PROPERTY_DEFINITION_H_
 #include <string_view>
 
-namespace sc_api {
+namespace sc_api::core {
+namespace sim_data {
 
 struct PropertyRef {
     std::string_view name;
@@ -51,6 +52,7 @@ using TirePropertyRef = TypedAndClassifiedPropertyRef<Type, TirePropertyClass>;
 template <typename Type>
 using SessionPropertyRef = TypedAndClassifiedPropertyRef<Type, SessionPropertyClass>;
 
-}  // namespace sc_api
+}  // namespace sim_data
+}  // namespace sc_api::core
 
 #endif  // SC_API_PROPERTY_DEFINITION_H_

@@ -169,26 +169,26 @@ ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
     return result_code;
 }
 
-bool Session::blockingReplaceSimData(sim_data_builder::SimDataUpdateBuilder& builder) {
+bool Session::blockingReplaceSimData(sim_data::SimDataUpdateBuilder& builder) {
     CommandRequest req;
     req.initializeFrom("sim_data", "replace", builder.finish().first);
     return blockingSimpleCommand(std::move(req)) == ResultCode::ok;
 }
 
-bool Session::asyncReplaceSimData(sim_data_builder::SimDataUpdateBuilder&        builder,
+bool Session::asyncReplaceSimData(sim_data::SimDataUpdateBuilder&                builder,
                                   std::function<void(const AsyncCommandResult&)> result_cb) {
     CommandRequest req;
     req.initializeFrom("sim_data", "replace", builder.finish().first);
     return asyncCommand(std::move(req), std::move(result_cb));
 }
 
-bool Session::blockingUpdateSimData(sim_data_builder::SimDataUpdateBuilder& builder) {
+bool Session::blockingUpdateSimData(sim_data::SimDataUpdateBuilder& builder) {
     CommandRequest req;
     req.initializeFrom("sim_data", "update", builder.finish().first);
     return blockingSimpleCommand(std::move(req)) == ResultCode::ok;
 }
 
-bool Session::asyncUpdateSimData(sim_data_builder::SimDataUpdateBuilder&        builder,
+bool Session::asyncUpdateSimData(sim_data::SimDataUpdateBuilder&                builder,
                                  std::function<void(const AsyncCommandResult&)> result_cb) {
     CommandRequest req;
     req.initializeFrom("sim_data", "update", builder.finish().first);
@@ -532,7 +532,12 @@ Session::State Session::runUntilStateChanges() {
 
 void Session::stop() {
     if (!p_) return;
-    p_->io_ctx.stop();
+    try {
+        p_->io_ctx.stop();
+    } catch (const asio::system_error& e) {
+        // Shouldn't happen. This is just to clean clang-tidy warning
+        std::cerr << "SC-API: exception during Session::stop: " << e.what() << std::endl;
+    }
 }
 
 Session::State Session::getState() const { return state_; }
@@ -596,7 +601,6 @@ void Session::Internal::startReceive() {
 
                 startReceive();
             } else if ((asio::error::eof == ec) || (asio::error::connection_reset == ec)) {
-                std::cerr << "Disconnected" << std::endl;
                 main_socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
                 main_socket.close(ec);
 
@@ -678,7 +682,6 @@ void Session::Internal::parsePacket(const uint8_t* data, int32_t size) {
     }
 
     if (cmd_id != -1 && !BsonReader::isError(e)) {
-        std::cerr << "Received cmd=" << cmd_id << std::endl;
         std::unique_lock lock(main_socket_mutex);
         auto             callback_it = command_result_handlers.find(cmd_id);
         if (callback_it != command_result_handlers.end()) {

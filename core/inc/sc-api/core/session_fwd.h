@@ -12,7 +12,6 @@
 #include <string_view>
 #include <vector>
 
-#include "protocol/commands.h"
 #include "result.h"
 
 namespace sc_api::core {

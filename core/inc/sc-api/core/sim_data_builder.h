@@ -6,7 +6,7 @@
 #include "sc-api/core/property_reference.h"
 #include "util/bson_builder.h"
 
-namespace sc_api::core::sim_data_builder {
+namespace sc_api::core::sim_data {
 
 class BuilderBase {
 public:
@@ -158,6 +158,6 @@ private:
     bool        activate_sim_;
 };
 
-}  // namespace sc_api::core::sim_data_builder
+}  // namespace sc_api::core::sim_data
 
 #endif  // SC_API_CORE_SIM_DATA_BUILDER_H_
