@@ -16,16 +16,16 @@ This functionality will be implemented later and possibly with slightly differen
 Currently API is in alpha state and does not offer API or ABI compatibility to future API or Tuner versions.
 This API version is only designed to work with one specific Tuner version and using any other Tuner version will likely not work.
 In this early phase we want to be ably to make significant changes to the implementation if there is need for that and we don't want any limitations.
-This means that any API user has to rebuilt their application with new API version when new Tuner version is released.
+This means that any API user may have to rebuilt their application with new API version when new Tuner version is released.
 
 API version 1.0 will be the first stable version and from that onwards the ABI between API and the backend (Simucube Tuner) will be considered stable. At that point releasing
 application based on this API is safe to do without intention to keep up with updates to Tuner and API as application will continue to function.
-New functionality will be added, but old functionality is kept backwards compatible.
+New functionality will be added, but old functionality is kept backwards compatible. Target timeline for releasing first stable version is during Fall 2025.
 
 Currently supported Tuner version: [Simucube Tuner 2.6.0](https://downloads.simucube.com/SimucubeTunerSetup-2.6.0.exe)
 
-Simucube API tools: https://downloads.simucube.com/sc-api-tools-2025-06-19.7z
-These simple tools allow viewing available variable data, device and sim data information. They also allow creating simple effect pipelines to test functionality.
+[Simucube API tools](https://downloads.simucube.com/sc-api-tools-2025-06-19.7z) allow viewing available variable data, device and sim data information.
+They also allow creating simple effect pipelines to test functionality. These use the API to fetch all information and just display it.
 
 ## Device support
 
