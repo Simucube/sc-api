@@ -24,6 +24,9 @@ New functionality will be added, but old functionality is kept backwards compati
 
 Currently supported Tuner version: [Simucube Tuner 2.6.0](https://downloads.simucube.com/SimucubeTunerSetup-2.6.0.exe)
 
+Simucube API tools: https://downloads.simucube.com/sc-api-tools-2025-06-19.7z
+These simple tools allow viewing available variable data, device and sim data information. They also allow creating simple effect pipelines to test functionality.
+
 ## Device support
 
 Currently support is mostly focused on ActivePedal to allow using full capabilities of this new type of device.
