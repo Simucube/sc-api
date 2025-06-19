@@ -5,7 +5,7 @@ Simucube API is intended for interacting with Simucube devices and Tuner softwar
 SC-API provides interface to control and get information about Simucube devices.
 API allows generating force feedback effects and reading variable data from devices and Tuner.
 
-Current API implementation uses C++17.
+Current API implementation uses C++17 and supports only Windows platform.
 
 # Current state of API
 
@@ -23,6 +23,12 @@ application based on this API is safe to do without intention to keep up with up
 New functionality will be added, but old functionality is kept backwards compatible.
 
 Currently supported Tuner version: [Simucube Tuner 2.6.0](https://downloads.simucube.com/SimucubeTunerSetup-2.6.0.exe)
+
+## Device support
+
+Currently support is mostly focused on ActivePedal to allow using full capabilities of this new type of device.
+Device information is provided for connected wireless wheels and SC-link Hub handling the connection.
+Limited support for SC2 will arrive later at least to provide consistent device information support, but it is unlikely that effect pipelines will ever be supported by SC2 due to completely different architecture and design.
 
 # Contributing
 
