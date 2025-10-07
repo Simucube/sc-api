@@ -18,6 +18,9 @@ namespace telemetry {
 /** Is game physics currently running -> Should we generate telemetry effects */
 inline constexpr TelemetryReference<bool> physics_running{{ "physics_running" }};
 
+/** Telemetry is generated for purposes of testing effects. Additional safety limits are applied */
+inline constexpr TelemetryReference<bool> telemetry_emulation{{ "telemetry_emulation" }};
+
 /** True, when the engine is running */
 inline constexpr TelemetryReference<bool> engine_running{{ "engine_running" }};
 
@@ -164,6 +167,9 @@ inline constexpr TelemetryReference<float> brake_balance_front{{ "brake_balance_
 
 /** Brake input that the simulator uses 0 - 1 */
 inline constexpr TelemetryReference<float> brake_input{{ "brake_input" }};
+
+/** Throttle input that the simulator uses 0 - 1 */
+inline constexpr TelemetryReference<float> throttle_input{{ "throttle_input" }};
 
 /** Player lap time in seconds from the previous completed lap */
 inline constexpr TelemetryReference<float> lap_time_previous{{ "lap_time_previous" }};

@@ -354,6 +354,8 @@ bool DeviceInfo::Data::parse(const uint8_t* bson) {
                 usb_info.pid = r.int32Value();
             } else if (r.key() == "usb_vid") {
                 usb_info.vid = r.int32Value();
+            } else if (r.key() == "parent_logical_id") {
+                parent_session_id_ = DeviceSessionId{(uint16_t)r.int32Value()};
             }
         } else if (e == E::ELEMENT_BOOL) {
             if (r.key() == "is_connected") {

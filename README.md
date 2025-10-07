@@ -20,9 +20,9 @@ This means that any API user may have to rebuilt their application with new API 
 
 API version 1.0 will be the first stable version and from that onwards the ABI between API and the backend (Simucube Tuner) will be considered stable. At that point releasing
 application based on this API is safe to do without intention to keep up with updates to Tuner and API as application will continue to function.
-New functionality will be added, but old functionality is kept backwards compatible. Target timeline for releasing first stable version is during Fall 2025.
+New functionality will be added, but old functionality is kept backwards compatible. Target timeline for releasing first stable version is early 2026.
 
-Currently supported Tuner version: [Simucube Tuner 2.6.1](https://downloads.simucube.com/SimucubeTunerSetup-2.6.1.exe)
+Currently supported Tuner version: [Simucube Tuner 2.6](https://downloads.simucube.com/SimucubeTunerSetup-2.6.3.exe)
 
 [Simucube API tools](https://downloads.simucube.com/sc-api-tools-2025-06-19.7z) allow viewing available variable data, device and sim data information.
 They also allow creating simple effect pipelines to test functionality. These use the API to fetch all information and just display it.

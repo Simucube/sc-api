@@ -12,3 +12,7 @@ target_link_libraries(sc-api-example-variable_definitions PRIVATE sc-api)
 
 add_executable(sc-api-example-pedal_state pedal_state.cpp)
 target_link_libraries(sc-api-example-pedal_state PRIVATE sc-api)
+
+
+add_executable(sc-api-example-device_info device_info.cpp)
+target_link_libraries(sc-api-example-device_info PRIVATE sc-api)

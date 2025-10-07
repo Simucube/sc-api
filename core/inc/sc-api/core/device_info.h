@@ -170,6 +170,8 @@ public:
     std::string_view getManufacturerName() const { return d_.manufacturer_name_; }
     DeviceRole       getRole() const { return d_.role_; }
 
+    DeviceSessionId getParentSessionId() const { return d_.parent_session_id_; }
+
     /** Was this device connected at the time the device info was fetched */
     bool isConnected() const { return d_.is_connected_; }
 
@@ -190,6 +192,7 @@ private:
         bool                         parse(const uint8_t* bson);
         std::string_view             uid_;
         DeviceSessionId              session_id_;
+        DeviceSessionId              parent_session_id_;
         DeviceRole                   role_;
         bool                         is_connected_ = false;
         std::vector<Control>         controls_;
