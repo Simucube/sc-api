@@ -53,6 +53,11 @@ inline constexpr DeviceVariableReference<float> bite_point{"ww.bite_point"};
 
 }  // namespace wirelesswheel
 
+namespace sc2 {
+
+inline constexpr DeviceVariableReference<float> profile_max_torque{"sc2.profile_max_torque_Nm"};
+
+}
 }  // namespace sc_api::core::variable
 
 #endif  // SC_API_CORE_VARIABLE_REFERENCES_H
