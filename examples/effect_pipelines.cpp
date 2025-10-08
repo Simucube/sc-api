@@ -13,24 +13,24 @@
 
 int main(int argc, char* argv[]) {
     sc_api::Api                              api_thread;
-    std::unique_ptr<sc_api::Api::EventQueue> eventQueue = api_thread.createEventQueue();
+    std::unique_ptr<sc_api::Api::EventQueue> event_queue = api_thread.createEventQueue();
 
-    sc_api::ApiUserInformation apiUserInformation;
-    apiUserInformation.display_name   = "example2";
-    apiUserInformation.type           = "";
-    apiUserInformation.path           = "";
-    apiUserInformation.author         = "Simucube";
-    apiUserInformation.version_string = "";
+    sc_api::ApiUserInformation api_user_information;
+    api_user_information.display_name   = "example2";
+    api_user_information.type           = "";
+    api_user_information.path           = "";
+    api_user_information.author         = "Simucube";
+    api_user_information.version_string = "";
 
     sc_api::NoAuthControlEnabler control_enabler(&api_thread, sc_api::Session::control_ffb_effects, "example2",
-                                                 apiUserInformation);
+                                                 api_user_information);
 
     std::shared_ptr<sc_api::Session> session;
     sc_api::DeviceSessionId          brake_ap;
     sc_api::DeviceSessionId          throttle_ap;
-    auto                     timeout     = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-    std::cout << "Wait 10s for AP brake and throttle to connect" << std::endl;
-    while (auto opt_event = eventQueue->tryPopUntil(timeout)) {
+    auto                             timeout = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    std::cout << "Wait 5s for AP brake and throttle to connect" << std::endl;
+    while (auto opt_event = event_queue->tryPopUntil(timeout)) {
         const sc_api::Event event = *opt_event;
 
         // Wait for session to connect and control to be available
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<sc_api::device_info::FullInfo> device_info = session->getDeviceInfo();
     for (const sc_api::device_info::DeviceInfo& device : *device_info) {
         std::cout << "Device UID: " << device.getUid() << " Session id: " << device.getSessionId().id
-                  << " role: " << toString(device.getRole());
+                  << " role: " << toString(device.getRole()) << std::endl;
     }
 
     if (!brake_ap && !throttle_ap) {
@@ -96,17 +96,24 @@ int main(int argc, char* argv[]) {
     auto start_time       = sc_api::Clock::now();
 
     // 1000Hz update rate
+    // Usually this should match what ever is the simulation rate of the system
     auto update_rate      = std::chrono::milliseconds(1);
 
-    // Give 3ms time for the samples to reach the pedal and to give some time for pedal to interpolate between
-    // separate samples.
-    auto sampleTimeOffset = std::chrono::milliseconds(3);
+    // Give 5ms time for the samples to reach the pedal and to give some time for pedal to interpolate between
+    // separate samples to make transitions smooth. Using lower values often works but if provided samples don't
+    // overlap smoothly, there is risk that there are glitches when pedal runs out of samples to play or sample
+    // arrives so late that there isn't any more time to do as smooth linear interpolation as was intended
+    auto sample_time_offset = std::chrono::milliseconds(5);
+    
+    // This determines how long sample will play if there are not additional samples provided or following
+    // samples take too long to arrive (eg. PC lags)
+    auto sample_length      = std::chrono::milliseconds(10);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     float force_N = 2;
     while (true) {
-        while (auto event = eventQueue->tryPop()) {
+        while (auto event = event_queue->tryPop()) {
             if (auto* s = sc_api::event::getIfSessionStateChanged(&event)) {
                 if (s->state != sc_api::SessionState::connected_control) {
                     std::cerr << "Session was disconnected. Closing example." << std::endl;
@@ -115,6 +122,12 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // This example uses current time to specify the start time of the pipeline samples. This is only reliable if
+        // sample length is so long that it compensates for scheduling jitter and other sources of timing inaccuracy in
+        // this side of the API. 
+        //
+        // If we would generate multiple different samples with lower update rate, it would be better to calculate
+        // sample start time based on the end time of the previous sent sample set
         auto    cur_time     = sc_api::Clock::now();
         float   freq         = 20.0f;
 
@@ -131,16 +144,17 @@ int main(int argc, char* argv[]) {
         float                     samples[k_sample_count] = {v * force_N, v * force_N};
 
         if (pipelineT &&
-            !pipelineT->generateEffect(cur_time + sampleTimeOffset, update_rate * 2, samples, k_sample_count)) {
+            !pipelineT->generateEffect(cur_time + sample_time_offset, sample_length, samples, k_sample_count)) {
             std::cerr << "T failed\n";
         }
         if (pipelineB &&
-            !pipelineB->generateEffect(cur_time + sampleTimeOffset, update_rate * 2, samples, k_sample_count)) {
+            !pipelineB->generateEffect(cur_time + sample_time_offset, sample_length, samples, k_sample_count)) {
             std::cerr << "B failed\n";
         }
 
         // Do some busy looping while we wait for the next update time
-        // this will cause some scheduling jitter
+        // This is stupid way to do this, but it works for this. Proper use cases should use timer to handle effect
+        // generation
         while (sc_api::Clock::now() < cur_time + update_rate) {
             std::this_thread::yield();
         }
