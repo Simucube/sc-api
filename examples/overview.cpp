@@ -18,7 +18,8 @@ static void telemetryThread(sc_api::core::Api* api) {
 
     sc_api::core::Telemetry                   physics_running(sc_api::telemetry::physics_running, true);
     sc_api::core::Telemetry                   engine_rpm_telemetry(sc_api::telemetry::engine_rpm, 0.0f);
-    std::vector<sc_api::core::TelemetryBase*> telemetries({&engine_rpm_telemetry, &physics_running});
+
+    engine_rpm_update_group.add({&physics_running, &engine_rpm_telemetry});
 
     auto api_event_queue = api->createEventQueue();
 
