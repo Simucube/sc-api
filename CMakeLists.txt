@@ -26,6 +26,7 @@ add_library(sc-api
     inc/sc-api/telemetry.h
     inc/sc-api/time.h
     inc/sc-api/variables.h
+    inc/sc-api/led_control.h
     src/api.cpp
     src/events.cpp
 )

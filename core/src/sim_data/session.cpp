@@ -3,6 +3,7 @@
 namespace sc_api::core::sim_data::session {
 
 const SessionPropertyRef<int32_t> player_participant_id{"player_participant_id"};
+const SessionPropertyRef<int32_t> number_of_laps{"number_of_laps"};
 const SessionPropertyRef<std::string_view> player_vehicle_id{"player_vehicle_id"};
 const SessionPropertyRef<std::string_view> track_id{"track_id"};
 const SessionPropertyRef<std::string_view> session_type{"session_type"};

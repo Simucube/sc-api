@@ -72,6 +72,26 @@ bool DeviceInfoProvider::parseAndValidateNewData(const uint8_t* new_data, size_t
 
 namespace sc_api::core::device_info {
 
+RgbLightFeedback RgbLightFeedback::fromFeedback(const Feedback& feedback) {
+    RgbLightFeedback result;
+    result.id      = feedback.id;
+    result.control = feedback.control;
+    result.index   = -1;
+
+    // Only parse if this is actually an rgb_light feedback
+    if (feedback.type != FeedbackType::rgb_light || !feedback.parameters) {
+        return result;
+    }
+
+    // Parse BSON parameters to extract LED index
+    util::BsonReader reader(feedback.parameters);
+    if (reader.seekKey("index") == util::BsonReader::ELEMENT_I32) {
+        result.index = reader.int32Value();
+    }
+
+    return result;
+}
+
 DeviceInfo::DeviceInfo() : full_info_(nullptr) {}
 
 void DeviceInfo::construct(Data&& data, FullInfo* info) {
@@ -404,6 +424,21 @@ bool DeviceInfo::hasFeedbackType(FeedbackType type) const {
         if (feedback.type == type) return true;
     }
     return false;
+}
+
+std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const {
+    std::vector<RgbLightFeedback> rgb_lights;
+
+    for (const auto& feedback : d_.feedbacks_) {
+        if (feedback.type == FeedbackType::rgb_light) {
+            auto rgb_light = RgbLightFeedback::fromFeedback(feedback);
+            if (rgb_light.isValid()) {
+                rgb_lights.push_back(rgb_light);
+            }
+        }
+    }
+
+    return rgb_lights;
 }
 
 BsonBuffer DeviceInfo::getRawBson() const {
