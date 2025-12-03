@@ -149,6 +149,9 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
 
             if (e == E::ELEMENT_STR) {
                 if (r.key() == "variable") {
+                    // Variable references have format "hex_dev_id:variable_name" or just "variable_name" if they refer
+                    // to this device being parsed
+
                     std::string_view var                   = r.stringValue();
 
                     std::string_view::size_type dev_id_pos = var.find(':');
@@ -156,8 +159,8 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
                         c.variable.id                = var;
                         c.variable.device_session_id = this_device_id;
                     } else {
-                        if (std::from_chars(var.data(), var.data() + dev_id_pos, c.variable.device_session_id.id).ec ==
-                            std::errc()) {
+                        if (std::from_chars(var.data(), var.data() + dev_id_pos, c.variable.device_session_id.id, 16)
+                                .ec == std::errc()) {
                             c.variable.id = var.substr(dev_id_pos + 1);
                         } else {
                             // Failed?
@@ -376,10 +379,6 @@ bool DeviceInfo::Data::parse(const uint8_t* bson) {
                 usb_info.vid = r.int32Value();
             } else if (r.key() == "parent_logical_id") {
                 parent_session_id_ = DeviceSessionId{(uint16_t)r.int32Value()};
-            }
-        } else if (e == E::ELEMENT_BOOL) {
-            if (r.key() == "is_connected") {
-                is_connected_ = r.boolValue();
             }
         }
     }

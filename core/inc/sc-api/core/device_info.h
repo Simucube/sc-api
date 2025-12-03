@@ -201,9 +201,6 @@ public:
 
     DeviceSessionId getParentSessionId() const { return d_.parent_session_id_; }
 
-    /** Was this device connected at the time the device info was fetched */
-    bool isConnected() const { return d_.is_connected_; }
-
     std::optional<UsbDeviceInfo> getUsbInfo() const { return d_.usb_info_; }
 
     BsonBuffer getRawBson() const;
@@ -223,7 +220,6 @@ private:
         DeviceSessionId              session_id_;
         DeviceSessionId              parent_session_id_;
         DeviceRole                   role_;
-        bool                         is_connected_ = false;
         std::vector<Control>         controls_;
         std::vector<Input>           inputs_;
         std::vector<Feedback>        feedbacks_;

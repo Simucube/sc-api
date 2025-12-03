@@ -26,8 +26,15 @@ struct EffectPipelineRef {
  * @brief Force feedback effect offset type
  */
 enum class OffsetType {
-    /** Torque in newton meters, positive values rotate clockwise */
+    /** Torque in newton meters, positive values rotate clockwise
+     *
+     * Wheelbase will clamp torque offset to user defined maximum for safety reasons.
+     */
     torque_Nm,
+
+    /** Torque value from -1.0 to 1.0, where 1.0 is user defined maximum torque to clockwise direction
+     */
+    torque_relative,
 
     /** Pedal face force offset, positive values push towards the driver */
     force_N,
