@@ -371,6 +371,14 @@ bool DeviceInfo::Data::parse(const uint8_t* bson) {
                 role_ = deviceRoleFromString(r.stringValue());
             } else if (r.key() == "usb_path") {
                 usb_info.hid_device_path = r.stringValue();
+            } else if (r.key() == "product_id") {
+                product_id_ = r.stringValue();
+            } else if (r.key() == "product_name") {
+                product_name_ = r.stringValue();
+            } else if (r.key() == "manufacturer_id") {
+                manufacturer_id_ = r.stringValue();
+            } else if (r.key() == "manufacturer_name") {
+                manufacturer_name_ = r.stringValue();
             }
         } else if (e == E::ELEMENT_I32) {
             if (r.key() == "usb_pid") {
