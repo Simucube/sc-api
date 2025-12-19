@@ -37,4 +37,8 @@ else ()  # Define target sc-api-asio to override this behavior
     target_include_directories(sc-api-core PRIVATE ${fetchcontent_asio_SOURCE_DIR}/asio/include)
     target_compile_definitions(sc-api-core PRIVATE ASIO_STANDALONE=1 ASIO_NO_DEPRECATED=1)
     target_link_libraries(sc-api-core PRIVATE Threads::Threads)
+    
+    if (MINGW)
+        target_link_libraries(sc-api-core PRIVATE ws2_32)
+    endif ()
 endif ()

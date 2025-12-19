@@ -40,6 +40,8 @@ add_library(sc-api-core
     src/api_core.cpp
     inc/sc-api/core/ffb.h
     src/ffb.cpp
+    inc/sc-api/core/led_control.h
+    src/led_control.cpp
     inc/sc-api/core/time.h
     src/time.cpp
     inc/sc-api/core/compatibility.h

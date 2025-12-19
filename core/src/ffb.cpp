@@ -130,6 +130,9 @@ bool FfbPipeline::configure(const PipelineConfig& config) {
         case OffsetType::torque_Nm:
             offset_type_str = "torque";
             break;
+        case OffsetType::torque_relative:
+            offset_type_str = "torque_relative";
+            break;
     }
 
     switch (config.interpolation_type) {

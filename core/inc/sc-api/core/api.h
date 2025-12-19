@@ -79,9 +79,9 @@ public:
     void addListener(ListenerInterface* listener);
     void removeListener(ListenerInterface* listener);
 
-    /**
+    /** Create EventQueue that receives events when session state changes or new data is available
      *
-     *
+     * @return Unique pointer to created EventQueue
      */
     std::unique_ptr<EventQueue> createEventQueue() { return api_.createEventQueue(); }
 

@@ -134,6 +134,27 @@ struct Feedback {
     explicit operator bool() const { return !id.empty(); }
 };
 
+/** Helper struct for accessing RGB light feedback information
+ *
+ * Parses the BSON parameters from a Feedback entry to provide easy access to RGB light properties.
+ */
+struct RgbLightFeedback {
+    std::string_view id;
+    std::string_view control;
+    int32_t          index = -1;  ///< LED index, -1 if invalid
+
+    /** Construct from a generic Feedback entry
+     *
+     * @param feedback Feedback entry to parse (should have type FeedbackType::rgb_light)
+     * @return RgbLightFeedback with parsed index, or invalid if parsing fails
+     */
+    static RgbLightFeedback fromFeedback(const Feedback& feedback);
+
+    /** Check if this represents a valid RGB light */
+    explicit operator bool() const { return index >= 0; }
+    bool isValid() const { return index >= 0; }
+};
+
 class DeviceInfo {
     friend class sc_api::core::internal::DeviceInfoProvider;
     friend class FullInfo;
@@ -157,6 +178,14 @@ public:
     /** Returns true, if any of this device's feedbacks has the given FeedbackType */
     bool hasFeedbackType(FeedbackType type) const;
 
+    /** Get all RGB light feedbacks for this device
+     *
+     * Filters feedbacks to only include FeedbackType::rgb_light entries and parses their parameters.
+     *
+     * @return Vector of RgbLightFeedback with parsed LED indices
+     */
+    std::vector<RgbLightFeedback> getRgbLights() const;
+
     const std::vector<HidAxisInput>   getHidAxisInput() const { return d_.hid_axis_; }
     const std::vector<HidButtonInput> getHidButtonInput() const { return d_.hid_buttons_; }
 
@@ -171,9 +200,6 @@ public:
     DeviceRole       getRole() const { return d_.role_; }
 
     DeviceSessionId getParentSessionId() const { return d_.parent_session_id_; }
-
-    /** Was this device connected at the time the device info was fetched */
-    bool isConnected() const { return d_.is_connected_; }
 
     std::optional<UsbDeviceInfo> getUsbInfo() const { return d_.usb_info_; }
 
@@ -194,7 +220,6 @@ private:
         DeviceSessionId              session_id_;
         DeviceSessionId              parent_session_id_;
         DeviceRole                   role_;
-        bool                         is_connected_ = false;
         std::vector<Control>         controls_;
         std::vector<Input>           inputs_;
         std::vector<Feedback>        feedbacks_;

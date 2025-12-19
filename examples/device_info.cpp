@@ -14,6 +14,8 @@ void printDeviceInfo(const std::shared_ptr<sc_api::device_info::FullInfo> info) 
     for (const sc_api::device_info::DeviceInfo& device : *info) {
         std::cout << "UID: " << device.getUid() << " Session id: " << device.getSessionId().id
                   << " role: " << toString(device.getRole()) << std::endl;
+        std::cout << "\tManufacturer id: " << device.getManufacturerId() << '\n';
+        std::cout << "\tProduct id: " << device.getProductId() << '\n';
 
         if (device.getParentSessionId()) {
             std::cout << "\tParent: " << info->getBySessionId(device.getParentSessionId())->getUid() << "\n";

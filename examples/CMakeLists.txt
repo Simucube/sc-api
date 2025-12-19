@@ -16,3 +16,6 @@ target_link_libraries(sc-api-example-pedal_state PRIVATE sc-api)
 
 add_executable(sc-api-example-device_info device_info.cpp)
 target_link_libraries(sc-api-example-device_info PRIVATE sc-api)
+
+add_executable(sc-api-led_control led_control.cpp)
+target_link_libraries(sc-api-led_control PRIVATE sc-api)

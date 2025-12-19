@@ -72,6 +72,26 @@ bool DeviceInfoProvider::parseAndValidateNewData(const uint8_t* new_data, size_t
 
 namespace sc_api::core::device_info {
 
+RgbLightFeedback RgbLightFeedback::fromFeedback(const Feedback& feedback) {
+    RgbLightFeedback result;
+    result.id      = feedback.id;
+    result.control = feedback.control;
+    result.index   = -1;
+
+    // Only parse if this is actually an rgb_light feedback
+    if (feedback.type != FeedbackType::rgb_light || !feedback.parameters) {
+        return result;
+    }
+
+    // Parse BSON parameters to extract LED index
+    util::BsonReader reader(feedback.parameters);
+    if (reader.seekKey("index") == util::BsonReader::ELEMENT_I32) {
+        result.index = reader.int32Value();
+    }
+
+    return result;
+}
+
 DeviceInfo::DeviceInfo() : full_info_(nullptr) {}
 
 void DeviceInfo::construct(Data&& data, FullInfo* info) {
@@ -129,6 +149,9 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
 
             if (e == E::ELEMENT_STR) {
                 if (r.key() == "variable") {
+                    // Variable references have format "hex_dev_id:variable_name" or just "variable_name" if they refer
+                    // to this device being parsed
+
                     std::string_view var                   = r.stringValue();
 
                     std::string_view::size_type dev_id_pos = var.find(':');
@@ -136,8 +159,8 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
                         c.variable.id                = var;
                         c.variable.device_session_id = this_device_id;
                     } else {
-                        if (std::from_chars(var.data(), var.data() + dev_id_pos, c.variable.device_session_id.id).ec ==
-                            std::errc()) {
+                        if (std::from_chars(var.data(), var.data() + dev_id_pos, c.variable.device_session_id.id, 16)
+                                .ec == std::errc()) {
                             c.variable.id = var.substr(dev_id_pos + 1);
                         } else {
                             // Failed?
@@ -348,6 +371,14 @@ bool DeviceInfo::Data::parse(const uint8_t* bson) {
                 role_ = deviceRoleFromString(r.stringValue());
             } else if (r.key() == "usb_path") {
                 usb_info.hid_device_path = r.stringValue();
+            } else if (r.key() == "product_id") {
+                product_id_ = r.stringValue();
+            } else if (r.key() == "product_name") {
+                product_name_ = r.stringValue();
+            } else if (r.key() == "manufacturer_id") {
+                manufacturer_id_ = r.stringValue();
+            } else if (r.key() == "manufacturer_name") {
+                manufacturer_name_ = r.stringValue();
             }
         } else if (e == E::ELEMENT_I32) {
             if (r.key() == "usb_pid") {
@@ -356,10 +387,6 @@ bool DeviceInfo::Data::parse(const uint8_t* bson) {
                 usb_info.vid = r.int32Value();
             } else if (r.key() == "parent_logical_id") {
                 parent_session_id_ = DeviceSessionId{(uint16_t)r.int32Value()};
-            }
-        } else if (e == E::ELEMENT_BOOL) {
-            if (r.key() == "is_connected") {
-                is_connected_ = r.boolValue();
             }
         }
     }
@@ -404,6 +431,21 @@ bool DeviceInfo::hasFeedbackType(FeedbackType type) const {
         if (feedback.type == type) return true;
     }
     return false;
+}
+
+std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const {
+    std::vector<RgbLightFeedback> rgb_lights;
+
+    for (const auto& feedback : d_.feedbacks_) {
+        if (feedback.type == FeedbackType::rgb_light) {
+            auto rgb_light = RgbLightFeedback::fromFeedback(feedback);
+            if (rgb_light.isValid()) {
+                rgb_lights.push_back(rgb_light);
+            }
+        }
+    }
+
+    return rgb_lights;
 }
 
 BsonBuffer DeviceInfo::getRawBson() const {

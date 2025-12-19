@@ -14,6 +14,8 @@ namespace sc_api::core::sim_data::session {
 
 extern const SessionPropertyRef<int32_t> player_participant_id;
 
+extern const SessionPropertyRef<int32_t> number_of_laps;
+
 extern const SessionPropertyRef<std::string_view> player_vehicle_id;
 
 extern const SessionPropertyRef<std::string_view> track_id;
