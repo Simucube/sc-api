@@ -49,8 +49,7 @@ bool SharedMemory::openForReadOnly(const char* path, uint32_t size) {
 #endif
 }
 
-bool SharedMemory::openForReadWrite(const char *path, size_t size)
-{
+bool SharedMemory::openForReadWrite(const char* path, size_t size) {
 #ifdef _WIN32
     shm_handle_ = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, path);
     if (shm_handle_ == nullptr) {
@@ -68,8 +67,7 @@ bool SharedMemory::openForReadWrite(const char *path, size_t size)
 #endif
 }
 
-bool SharedMemory::createForReadWrite(const char *path, size_t size)
-{
+bool SharedMemory::createForReadWrite(const char* path, size_t size) {
 #ifdef _WIN32
     shm_handle_ = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (uint32_t)((uint64_t)size >> 32),
                                      (uint32_t)(size & 0xffffffffu), path);
@@ -90,8 +88,7 @@ bool SharedMemory::createForReadWrite(const char *path, size_t size)
 #endif
 }
 
-bool SharedMemory::openOrCreateForReadWrite(const char *path, size_t size)
-{
+bool SharedMemory::openOrCreateForReadWrite(const char* path, size_t size) {
 #ifdef _WIN32
     if (createForReadWrite(path, size)) {
         return true;
@@ -103,8 +100,7 @@ bool SharedMemory::openOrCreateForReadWrite(const char *path, size_t size)
 #endif
 }
 
-void SharedMemory::close()
-{
+void SharedMemory::close() {
 #ifdef _WIN32
     if (shm_buffer_) {
         UnmapViewOfFile(shm_buffer_);
@@ -119,8 +115,7 @@ void SharedMemory::close()
 #endif
 }
 
-bool SharedMemory::mapBufferOrClose(size_t size, uint32_t access)
-{
+bool SharedMemory::mapBufferOrClose(size_t size, uint32_t access) {
 #ifdef _WIN32
     shm_buffer_ = MapViewOfFile(shm_handle_, access, 0, 0, size);
     if (!shm_buffer_) {
@@ -139,10 +134,7 @@ bool SharedMemory::mapBufferOrClose(size_t size, uint32_t access)
 
 ShmBlock::ShmBlock() {}
 
-ShmBlock::~ShmBlock()
-{
-    close();
-}
+ShmBlock::~ShmBlock() { close(); }
 
 bool ShmBlock::open(const SC_API_PROTOCOL_ShmBlockReference_t& reference) {
     // Verify null termination
@@ -154,24 +146,21 @@ bool ShmBlock::open(const SC_API_PROTOCOL_ShmBlockReference_t& reference) {
         return false;
     }
 
-    shm_buffer_ = reinterpret_cast<const SC_API_PROTOCOL_ShmBlockHeader_t *>(shm_.getBuffer());
+    shm_buffer_ = reinterpret_cast<const SC_API_PROTOCOL_ShmBlockHeader_t*>(shm_.getBuffer());
 
     return true;
 }
 
-void ShmBlock::close()
-{
+void ShmBlock::close() {
     shm_.close();
     shm_buffer_ = nullptr;
 }
 
-bool ShmBlock::isHeaderInitialized() const
-{
-    return ((const SC_API_PROTOCOL_ShmBlockHeader_t *) shm_buffer_)->data_revision_counter >= 2;
+bool ShmBlock::isHeaderInitialized() const {
+    return ((const SC_API_PROTOCOL_ShmBlockHeader_t*)shm_buffer_)->data_revision_counter >= 2;
 }
 
-uint32_t getCurrentProcessId()
-{
+uint32_t getCurrentProcessId() {
 #ifdef _WIN32
     return GetCurrentProcessId();
 #else
@@ -184,15 +173,15 @@ void* alignedAlloc(std::size_t alignment, std::size_t size) {
 
 // MSVC doesn't support std::aligned_alloc because its std::free implementation can't handle that
 // https://en.cppreference.com/w/cpp/memory/c/aligned_alloc
-#ifdef _MSC_VER
+#if defined _MSC_VER || (defined __MINGW32__ && defined __MSVCRT__)
     return _aligned_malloc(size, alignment);
 #else
     return std::aligned_alloc(alignment, size);
 #endif
 }
 
-void alignedFree(void* buf) {
-#ifdef _MSC_VER
+void        alignedFree(void* buf) {
+#if defined _MSC_VER || (defined __MINGW32__ && defined __MSVCRT__)
     return _aligned_free(buf);
 #else
     return std::free(buf);
