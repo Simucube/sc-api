@@ -42,6 +42,11 @@ void bind_exceptions(nb::module_& m) {
         create_exception(m, "SimucubeConnectionError", SimucubeError_type, PyExc_ConnectionError);
 }
 
+void throw_internal_error(const char* msg) {
+    PyErr_SetString(InternalError_type, msg);
+    throw nb::python_error();
+}
+
 void throw_on_error(sc_api::ResultCode rc) {
     using RC = sc_api::ResultCode;
     if (rc == RC::ok) return;

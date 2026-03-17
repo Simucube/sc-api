@@ -16,6 +16,8 @@
 #include <sc-api/core/telemetry.h>
 #include <sc-api/core/type.h>
 
+#include "bind_exceptions.h"
+
 namespace nb = nanobind;
 
 using sc_api::core::ActionResult;
@@ -130,8 +132,18 @@ public:
         }
         ActionResult result = group_.send();
         if (result == ActionResult::failed) {
-            throw std::runtime_error("TelemetryUpdateGroup::send() failed");
+            throw_internal_error("TelemetryUpdateGroup::send() failed");
         }
+    }
+
+    nb::object getitem(const std::string& name) const {
+        auto it = telemetries_.find(name);
+        if (it == telemetries_.end()) {
+            throw nb::key_error(name.c_str());
+        }
+        return std::visit(
+            [](const auto& ptr) -> nb::object { return nb::cast(ptr->getValue()); },
+            it->second);
     }
 
     bool contains(const std::string& name) const {
@@ -204,9 +216,10 @@ void bind_telemetry(nb::module_& m) {
                 const TelemetryDefinition* def =
                     type ? self.find(name, *type) : self.find(name);
                 if (!def) return nb::none();
-                return nb::cast(def, nb::rv_policy::reference);
+                return nb::cast(def, nb::rv_policy::reference_internal);
             },
-            nb::arg("name"), nb::arg("type") = nb::none())
+            nb::arg("name"), nb::arg("type") = nb::none(),
+            nb::keep_alive<0, 1>())
         .def_prop_ro("names",
                       [](const TelemetryDefinitions& self) {
                           std::vector<std::string> names;
@@ -231,6 +244,7 @@ void bind_telemetry(nb::module_& m) {
     nb::class_<TelemetryGroupHelper>(m, "TelemetryUpdateGroup")
         .def(nb::init<TelemetryDefinitions>(), nb::arg("telemetry_definitions"))
         .def("__setitem__", &TelemetryGroupHelper::setitem)
+        .def("__getitem__", &TelemetryGroupHelper::getitem)
         .def("__delitem__", &TelemetryGroupHelper::delitem)
         .def("send", &TelemetryGroupHelper::send)
         .def("__contains__", &TelemetryGroupHelper::contains)

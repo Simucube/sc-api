@@ -56,9 +56,14 @@ void bind_ffb(nb::module_& m) {
                  return a == b;
              })
         .def("__repr__", [](const PipelineConfig& self) {
-            return "<PipelineConfig offset_type=" +
-                   std::to_string(static_cast<int>(self.offset_type)) +
-                   " gain=" + std::to_string(self.gain) + ">";
+            auto enum_name = [](auto val) {
+                return nb::cast<std::string>(nb::repr(nb::cast(val)));
+            };
+            return "<PipelineConfig offset_type=" + enum_name(self.offset_type) +
+                   " interpolation_type=" + enum_name(self.interpolation_type) +
+                   " gain=" + std::to_string(self.gain) +
+                   " filter_type=" + enum_name(self.filter_type) +
+                   " filter_parameter=" + std::to_string(self.filter_parameter) + ">";
         });
 
     // --- FfbPipeline ---
@@ -112,7 +117,7 @@ void bind_ffb(nb::module_& m) {
         .def("__repr__", [](FfbPipeline& self) {
             return "<FfbPipeline device=" +
                    std::to_string(self.getDevice().id) +
-                   " active=" + (self.isActive() ? "true" : "false") + ">";
+                   " active=" + (self.isActive() ? "True" : "False") + ">";
         });
 
     // --- Clock ---
