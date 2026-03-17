@@ -17,6 +17,7 @@
 #include <sc-api/core/led_control.h>
 #include <sc-api/core/session.h>
 #include <sc-api/core/util/event_queue.h>
+#include <sc-api/core/telemetry.h>
 #include <sc-api/core/variables.h>
 
 namespace nb = nanobind;
@@ -208,6 +209,8 @@ void bind_api(nb::module_& m) {
                       })
         .def_prop_ro("variables",
                       [](Session& self) { return self.getVariables(); })
+        .def_prop_ro("telemetries",
+                      [](Session& self) { return self.getTelemetries(); })
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") +
                    session_state_str(self.getState()) +

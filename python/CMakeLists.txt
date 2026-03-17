@@ -9,6 +9,8 @@ nanobind_add_module(_native
     bind_api.cpp
     bind_device_info.cpp
     bind_variables.cpp
+    bind_telemetry.cpp
+    bind_ffb.cpp
 )
 target_link_libraries(_native PRIVATE sc-api)
 target_compile_definitions(_native PRIVATE SC_API_VERSION="${PROJECT_VERSION}")

@@ -2,6 +2,7 @@
 
 #include <sc-api/core/action.h>
 #include <sc-api/core/device_info_definitions.h>
+#include <sc-api/core/ffb.h>
 #include <sc-api/core/result.h>
 #include <sc-api/core/session.h>
 #include <sc-api/core/session_fwd.h>
@@ -11,6 +12,9 @@ namespace nb = nanobind;
 
 using sc_api::ResultCode;
 using sc_api::core::ActionResult;
+using sc_api::core::FilterType;
+using sc_api::core::InterpolationType;
+using sc_api::core::OffsetType;
 using sc_api::core::Session;
 using sc_api::core::SessionState;
 using sc_api::core::Type;
@@ -281,4 +285,20 @@ void bind_enums(nb::module_& m) {
         .value("unknown", device_info::InputRole::unknown)
         .value("unmapped", device_info::InputRole::unmapped)
         .value("other", device_info::InputRole::other);
+
+    nb::enum_<OffsetType>(m, "OffsetType")
+        .value("torque_Nm", OffsetType::torque_Nm)
+        .value("torque_relative", OffsetType::torque_relative)
+        .value("force_N", OffsetType::force_N)
+        .value("force_relative", OffsetType::force_relative)
+        .value("position_mm", OffsetType::position_mm);
+
+    nb::enum_<InterpolationType>(m, "InterpolationType")
+        .value("none", InterpolationType::none)
+        .value("linear", InterpolationType::linear);
+
+    nb::enum_<FilterType>(m, "FilterType")
+        .value("none", FilterType::none)
+        .value("low_pass", FilterType::low_pass)
+        .value("slew_rate_limit", FilterType::slew_rate_limit);
 }

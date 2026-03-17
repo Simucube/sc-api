@@ -8,6 +8,8 @@ void bind_events(nb::module_& m);
 void bind_api(nb::module_& m);
 void bind_device_info(nb::module_& m);
 void bind_variables(nb::module_& m);
+void bind_telemetry(nb::module_& m);
+void bind_ffb(nb::module_& m);
 
 NB_MODULE(_native, m) {
     m.doc() = "Simucube API native bindings";
@@ -19,4 +21,6 @@ NB_MODULE(_native, m) {
     bind_api(m);
     bind_device_info(m);
     bind_variables(m);
+    bind_telemetry(m);
+    bind_ffb(m);
 }

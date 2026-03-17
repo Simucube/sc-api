@@ -51,6 +51,17 @@ from simucube_api._native import (  # noqa: E402
     Type,
     VariableDefinition,
     VariableDefinitions,
+    # Telemetry types
+    TelemetryDefinition,
+    TelemetryDefinitions,
+    TelemetryUpdateGroup,
+    # FFB types
+    PipelineConfig,
+    FfbPipeline,
+    Clock,
+    OffsetType,
+    InterpolationType,
+    FilterType,
     # Exceptions
     SimucubeError,
     StateError,
@@ -103,6 +114,17 @@ __all__ = [
     "Type",
     "VariableDefinition",
     "VariableDefinitions",
+    # Telemetry types
+    "TelemetryDefinition",
+    "TelemetryDefinitions",
+    "TelemetryUpdateGroup",
+    # FFB types
+    "PipelineConfig",
+    "FfbPipeline",
+    "Clock",
+    "OffsetType",
+    "InterpolationType",
+    "FilterType",
     # Exceptions
     "SimucubeError",
     "StateError",
@@ -110,4 +132,11 @@ __all__ = [
     "BusyError",
     "InternalError",
     "SimucubeConnectionError",
+    # Pure-Python helpers
+    "duration_ns_from_hz",
 ]
+
+
+def duration_ns_from_hz(hz: int) -> int:
+    """Convert frequency in Hz to duration in nanoseconds."""
+    return 1_000_000_000 // hz
