@@ -243,7 +243,7 @@ public:
     TelemetryDefinitions& operator=(const TelemetryDefinitions& defs) = default;
 
     const_iterator         begin() const { return s_->defs.begin(); }
-    const_iterator         end() const { return s_->defs.begin(); }
+    const_iterator         end() const { return s_->defs.end(); }
     const_reverse_iterator rbegin() const { return s_->defs.rbegin(); }
     const_reverse_iterator rend() const { return s_->defs.rend(); }
     size_type              size() const { return s_->defs.size(); }
