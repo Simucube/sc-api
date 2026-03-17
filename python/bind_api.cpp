@@ -12,10 +12,12 @@
 
 #include <sc-api/core/api.h>
 #include <sc-api/core/device.h>
+#include <sc-api/core/device_info.h>
 #include <sc-api/core/events.h>
 #include <sc-api/core/led_control.h>
 #include <sc-api/core/session.h>
 #include <sc-api/core/util/event_queue.h>
+#include <sc-api/core/variables.h>
 
 namespace nb = nanobind;
 
@@ -198,6 +200,14 @@ void bind_api(nb::module_& m) {
                 }
                 throw_on_error(rc);
             })
+        .def_prop_ro("device_info",
+                      [](Session& self) -> nb::object {
+                          auto info = self.getDeviceInfo();
+                          if (!info) return nb::none();
+                          return nb::cast(info);
+                      })
+        .def_prop_ro("variables",
+                      [](Session& self) { return self.getVariables(); })
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") +
                    session_state_str(self.getState()) +
