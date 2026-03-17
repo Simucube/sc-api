@@ -79,6 +79,12 @@ public:
         return e;
     }
 
+    /** Returns true if the queue is open for new events */
+    bool isOpen() const {
+        std::lock_guard lock(m_);
+        return open_;
+    }
+
     /** Closes queue from new events
      *
      * No new events will arrive and pop functions will return std::nullopt when all queued events are
@@ -102,7 +108,7 @@ private:
         cv_.notify_one();
     }
 
-    std::mutex                              m_;
+    mutable std::mutex                      m_;
     std::condition_variable                 cv_;
     std::queue<EventT>                      queue_;
     std::weak_ptr<EventProducer<EventT>>    producer_;

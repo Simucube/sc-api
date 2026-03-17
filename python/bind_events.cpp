@@ -1,3 +1,5 @@
+#include "bind_util.h"
+
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
@@ -14,21 +16,6 @@ using sc_api::core::session_event::SessionStateChanged;
 using sc_api::core::session_event::SimDataChanged;
 using sc_api::core::session_event::TelemetryDefinitionsChanged;
 using sc_api::core::session_event::VariableDefinitionsChanged;
-
-static const char* session_state_str(SessionState s) {
-    switch (s) {
-        case SessionState::invalid:
-            return "invalid";
-        case SessionState::connected_monitor:
-            return "connected_monitor";
-        case SessionState::connected_control:
-            return "connected_control";
-        case SessionState::session_lost:
-            return "session_lost";
-        default:
-            return "unknown";
-    }
-}
 
 void bind_events(nb::module_& m) {
     nb::class_<SessionStateChanged>(m, "SessionStateChanged")

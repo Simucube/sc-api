@@ -1,4 +1,5 @@
 #include "bind_exceptions.h"
+#include "bind_util.h"
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
@@ -97,23 +98,6 @@ struct EventIterator {
     std::unique_ptr<EventQueueT> queue;
     std::optional<double> timeout;
 };
-
-// --- Session state string helper ---
-
-static const char* session_state_str(SessionState s) {
-    switch (s) {
-        case SessionState::invalid:
-            return "invalid";
-        case SessionState::connected_monitor:
-            return "connected_monitor";
-        case SessionState::connected_control:
-            return "connected_control";
-        case SessionState::session_lost:
-            return "session_lost";
-        default:
-            return "unknown";
-    }
-}
 
 void bind_api(nb::module_& m) {
     // --- Value types (bound first so they can be used in constructor signatures) ---
@@ -273,8 +257,9 @@ void bind_api(nb::module_& m) {
                     nb::gil_scoped_release release;
                     event = self.queue->tryPopFor(dur);
                 }
-                if (!event) return nb::none();
-                return unwrap_event(*event);
+                if (event) return unwrap_event(*event);
+                if (!self.queue->isOpen()) throw nb::stop_iteration();
+                return nb::none();
             } else {
                 Event event;
                 {
