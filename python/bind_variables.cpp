@@ -25,9 +25,45 @@ using sc_api::core::k_invalid_device_session_id;
 
 // --- read_value: read a scalar from shared memory ---
 
-static nb::object read_value(const VariableDefinition& var) {
-    if (!var.value_ptr || var.type.isArray() || var.type.isBit()) {
+static nb::object read_bit(const VariableDefinition& var) {
+    if (!var.value_ptr || !var.type.isBit()) {
         return nb::none();
+    }
+
+    unsigned bit_idx = var.type.getBitIndex();
+    switch (var.type.getBaseType()) {
+        case Type::u8: {
+            auto val = *reinterpret_cast<const uint8_t*>(var.value_ptr);
+            return nb::cast(static_cast<bool>((val >> bit_idx) & 1));
+        }
+        case Type::u16: {
+            auto val = *reinterpret_cast<const uint16_t*>(var.value_ptr);
+            return nb::cast(static_cast<bool>((val >> bit_idx) & 1));
+        }
+        case Type::u32: {
+            auto val = *reinterpret_cast<const uint32_t*>(var.value_ptr);
+            return nb::cast(static_cast<bool>((val >> bit_idx) & 1));
+        }
+        case Type::i32: {
+            auto val = *reinterpret_cast<const int32_t*>(var.value_ptr);
+            return nb::cast(static_cast<bool>((val >> bit_idx) & 1));
+        }
+        case Type::i64: {
+            auto val = *reinterpret_cast<const int64_t*>(var.value_ptr);
+            return nb::cast(static_cast<bool>((val >> bit_idx) & 1));
+        }
+        default:
+            return nb::none();
+    }
+}
+
+static nb::object read_value(const VariableDefinition& var) {
+    if (!var.value_ptr || var.type.isArray()) {
+        return nb::none();
+    }
+
+    if (var.type.isBit()) {
+        return read_bit(var);
     }
 
     switch (var.type.getBaseType()) {
