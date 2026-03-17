@@ -4,7 +4,7 @@ project(SimucubeAPI VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-option(SC_API_PYTHON "Enable building Python bindings (Python libraries and pybind11 required)" OFF)
+option(SC_API_PYTHON "Enable building Python bindings (Python and nanobind required)" OFF)
 option(SC_API_EXAMPLES "Enable building example applications" ${SimucubeAPI_IS_TOP_LEVEL})
 option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${SimucubeAPI_IS_TOP_LEVEL})
 
@@ -37,6 +37,10 @@ target_link_libraries(sc-api PUBLIC sc-api-core)
 
 if (SC_API_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if (SC_API_PYTHON)
+    add_subdirectory(python)
 endif()
 
 if (SC_API_GENERATE_DOCS)
