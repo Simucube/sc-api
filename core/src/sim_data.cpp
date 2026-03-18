@@ -146,6 +146,8 @@ const Session* SimData::getCurrentSession() const {
     return nullptr;
 }
 
+const std::vector<Tire>& SimData::getTires() const { return r_.tires; }
+
 const Tire* SimData::getTire(int id) const {
     for (auto& t : r_.tires) {
         if (t.getId() == id) return &t;

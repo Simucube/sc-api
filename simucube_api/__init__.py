@@ -62,6 +62,16 @@ from simucube_api._native import (  # noqa: E402
     OffsetType,
     InterpolationType,
     FilterType,
+    # LED control
+    LedControl,
+    # SimData types
+    SimData,
+    Vehicle,
+    Track,
+    Participant,
+    SimSession,
+    Tire,
+    Sim,
     # Exceptions
     SimucubeError,
     StateError,
@@ -125,6 +135,16 @@ __all__ = [
     "OffsetType",
     "InterpolationType",
     "FilterType",
+    # LED control
+    "LedControl",
+    # SimData types
+    "SimData",
+    "Vehicle",
+    "Track",
+    "Participant",
+    "SimSession",
+    "Tire",
+    "Sim",
     # Exceptions
     "SimucubeError",
     "StateError",

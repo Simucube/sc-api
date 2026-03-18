@@ -1,4 +1,5 @@
 #include "bind_exceptions.h"
+#include "bind_sim_data.h"
 #include "bind_util.h"
 
 #include <nanobind/nanobind.h>
@@ -16,6 +17,8 @@
 #include <sc-api/core/events.h>
 #include <sc-api/core/led_control.h>
 #include <sc-api/core/session.h>
+#include <sc-api/core/sim_data.h>
+#include <sc-api/core/sim_data_builder.h>
 #include <sc-api/core/util/event_queue.h>
 #include <sc-api/core/telemetry.h>
 #include <sc-api/core/variables.h>
@@ -211,6 +214,48 @@ void bind_api(nb::module_& m) {
                       [](Session& self) { return self.getVariables(); })
         .def_prop_ro("telemetries",
                       [](Session& self) { return self.getTelemetries(); })
+        .def_prop_ro("sim_data",
+                      [](Session& self) -> nb::object {
+                          auto sd = self.getSimData();
+                          if (!sd) return nb::none();
+                          return nb::cast(sd);
+                      })
+        .def(
+            "update_sim_data",
+            [](Session& self, nb::dict data, const std::string& sim_id,
+               bool activate) {
+                sc_api::core::sim_data::SimDataUpdateBuilder builder(
+                    sim_id, activate);
+                populate_sim_data_builder(builder, data);
+                bool ok;
+                {
+                    nb::gil_scoped_release release;
+                    ok = self.blockingUpdateSimData(builder);
+                }
+                if (!ok) {
+                    throw nb::value_error("Failed to update sim data");
+                }
+            },
+            nb::arg("data"), nb::arg("sim_id"),
+            nb::arg("activate") = true)
+        .def(
+            "replace_sim_data",
+            [](Session& self, nb::dict data, const std::string& sim_id,
+               bool activate) {
+                sc_api::core::sim_data::SimDataUpdateBuilder builder(
+                    sim_id, activate);
+                populate_sim_data_builder(builder, data);
+                bool ok;
+                {
+                    nb::gil_scoped_release release;
+                    ok = self.blockingReplaceSimData(builder);
+                }
+                if (!ok) {
+                    throw nb::value_error("Failed to replace sim data");
+                }
+            },
+            nb::arg("data"), nb::arg("sim_id"),
+            nb::arg("activate") = true)
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") +
                    session_state_str(self.getState()) +
