@@ -6,7 +6,9 @@ project(sc-api-core VERSION 0.0.1)
 add_library(sc-api-core-protocol_types INTERFACE)
 target_include_directories(sc-api-core-protocol_types INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
-add_subdirectory(src/libeddsa)
+if (NOT TARGET libeddsa)
+    add_subdirectory(src/libeddsa)
+endif()
 
 include(sc-api-core.cmake)
 
