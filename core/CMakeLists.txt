@@ -3,8 +3,11 @@ project(sc-api-core VERSION 0.0.1)
 
 # Lightweight INTERFACE target exposing only protocol type definitions.
 # Used by consumers that need types.h without linking the full sc-api-core.
-add_library(sc-api-core-protocol_types INTERFACE)
-target_include_directories(sc-api-core-protocol_types INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+# Guard: host projects (e.g. gorilla) may already define this for firmware use.
+if (NOT TARGET sc-api-core-protocol_types)
+    add_library(sc-api-core-protocol_types INTERFACE)
+    target_include_directories(sc-api-core-protocol_types INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+endif()
 
 if (NOT TARGET libeddsa)
     add_subdirectory(src/libeddsa)
