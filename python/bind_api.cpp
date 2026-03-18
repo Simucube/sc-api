@@ -222,10 +222,27 @@ void bind_api(nb::module_& m) {
                       })
         .def(
             "update_sim_data",
-            [](Session& self, nb::dict data, const std::string& sim_id,
-               bool activate) {
+            [](Session& self, nb::dict data,
+               std::optional<std::string> sim_id, bool activate) {
+                std::string resolved_sim_id;
+                if (sim_id) {
+                    resolved_sim_id = std::move(*sim_id);
+                } else {
+                    if (data.contains("sim")) {
+                        nb::dict sim_dict = nb::cast<nb::dict>(data["sim"]);
+                        if (sim_dict.contains("id")) {
+                            resolved_sim_id =
+                                nb::cast<std::string>(sim_dict["id"]);
+                        }
+                    }
+                    if (resolved_sim_id.empty()) {
+                        throw nb::value_error(
+                            "sim_id must be provided either as a parameter "
+                            "or as data['sim']['id']");
+                    }
+                }
                 sc_api::core::sim_data::SimDataUpdateBuilder builder(
-                    sim_id, activate);
+                    resolved_sim_id, activate);
                 populate_sim_data_builder(builder, data);
                 bool ok;
                 {
@@ -236,14 +253,31 @@ void bind_api(nb::module_& m) {
                     throw nb::value_error("Failed to update sim data");
                 }
             },
-            nb::arg("data"), nb::arg("sim_id"),
+            nb::arg("data"), nb::arg("sim_id") = nb::none(),
             nb::arg("activate") = true)
         .def(
             "replace_sim_data",
-            [](Session& self, nb::dict data, const std::string& sim_id,
-               bool activate) {
+            [](Session& self, nb::dict data,
+               std::optional<std::string> sim_id, bool activate) {
+                std::string resolved_sim_id;
+                if (sim_id) {
+                    resolved_sim_id = std::move(*sim_id);
+                } else {
+                    if (data.contains("sim")) {
+                        nb::dict sim_dict = nb::cast<nb::dict>(data["sim"]);
+                        if (sim_dict.contains("id")) {
+                            resolved_sim_id =
+                                nb::cast<std::string>(sim_dict["id"]);
+                        }
+                    }
+                    if (resolved_sim_id.empty()) {
+                        throw nb::value_error(
+                            "sim_id must be provided either as a parameter "
+                            "or as data['sim']['id']");
+                    }
+                }
                 sc_api::core::sim_data::SimDataUpdateBuilder builder(
-                    sim_id, activate);
+                    resolved_sim_id, activate);
                 populate_sim_data_builder(builder, data);
                 bool ok;
                 {
@@ -254,7 +288,7 @@ void bind_api(nb::module_& m) {
                     throw nb::value_error("Failed to replace sim data");
                 }
             },
-            nb::arg("data"), nb::arg("sim_id"),
+            nb::arg("data"), nb::arg("sim_id") = nb::none(),
             nb::arg("activate") = true)
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") +

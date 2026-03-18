@@ -198,14 +198,17 @@ void add_dict_methods(nb::class_<PySubSection<SubSection>>& cls,
                     return val;
                 }
             }
-            throw nb::key_error(key.c_str());
+            return default_val;
         },
         nb::arg("key"), nb::arg("default") = nb::none());
 
-    cls.def("keys", [table]() {
+    cls.def("keys", [table](const PySubSection<SubSection>& self) {
         nb::list result;
         for (const auto& entry : *table) {
-            result.append(nb::cast(entry.name));
+            nb::object val = entry.getter(self.inner);
+            if (!val.is_none()) {
+                result.append(nb::cast(entry.name));
+            }
         }
         return result;
     });
@@ -446,7 +449,7 @@ void populate_sim_data_builder(SimDataUpdateBuilder& builder, nb::dict data) {
         if (section == "sim") {
             SimBuilder sb;
             apply_dict_to_builder(sb, nb::cast<nb::dict>(item.second),
-                                  get_sim_table());
+                                  get_sim_table(), "id");
             builder.buildAndSet(sb);
 
         } else if (section == "vehicles") {
