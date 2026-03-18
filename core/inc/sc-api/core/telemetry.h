@@ -214,7 +214,6 @@ private:
     uint16_t                    set_payload_size_ = 0;
     uint16_t                    group_id_         = 0;
     bool                        prepared_         = false;
-    bool                        enabled_          = false;
 };
 
 /** List of all available telemetries
