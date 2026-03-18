@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "simucube-api"
 description = "Python bindings for Simucube device control"
-license = {text = "Proprietary"}
+license = {text = "MIT"}
 dynamic = ["version"]
 requires-python = ">=3.11"
 dependencies = ["numpy"]
