@@ -204,7 +204,7 @@ inline auto SimDataSubSection::getPropertyOrDefault(const TypedPropertyRef<T>& r
 template <typename T>
 inline bool SimDataSubSection::tryGetProperty(const TypedPropertyRef<T>& ref, T& val) const {
     util::BsonReader r(bson_ptr_);
-    r.tryFindAndGet(ref.name, val);
+    return r.tryFindAndGet(ref.name, val);
 }
 
 }  // namespace sim_data

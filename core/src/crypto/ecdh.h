@@ -88,8 +88,10 @@ extern "C" {
 
 #define ECC_SHARED_SECRET_SIZE ECC_PUB_KEY_SIZE
 
+#define ECC_BITVEC_NWORDS (((ECC_CURVE_DEGREE) + 3 + 31) / 32)
+
 /******************************************************************************/
-int gf2point_on_curve(const uint32_t* x, const uint32_t* y);
+int gf2point_on_curve(const uint32_t x[ECC_BITVEC_NWORDS], const uint32_t y[ECC_BITVEC_NWORDS]);
 
 /* NOTE: assumes private is filled with random data before calling */
 int ecdh_generate_keys(uint8_t* public_key, uint8_t* private_key);

@@ -43,7 +43,7 @@ BsonReader::BsonReader(const uint8_t* buffer, size_t size) noexcept : buffer_(bu
     }
 
     int32_t doc_size = geti32(buffer);
-    if (doc_size < 0 || doc_size > size_) {
+    if (doc_size < 0 || static_cast<std::size_t>(doc_size) > size_) {
         cur_type_ = ELEMENT_FORMAT_ERROR;
         return;
     }
@@ -524,7 +524,7 @@ int32_t BsonReader::getTotalDocumentSize(const uint8_t* buf) { return geti32(buf
 
 bool BsonReader::validate(const uint8_t* buf, std::size_t s) {
     if (s < 5) return false;
-    if (getTotalDocumentSize(buf) > s) return false;
+    if (static_cast<std::size_t>(getTotalDocumentSize(buf)) > s) return false;
 
     BsonReader r(buf, s);
     return r.validate();
