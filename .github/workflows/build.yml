@@ -51,3 +51,20 @@ jobs:
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: ctest --build-config ${{ matrix.build_type }}
+
+  python-wheel:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pypa/cibuildwheel@v2.22
+      env:
+        CIBW_BUILD: "cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
+        CIBW_TEST_COMMAND: >-
+          python -c "import simucube_api; print(simucube_api.__version__)"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: python-wheels
+        path: ./wheelhouse/*.whl
