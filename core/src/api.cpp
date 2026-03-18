@@ -43,9 +43,13 @@ void Api::removeListener(ListenerInterface* listener) {
 
         if (active_session_) {
             active_session_->stop();
-        } else {
-            cv_.notify_all();
         }
+        // Always notify cv_ so the background thread wakes even if it is in
+        // the cv_.wait_for() path (disconnected) or hasn't entered
+        // runUntilStateChanges() yet.  Without this, a stop() that fires
+        // before io_ctx.run() is cleared by io_ctx.restart() on the next
+        // iteration and the removal is never processed.
+        cv_.notify_all();
     }
 
     std::unique_lock sync_lock(sync_state_.m);
@@ -64,39 +68,51 @@ void Api::threadFunc() {
     Session::State prev_session_state                    = Session::State::invalid;
     while (true) {
         if (connected) {
-            Session::State session_state = active_session->runUntilStateChanges();
+            // Check for pending listener actions before entering the blocking
+            // io_ctx.run() inside runUntilStateChanges().  Without this check,
+            // a removeListener() that arrives between queue processing and
+            // run() will call stop() which gets cleared by restart(), causing
+            // the removal to never be processed and removeListener() to hang.
+            bool has_pending_actions;
+            {
+                std::lock_guard lock(m_);
+                has_pending_actions = !listener_action_queue_.empty() || !running_;
+            }
 
-            if (session_state != prev_session_state) {
-                prev_session_state = session_state;
-                for (ListenerInterface* listener : listeners) {
-                    listener->sessionStateChanged(active_session, session_state);
+            if (!has_pending_actions) {
+                Session::State session_state = active_session->runUntilStateChanges();
+
+                if (session_state != prev_session_state) {
+                    prev_session_state = session_state;
+                    for (ListenerInterface* listener : listeners) {
+                        listener->sessionStateChanged(active_session, session_state);
+                    }
+                }
+                if (session_state == Session::State::session_lost) {
+                    refresh_timer_handle.destroy();
+                    connected = false;
+                    active_session->close();
+
+                    // Wait a moment to avoid reopening closing session
+                    std::unique_lock lock(m_);
+                    active_session_ = nullptr;
+                    cv_.wait_for(lock, std::chrono::seconds(1), [&]() {
+                        // Don't wait if running_ == false
+                        return !running_;
+                    });
+                    active_session.reset();
+                    continue;
+                }
+
+                uint32_t control_flags = active_session->getControlFlags();
+                if (control_flags != active_control_flags) {
+                    active_control_flags = control_flags;
+
+                    for (ListenerInterface* listener : listeners) {
+                        listener->controlFlagsChanged(active_session, control_flags);
+                    }
                 }
             }
-            if (session_state == Session::State::session_lost) {
-                refresh_timer_handle.destroy();
-                connected = false;
-                active_session->close();
-
-                // Wait a moment to avoid reopening closing session
-                std::unique_lock lock(m_);
-                active_session_ = nullptr;
-                cv_.wait_for(lock, std::chrono::seconds(1), [&]() {
-                    // Don't wait if running_ == false
-                    return !running_;
-                });
-                active_session.reset();
-                continue;
-            }
-
-            uint32_t control_flags = active_session->getControlFlags();
-            if (control_flags != active_control_flags) {
-                active_control_flags = control_flags;
-
-                for (ListenerInterface* listener : listeners) {
-                    listener->controlFlagsChanged(active_session, control_flags);
-                }
-            }
-
         } else {
             ResultCode result = api_.openSession(active_session);
             switch (result) {
