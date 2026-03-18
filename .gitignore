@@ -54,3 +54,5 @@ __pycache__/
 
 # Python package linking install files
 *.egg-info/
+
+.claude/
