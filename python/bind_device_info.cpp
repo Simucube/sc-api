@@ -198,7 +198,7 @@ void bind_device_info(nb::module_& m) {
         .def("__len__", &FullInfo::getDeviceCount)
         .def(
             "__iter__",
-            [](std::shared_ptr<FullInfo> self) {
+            [](const std::shared_ptr<FullInfo>& self) {
                 return nb::make_iterator(nb::type<FullInfo>(), "FullInfoIterator",
                                          self->begin(), self->end());
             },

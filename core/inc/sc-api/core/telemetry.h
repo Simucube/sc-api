@@ -69,6 +69,7 @@ class TelemetryBase {
 
 public:
     TelemetryBase(std::string&& name, Type type);
+    virtual ~TelemetryBase() = default;
 
     const std::string& getName() const { return name_; }
     Type               getType() const { return type_; }

@@ -21,15 +21,15 @@ void bind_led_control(nb::module_& m) {
     nb::class_<LedControl>(m, "LedControl")
         .def(
             "__init__",
-            [](LedControl* self, std::shared_ptr<Session> session,
+            [](LedControl* self, const std::shared_ptr<Session>& session,
                DeviceSessionId device) {
                 new (self) LedControl(session, device);
             },
             nb::arg("session"), nb::arg("device"))
         .def(
             "set_leds",
-            [](LedControl& self, nb::list indices_list,
-               nb::list colors_list) -> bool {
+            [](LedControl& self, const nb::list& indices_list,
+               const nb::list& colors_list) -> bool {
                 if (nb::len(indices_list) != nb::len(colors_list)) {
                     throw nb::value_error(
                         "indices and colors must have equal length");
@@ -58,7 +58,7 @@ void bind_led_control(nb::module_& m) {
             [](LedControl& self) -> LedControl& { return self; },
             nb::rv_policy::none)
         .def("__exit__",
-             [](LedControl& self, nb::args) { self.releaseControl(); })
+             [](LedControl& self, nb::args /*unused*/) { self.releaseControl(); })  // NOLINT(performance-unnecessary-value-param)
         .def("__repr__", [](const LedControl& self) {
             return "<LedControl device=" +
                    std::to_string(self.getDevice().id) + ">";

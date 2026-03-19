@@ -71,7 +71,7 @@ void bind_ffb(nb::module_& m) {
     nb::class_<FfbPipeline>(m, "FfbPipeline")
         .def(
             "__init__",
-            [](FfbPipeline* self, std::shared_ptr<Session> session,
+            [](FfbPipeline* self, const std::shared_ptr<Session>& session,
                DeviceSessionId device) {
                 new (self) FfbPipeline(session, device);
             },
@@ -86,7 +86,7 @@ void bind_ffb(nb::module_& m) {
         .def(
             "generate_effect",
             [](FfbPipeline& self, int64_t start_ns, int64_t sample_duration_ns,
-               nb::ndarray<float, nb::ndim<1>> samples) {
+               const nb::ndarray<float, nb::ndim<1>>& samples) {
                 auto start = Clock::time_point(Clock::duration(start_ns));
                 auto sample_time = Clock::duration(sample_duration_ns);
                 return self.generateEffect(start, sample_time,
@@ -109,7 +109,7 @@ void bind_ffb(nb::module_& m) {
             [](FfbPipeline& self) -> FfbPipeline& { return self; },
             nb::rv_policy::none)
         .def("__exit__",
-             [](FfbPipeline& self, nb::args) {
+             [](FfbPipeline& self, nb::args /*unused*/) {  // NOLINT(performance-unnecessary-value-param)
                  self.stop();
                  nb::gil_scoped_release release;
                  self.remove();

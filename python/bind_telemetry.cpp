@@ -51,8 +51,8 @@ class TelemetryGroupHelper {
     static inline std::atomic<uint16_t> next_group_id_{0};
 
 public:
-    explicit TelemetryGroupHelper(TelemetryDefinitions defs)
-        : definitions_(std::move(defs)), group_(next_group_id_++) {}
+    explicit TelemetryGroupHelper(const TelemetryDefinitions& defs)
+        : definitions_(defs), group_(next_group_id_++) {}
 
     void setitem(const std::string& name, nb::object value) {
         const TelemetryDefinition* def = definitions_.find(name);
@@ -155,8 +155,8 @@ public:
     std::vector<std::string> available_names() const {
         std::vector<std::string> names;
         names.reserve(definitions_.size());
-        for (size_t i = 0; i < definitions_.size(); ++i) {
-            names.emplace_back((definitions_.begin() + i)->name);
+        for (const auto& def : definitions_) {
+            names.emplace_back(def.name);
         }
         return names;
     }

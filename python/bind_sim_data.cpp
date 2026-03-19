@@ -48,7 +48,7 @@ template <typename SubSection, typename Builder, typename T, typename PropClass>
 PropertyEntry<SubSection, Builder> make_entry(
     const sc_api::core::sim_data::TypedAndClassifiedPropertyRef<T, PropClass>& ref) {
     return {
-        ref.name.data(),
+        ref.name.data(),  // NOLINT(bugprone-suspicious-stringview-data-usage)
         [&ref](const SubSection& s) -> nb::object {
             auto val = s.get(ref);
             if (!val) return nb::none();
@@ -147,7 +147,7 @@ void add_dict_methods(nb::class_<PySubSection<SubSection>>& cls,
 
 template <typename SubSection, typename Builder>
 void apply_dict_to_builder(
-    Builder& builder, nb::dict props,
+    Builder& builder, const nb::dict& props,
     const std::vector<PropertyEntry<SubSection, Builder>>& table,
     const char* skip_key = nullptr) {
     for (auto item : props) {
@@ -167,8 +167,9 @@ void apply_dict_to_builder(
                 if (!valid.empty()) valid += ", ";
                 valid += entry.name;
             }
-            throw nb::value_error(
-                ("Unknown property '" + k + "'. Valid keys: " + valid).c_str());
+            std::string msg = "Unknown property '" + k + "'. Valid keys: ";
+            msg += valid;
+            throw nb::value_error(msg.c_str());
         }
     }
 }
@@ -269,14 +270,14 @@ void bind_sim_data(nb::module_& m) {
         .def_prop_ro("revision", &SimData::getRevision)
         .def_prop_ro(
             "sim",
-            [](std::shared_ptr<SimData> self) -> nb::object {
+            [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto& s = self->getSim();
                 if (!s) return nb::none();
                 return nb::cast(PySubSection<Sim>{*s, self});
             })
         .def_prop_ro(
             "vehicles",
-            [](std::shared_ptr<SimData> self) {
+            [](const std::shared_ptr<SimData>& self) {
                 nb::list result;
                 for (const auto& v : self->getVehicles()) {
                     result.append(
@@ -286,14 +287,14 @@ void bind_sim_data(nb::module_& m) {
             })
         .def_prop_ro(
             "player_vehicle",
-            [](std::shared_ptr<SimData> self) -> nb::object {
+            [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* v = self->getPlayerVehicle();
                 if (!v) return nb::none();
                 return nb::cast(PySubSection<Vehicle>{*v, self});
             })
         .def_prop_ro(
             "tracks",
-            [](std::shared_ptr<SimData> self) {
+            [](const std::shared_ptr<SimData>& self) {
                 nb::list result;
                 for (const auto& t : self->getTracks()) {
                     result.append(
@@ -303,14 +304,14 @@ void bind_sim_data(nb::module_& m) {
             })
         .def_prop_ro(
             "current_track",
-            [](std::shared_ptr<SimData> self) -> nb::object {
+            [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* t = self->getCurrentTrack();
                 if (!t) return nb::none();
                 return nb::cast(PySubSection<Track>{*t, self});
             })
         .def_prop_ro(
             "participants",
-            [](std::shared_ptr<SimData> self) {
+            [](const std::shared_ptr<SimData>& self) {
                 nb::list result;
                 for (const auto& p : self->getParticipants()) {
                     result.append(
@@ -320,7 +321,7 @@ void bind_sim_data(nb::module_& m) {
             })
         .def_prop_ro(
             "sessions",
-            [](std::shared_ptr<SimData> self) {
+            [](const std::shared_ptr<SimData>& self) {
                 nb::list result;
                 for (const auto& s : self->getSessions()) {
                     result.append(
@@ -330,14 +331,14 @@ void bind_sim_data(nb::module_& m) {
             })
         .def_prop_ro(
             "current_session",
-            [](std::shared_ptr<SimData> self) -> nb::object {
+            [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* s = self->getCurrentSession();
                 if (!s) return nb::none();
                 return nb::cast(PySubSection<Session>{*s, self});
             })
         .def_prop_ro(
             "tires",
-            [](std::shared_ptr<SimData> self) {
+            [](const std::shared_ptr<SimData>& self) {
                 nb::list result;
                 for (const auto& t : self->getTires()) {
                     result.append(
@@ -355,7 +356,7 @@ void bind_sim_data(nb::module_& m) {
 // populate_sim_data_builder — walk a Python dict and fill a builder
 // ---------------------------------------------------------------------------
 
-void populate_sim_data_builder(SimDataUpdateBuilder& builder, nb::dict data) {
+void populate_sim_data_builder(SimDataUpdateBuilder& builder, const nb::dict& data) {
     for (auto item : data) {
         std::string section = nb::cast<std::string>(item.first);
 

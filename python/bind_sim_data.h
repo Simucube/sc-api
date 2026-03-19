@@ -3,4 +3,4 @@
 #include <sc-api/core/sim_data_builder.h>
 
 void populate_sim_data_builder(sc_api::core::sim_data::SimDataUpdateBuilder& builder,
-                               nanobind::dict data);
+                               const nanobind::dict& data);

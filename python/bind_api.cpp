@@ -90,7 +90,7 @@ struct PyApi {
         }
     }
 
-    Api& api() {
+    Api& api() const {
         if (!impl) {
             throw nb::value_error("Api has been closed");
         }
@@ -222,7 +222,7 @@ void bind_api(nb::module_& m) {
                       })
         .def(
             "update_sim_data",
-            [](Session& self, nb::dict data,
+            [](Session& self, const nb::dict& data,
                std::optional<std::string> sim_id, bool activate) {
                 std::string resolved_sim_id;
                 if (sim_id) {
@@ -257,7 +257,7 @@ void bind_api(nb::module_& m) {
             nb::arg("activate") = true)
         .def(
             "replace_sim_data",
-            [](Session& self, nb::dict data,
+            [](Session& self, const nb::dict& data,
                std::optional<std::string> sim_id, bool activate) {
                 std::string resolved_sim_id;
                 if (sim_id) {
@@ -377,7 +377,7 @@ void bind_api(nb::module_& m) {
             [](PyApi& self) -> PyApi& { return self; },
             nb::rv_policy::none)
         .def("__exit__",
-             [](PyApi& self, nb::args) { self.close(); })
+             [](PyApi& self, nb::args /*unused*/) { self.close(); })  // NOLINT(performance-unnecessary-value-param)
         .def_prop_ro(
             "session",
             [](PyApi& self) -> nb::object {
