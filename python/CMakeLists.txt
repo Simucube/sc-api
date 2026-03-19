@@ -20,7 +20,7 @@ if (NOT nanobind_FOUND)
     endif()
 endif()
 
-nanobind_add_module(_native
+nanobind_add_module(sc-api-python
     module.cpp
     bind_enums.cpp
     bind_exceptions.cpp
@@ -33,8 +33,9 @@ nanobind_add_module(_native
     bind_ffb.cpp
     bind_led_control.cpp
 )
-target_link_libraries(_native PRIVATE sc-api)
-target_compile_definitions(_native PRIVATE SC_API_VERSION="${PROJECT_VERSION}")
+set_target_properties(sc-api-python PROPERTIES OUTPUT_NAME _native)
+target_link_libraries(sc-api-python PRIVATE sc-api)
+target_compile_definitions(sc-api-python PRIVATE SC_API_VERSION="${PROJECT_VERSION}")
 
 # ---------------------------------------------------------------------------
 # Generate sim_data property tables (C++ header + Python key lists) from JSON
@@ -61,21 +62,21 @@ add_custom_command(
     VERBATIM
 )
 
-target_sources(_native PRIVATE ${SIM_DATA_TABLES_CPP})
-target_include_directories(_native PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen)
+target_sources(sc-api-python PRIVATE ${SIM_DATA_TABLES_CPP})
+target_include_directories(sc-api-python PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen)
 
-install(TARGETS _native LIBRARY DESTINATION simucube_api)
+install(TARGETS sc-api-python LIBRARY DESTINATION simucube_api)
 
 # Stub generation for IDE/type-checker support (PEP 561).
 # Only during scikit-build-core builds (SKBUILD set automatically)
 # because nanobind_add_stub must import the built module at build time.
 if (SKBUILD)
     nanobind_add_stub(
-        _native_stub
+        sc-api-python_stub
         MODULE _native
         OUTPUT _native.pyi
-        PYTHON_PATH $<TARGET_FILE_DIR:_native>
-        DEPENDS _native
+        PYTHON_PATH $<TARGET_FILE_DIR:sc-api-python>
+        DEPENDS sc-api-python
     )
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/_native.pyi DESTINATION simucube_api)
 endif()
