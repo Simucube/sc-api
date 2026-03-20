@@ -108,13 +108,19 @@ struct EventIterator {
 void bind_api(nb::module_& m) {
     // --- Value types (bound first so they can be used in constructor signatures) ---
 
-    nb::class_<DeviceSessionId>(m, "DeviceSessionId")
+    nb::class_<DeviceSessionId>(m, "DeviceSessionId",
+                                "Identifies a device within a single session.\n\n"
+                                "The id is assigned by Tuner and may change between sessions. "
+                                "Use the device UID string for persistent identification.")
         .def("__init__",
              [](DeviceSessionId* self, uint16_t id) {
                  new (self) DeviceSessionId{id};
              },
-             nb::arg("id") = 0)
-        .def_prop_ro("id", [](const DeviceSessionId& d) { return d.id; })
+             nb::arg("id") = 0,
+             "Construct a DeviceSessionId.\n\n"
+             ":param id: Raw 16-bit session-scoped device identifier. Defaults to 0 (invalid).")
+        .def_prop_ro("id", [](const DeviceSessionId& d) { return d.id; },
+                     "Raw 16-bit device identifier for the current session.")
         .def("__eq__",
              [](const DeviceSessionId& a, const DeviceSessionId& b) {
                  return a == b;
@@ -134,7 +140,8 @@ void bind_api(nb::module_& m) {
             return "DeviceSessionId(" + std::to_string(d.id) + ")";
         });
 
-    nb::class_<ApiUserInformation>(m, "ApiUserInformation")
+    nb::class_<ApiUserInformation>(m, "ApiUserInformation",
+                                   "Metadata about the API consumer shown in Simucube Tuner.")
         .def(
             "__init__",
             [](ApiUserInformation* self, std::string display_name,
@@ -146,27 +153,43 @@ void bind_api(nb::module_& m) {
             },
             nb::arg("display_name") = "", nb::arg("type") = "",
             nb::arg("path") = "", nb::arg("author") = "",
-            nb::arg("version_string") = "")
-        .def_rw("display_name", &ApiUserInformation::display_name)
-        .def_rw("type", &ApiUserInformation::type)
-        .def_rw("path", &ApiUserInformation::path)
-        .def_rw("author", &ApiUserInformation::author)
-        .def_rw("version_string", &ApiUserInformation::version_string)
+            nb::arg("version_string") = "",
+            "Construct ApiUserInformation.\n\n"
+            ":param display_name: Human-readable name shown in Tuner.\n"
+            ":param type: Application type identifier (e.g. ``\"game\"``, ``\"tool\"``).\n"
+            ":param path: Path or URI that identifies the application.\n"
+            ":param author: Author or organisation name.\n"
+            ":param version_string: Application version (free-form string).")
+        .def_rw("display_name", &ApiUserInformation::display_name,
+                "Human-readable name shown in Simucube Tuner.")
+        .def_rw("type", &ApiUserInformation::type,
+                "Application type identifier (e.g. ``\"game\"`` or ``\"tool\"``).")
+        .def_rw("path", &ApiUserInformation::path,
+                "Path or URI that identifies the application.")
+        .def_rw("author", &ApiUserInformation::author,
+                "Author or organisation name.")
+        .def_rw("version_string", &ApiUserInformation::version_string,
+                "Application version as a free-form string.")
         .def("__repr__", [](const ApiUserInformation& self) {
             return "ApiUserInformation(display_name='" + self.display_name +
                    "')";
         });
 
-    nb::class_<RgbColor>(m, "RgbColor")
+    nb::class_<RgbColor>(m, "RgbColor",
+                         "24-bit RGB colour used for device LED control.")
         .def(
             "__init__",
             [](RgbColor* self, uint8_t r, uint8_t g, uint8_t b) {
                 new (self) RgbColor(r, g, b);
             },
-            nb::arg("r") = 0, nb::arg("g") = 0, nb::arg("b") = 0)
-        .def_prop_ro("r", [](const RgbColor& c) { return c.r; })
-        .def_prop_ro("g", [](const RgbColor& c) { return c.g; })
-        .def_prop_ro("b", [](const RgbColor& c) { return c.b; })
+            nb::arg("r") = 0, nb::arg("g") = 0, nb::arg("b") = 0,
+            "Construct an RgbColor from 8-bit channel values (0–255).")
+        .def_prop_ro("r", [](const RgbColor& c) { return c.r; },
+                     "Red channel (0–255).")
+        .def_prop_ro("g", [](const RgbColor& c) { return c.g; },
+                     "Green channel (0–255).")
+        .def_prop_ro("b", [](const RgbColor& c) { return c.b; },
+                     "Blue channel (0–255).")
         .def("__eq__",
              [](const RgbColor& a, const RgbColor& b) { return a == b; })
         .def("__repr__", [](const RgbColor& c) {
@@ -176,10 +199,18 @@ void bind_api(nb::module_& m) {
 
     // --- Session ---
 
-    nb::class_<Session>(m, "Session")
-        .def_prop_ro("state", &Session::getState)
-        .def_prop_ro("controller_id", &Session::getControllerId)
-        .def_prop_ro("control_flags", &Session::getControlFlags)
+    nb::class_<Session>(m, "Session",
+                        "An active connection to Simucube Tuner.\n\n"
+                        "Obtained via ``Api.wait_for_session()`` or a ``SessionStateChanged`` "
+                        "event. States progress from ``connected_monitor`` (read-only) to "
+                        "``connected_control`` (full access) after a successful "
+                        "``register_to_control()`` call.")
+        .def_prop_ro("state", &Session::getState,
+                     "Current session state (``SessionState`` enum).")
+        .def_prop_ro("controller_id", &Session::getControllerId,
+                     "Numeric ID assigned to this controller by Tuner.")
+        .def_prop_ro("control_flags", &Session::getControlFlags,
+                     "Bitmask of ``ControlFlag`` values granted to this session.")
         .def(
             "register_to_control",
             [](Session& self, Session::ControlFlag flags,
@@ -193,7 +224,14 @@ void bind_api(nb::module_& m) {
                 }
                 throw_on_error(rc);
             },
-            nb::arg("flags"), nb::arg("id_name"), nb::arg("user_info"))
+            nb::arg("flags"), nb::arg("id_name"), nb::arg("user_info"),
+            "Request control access from Tuner (blocks until Tuner responds).\n\n"
+            "Transitions the session from ``connected_monitor`` to "
+            "``connected_control`` on success.\n\n"
+            ":param flags: ``ControlFlag`` bitmask of capabilities to request.\n"
+            ":param id_name: Unique string identifier for this controller.\n"
+            ":param user_info: Metadata about the application shown in Tuner.\n\n"
+            ":raises SimucubeError: If Tuner rejects the request or the session is in an invalid state.")
         .def(
             "close",
             [](Session& self) {
@@ -203,23 +241,29 @@ void bind_api(nb::module_& m) {
                     rc = self.close();
                 }
                 throw_on_error(rc);
-            })
+            },
+            "Close the session and release all associated resources.\n\n"
+            ":raises SimucubeError: If the underlying close operation fails.")
         .def_prop_ro("device_info",
                       [](Session& self) -> nb::object {
                           auto info = self.getDeviceInfo();
                           if (!info) return nb::none();
                           return nb::cast(info);
-                      })
+                      },
+                      "Current device hierarchy snapshot, or ``None`` if not yet available.")
         .def_prop_ro("variables",
-                      [](Session& self) { return self.getVariables(); })
+                      [](Session& self) { return self.getVariables(); },
+                      "Variable definitions available for reading in this session.")
         .def_prop_ro("telemetries",
-                      [](Session& self) { return self.getTelemetries(); })
+                      [](Session& self) { return self.getTelemetries(); },
+                      "Telemetry channel definitions available for sending in this session.")
         .def_prop_ro("sim_data",
                       [](Session& self) -> nb::object {
                           auto sd = self.getSimData();
                           if (!sd) return nb::none();
                           return nb::cast(sd);
-                      })
+                      },
+                      "Current simulator state data snapshot, or ``None`` if not set.")
         .def(
             "update_sim_data",
             [](Session& self, const nb::dict& data,
@@ -254,7 +298,15 @@ void bind_api(nb::module_& m) {
                 }
             },
             nb::arg("data"), nb::arg("sim_id") = nb::none(),
-            nb::arg("activate") = true)
+            nb::arg("activate") = true,
+            "Merge simulator state data into the existing sim data record (blocks).\n\n"
+            "Only the fields present in ``data`` are updated; all other fields "
+            "retain their previous values.\n\n"
+            ":param data: Dict of sim data fields to update. If ``sim_id`` is omitted,\n"
+            "    ``data['sim']['id']`` is used as the simulator identifier.\n"
+            ":param sim_id: Explicit simulator identifier. Overrides ``data['sim']['id']``.\n"
+            ":param activate: If ``True``, mark this simulator as the active one in Tuner.\n\n"
+            ":raises ValueError: If no sim_id can be resolved or the update fails.")
         .def(
             "replace_sim_data",
             [](Session& self, const nb::dict& data,
@@ -289,7 +341,15 @@ void bind_api(nb::module_& m) {
                 }
             },
             nb::arg("data"), nb::arg("sim_id") = nb::none(),
-            nb::arg("activate") = true)
+            nb::arg("activate") = true,
+            "Replace the entire simulator state data record (blocks).\n\n"
+            "All existing sim data fields are discarded and replaced with the "
+            "contents of ``data``. Use ``update_sim_data`` to do a partial update.\n\n"
+            ":param data: Dict of sim data fields. If ``sim_id`` is omitted,\n"
+            "    ``data['sim']['id']`` is used as the simulator identifier.\n"
+            ":param sim_id: Explicit simulator identifier. Overrides ``data['sim']['id']``.\n"
+            ":param activate: If ``True``, mark this simulator as the active one in Tuner.\n\n"
+            ":raises ValueError: If no sim_id can be resolved or the replace fails.")
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") +
                    session_state_str(self.getState()) +
@@ -299,7 +359,11 @@ void bind_api(nb::module_& m) {
 
     // --- EventQueue ---
 
-    nb::class_<EventQueueT>(m, "EventQueue")
+    nb::class_<EventQueueT>(m, "EventQueue",
+                            "Thread-safe queue that delivers API events to the caller.\n\n"
+                            "Obtained via ``Api.create_event_queue()``. Each queue receives "
+                            "its own independent copy of every event. Close the queue when "
+                            "done to free resources.")
         .def(
             "pop",
             [](EventQueueT& self,
@@ -322,15 +386,25 @@ void bind_api(nb::module_& m) {
                     return unwrap_event(event);
                 }
             },
-            nb::arg("timeout") = nb::none())
+            nb::arg("timeout") = nb::none(),
+            "Remove and return the next event, optionally waiting up to ``timeout`` seconds.\n\n"
+            "Without a timeout, blocks indefinitely until an event is available or the "
+            "queue closes. If the queue closes while waiting, returns ``None``. "
+            "With a timeout, returns ``None`` if the deadline expires before "
+            "an event arrives (the queue remains open).\n\n"
+            ":param timeout: Maximum seconds to wait. ``None`` (default) waits forever.\n\n"
+            ":returns: An event object, or ``None`` on timeout or queue closure.")
         .def(
             "try_pop",
             [](EventQueueT& self) -> nb::object {
                 auto event = self.tryPop();
                 if (!event) return nb::none();
                 return unwrap_event(*event);
-            })
-        .def("close", &EventQueueT::close)
+            },
+            "Remove and return the next event without blocking.\n\n"
+            ":returns: An event object, or ``None`` if the queue is currently empty.")
+        .def("close", &EventQueueT::close,
+             "Close the queue, unblocking any threads waiting in ``pop()``.")
         .def("__repr__",
              [](const EventQueueT&) { return "<EventQueue>"; });
 
@@ -367,11 +441,24 @@ void bind_api(nb::module_& m) {
 
     // --- Api ---
 
-    nb::class_<PyApi>(m, "Api")
-        .def(nb::init<>())
+    nb::class_<PyApi>(m, "Api",
+                      "Entry point for the Simucube API.\n\n"
+                      "Manages a background thread that connects to Simucube Tuner via IPC "
+                      "and maintains the current session. Use as a context manager to ensure "
+                      "clean shutdown, or call ``close()`` explicitly.\n\n"
+                      "The monitor-only constructor connects without requesting device control. "
+                      "The control constructor additionally registers a ``NoAuthControlEnabler`` "
+                      "suitable for development and testing.")
+        .def(nb::init<>(),
+             "Create an Api instance in monitor-only mode (no device control).")
         .def(nb::init<Session::ControlFlag, std::string, ApiUserInformation>(),
              nb::arg("control_flags"), nb::arg("id_name"),
-             nb::arg("user_info"))
+             nb::arg("user_info"),
+             "Create an Api instance that automatically requests device control.\n\n"
+             "Uses ``NoAuthControlEnabler`` — intended for development/testing only.\n\n"
+             ":param control_flags: ``ControlFlag`` bitmask of capabilities to request.\n"
+             ":param id_name: Unique string identifier for this controller.\n"
+             ":param user_info: Metadata about the application shown in Tuner.")
         .def(
             "__enter__",
             [](PyApi& self) -> PyApi& { return self; },
@@ -384,10 +471,13 @@ void bind_api(nb::module_& m) {
                 auto session = self.api().getSession();
                 if (!session) return nb::none();
                 return nb::cast(session);
-            })
+            },
+            "The current session, or ``None`` if not yet connected to Tuner.")
         .def(
             "create_event_queue",
-            [](PyApi& self) { return self.api().createEventQueue(); })
+            [](PyApi& self) { return self.api().createEventQueue(); },
+            "Create a new ``EventQueue`` that receives all subsequent API events.\n\n"
+            ":returns: A new ``EventQueue`` instance. Each queue is independent.")
         .def(
             "wait_for_session",
             [](PyApi& self,
@@ -425,7 +515,13 @@ void bind_api(nb::module_& m) {
                     }
                 }
             },
-            nb::arg("timeout"))
+            nb::arg("timeout"),
+            "Block until a session is established with Tuner, then return it.\n\n"
+            "Internally creates a temporary event queue and waits for a "
+            "``SessionStateChanged`` event carrying a live session.\n\n"
+            ":param timeout: Maximum seconds to wait.\n\n"
+            ":returns: The connected ``Session`` object.\n\n"
+            ":raises TimeoutError: If no session is established within ``timeout`` seconds.")
         .def(
             "events",
             [](PyApi& self,
@@ -433,7 +529,16 @@ void bind_api(nb::module_& m) {
                 auto queue = self.api().createEventQueue();
                 return EventIterator{std::move(queue), timeout};
             },
-            nb::arg("timeout") = nb::none())
-        .def("close", &PyApi::close)
+            nb::arg("timeout") = nb::none(),
+            "Return an iterator that yields API events as they arrive.\n\n"
+            "With no timeout, the iterator blocks until the next event and raises "
+            "``StopIteration`` when the queue closes. With a timeout, each iteration "
+            "waits at most ``timeout`` seconds; if no event arrives, ``None`` is "
+            "yielded and iteration continues (the queue is still open).\n\n"
+            ":param timeout: Per-item wait limit in seconds. ``None`` waits forever.\n\n"
+            ":returns: An iterator of event objects or ``None`` (on per-item timeout).")
+        .def("close", &PyApi::close,
+             "Shut down the background thread and release all resources.\n\n"
+             "Safe to call multiple times. Also called automatically by the context manager.")
         .def("__repr__", [](PyApi&) { return "<Api>"; });
 }

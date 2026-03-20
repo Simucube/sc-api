@@ -98,7 +98,8 @@ void add_dict_methods(nb::class_<PySubSection<SubSection>>& cls,
             }
             throw nb::key_error(key.c_str());
         },
-        nb::arg("key"));
+        nb::arg("key"),
+        "Return the value for *key*. Raises KeyError if the key is unknown or the property has no value.");
 
     cls.def(
         "get",
@@ -113,18 +114,22 @@ void add_dict_methods(nb::class_<PySubSection<SubSection>>& cls,
             }
             return default_val;
         },
-        nb::arg("key"), nb::arg("default") = nb::none());
+        nb::arg("key"), nb::arg("default") = nb::none(),
+        "Return the value for *key*, or *default* if the key is unknown or the property has no value.");
 
-    cls.def("keys", [table](const PySubSection<SubSection>& self) {
-        nb::list result;
-        for (const auto& entry : *table) {
-            nb::object val = entry.getter(self.inner);
-            if (!val.is_none()) {
-                result.append(nb::cast(entry.name));
+    cls.def(
+        "keys",
+        [table](const PySubSection<SubSection>& self) {
+            nb::list result;
+            for (const auto& entry : *table) {
+                nb::object val = entry.getter(self.inner);
+                if (!val.is_none()) {
+                    result.append(nb::cast(entry.name));
+                }
             }
-        }
-        return result;
-    });
+            return result;
+        },
+        "Return the list of currently available property names.");
 
     cls.def(
         "__contains__",
@@ -138,7 +143,8 @@ void add_dict_methods(nb::class_<PySubSection<SubSection>>& cls,
             }
             return false;
         },
-        nb::arg("key"));
+        nb::arg("key"),
+        "True if *key* is a known property with a value currently set.");
 }
 
 // ---------------------------------------------------------------------------
@@ -181,15 +187,18 @@ void apply_dict_to_builder(
 void bind_sim_data(nb::module_& m) {
     // --- Vehicle ---
     auto vehicle_cls =
-        nb::class_<PySubSection<Vehicle>>(m, "Vehicle")
+        nb::class_<PySubSection<Vehicle>>(m, "Vehicle",
+                                          "Vehicle state data from the simulator.")
             .def_prop_ro("id",
                          [](const PySubSection<Vehicle>& self) {
                              return std::string(self.inner.getId());
-                         })
+                         },
+                         "Vehicle identifier string.")
             .def_prop_ro("name",
                          [](const PySubSection<Vehicle>& self) {
                              return std::string(self.inner.getName());
-                         })
+                         },
+                         "Vehicle name.")
             .def("__repr__", [](const PySubSection<Vehicle>& self) {
                 return "<Vehicle id='" +
                        std::string(self.inner.getId()) + "'>";
@@ -198,15 +207,18 @@ void bind_sim_data(nb::module_& m) {
 
     // --- Track ---
     auto track_cls =
-        nb::class_<PySubSection<Track>>(m, "Track")
+        nb::class_<PySubSection<Track>>(m, "Track",
+                                        "Track/circuit info from the simulator.")
             .def_prop_ro("id",
                          [](const PySubSection<Track>& self) {
                              return std::string(self.inner.getId());
-                         })
+                         },
+                         "Track identifier string.")
             .def_prop_ro("name",
                          [](const PySubSection<Track>& self) {
                              return std::string(self.inner.getName());
-                         })
+                         },
+                         "Track name.")
             .def("__repr__", [](const PySubSection<Track>& self) {
                 return "<Track id='" +
                        std::string(self.inner.getId()) + "'>";
@@ -215,11 +227,13 @@ void bind_sim_data(nb::module_& m) {
 
     // --- Participant ---
     auto participant_cls =
-        nb::class_<PySubSection<Participant>>(m, "Participant")
+        nb::class_<PySubSection<Participant>>(m, "Participant",
+                                             "A driver/participant in the sim session.")
             .def_prop_ro("id",
                          [](const PySubSection<Participant>& self) {
                              return self.inner.getId();
-                         })
+                         },
+                         "Participant identifier integer.")
             .def("__repr__", [](const PySubSection<Participant>& self) {
                 return "<Participant id=" +
                        std::to_string(self.inner.getId()) + ">";
@@ -228,11 +242,13 @@ void bind_sim_data(nb::module_& m) {
 
     // --- SimSession (sim_data::Session, avoid name clash with core::Session) ---
     auto session_cls =
-        nb::class_<PySubSection<Session>>(m, "SimSession")
+        nb::class_<PySubSection<Session>>(m, "SimSession",
+                                          "Sim session info (practice, qualifying, race, etc.).")
             .def_prop_ro("id",
                          [](const PySubSection<Session>& self) {
                              return std::string(self.inner.getId());
-                         })
+                         },
+                         "Session identifier string.")
             .def("__repr__", [](const PySubSection<Session>& self) {
                 return "<SimSession id='" +
                        std::string(self.inner.getId()) + "'>";
@@ -241,11 +257,13 @@ void bind_sim_data(nb::module_& m) {
 
     // --- Tire ---
     auto tire_cls =
-        nb::class_<PySubSection<Tire>>(m, "Tire")
+        nb::class_<PySubSection<Tire>>(m, "Tire",
+                                      "Tire state data from the simulator.")
             .def_prop_ro("id",
                          [](const PySubSection<Tire>& self) {
                              return self.inner.getId();
-                         })
+                         },
+                         "Tire identifier integer.")
             .def("__repr__", [](const PySubSection<Tire>& self) {
                 return "<Tire id=" +
                        std::to_string(self.inner.getId()) + ">";
@@ -254,11 +272,13 @@ void bind_sim_data(nb::module_& m) {
 
     // --- Sim ---
     auto sim_cls =
-        nb::class_<PySubSection<Sim>>(m, "Sim")
+        nb::class_<PySubSection<Sim>>(m, "Sim",
+                                     "Simulator identity info.")
             .def_prop_ro("id",
                          [](const PySubSection<Sim>& self) {
                              return std::string(self.inner.getId());
-                         })
+                         },
+                         "Simulator identifier string.")
             .def("__repr__", [](const PySubSection<Sim>& self) {
                 return "<Sim id='" +
                        std::string(self.inner.getId()) + "'>";
@@ -266,15 +286,18 @@ void bind_sim_data(nb::module_& m) {
     add_dict_methods(sim_cls, &get_sim_table());
 
     // --- SimData ---
-    nb::class_<SimData>(m, "SimData")
-        .def_prop_ro("revision", &SimData::getRevision)
+    nb::class_<SimData>(m, "SimData",
+                        "Top-level container for all simulator state data. Read-only.")
+        .def_prop_ro("revision", &SimData::getRevision,
+                     "Revision counter, incremented on each update.")
         .def_prop_ro(
             "sim",
             [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto& s = self->getSim();
                 if (!s) return nb::none();
                 return nb::cast(PySubSection<Sim>{*s, self});
-            })
+            },
+            "Simulator identity info, or None if not available.")
         .def_prop_ro(
             "vehicles",
             [](const std::shared_ptr<SimData>& self) {
@@ -284,14 +307,16 @@ void bind_sim_data(nb::module_& m) {
                         nb::cast(PySubSection<Vehicle>{v, self}));
                 }
                 return result;
-            })
+            },
+            "List of all vehicles in the session.")
         .def_prop_ro(
             "player_vehicle",
             [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* v = self->getPlayerVehicle();
                 if (!v) return nb::none();
                 return nb::cast(PySubSection<Vehicle>{*v, self});
-            })
+            },
+            "The player's vehicle, or None if not available.")
         .def_prop_ro(
             "tracks",
             [](const std::shared_ptr<SimData>& self) {
@@ -301,14 +326,16 @@ void bind_sim_data(nb::module_& m) {
                         nb::cast(PySubSection<Track>{t, self}));
                 }
                 return result;
-            })
+            },
+            "List of all tracks.")
         .def_prop_ro(
             "current_track",
             [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* t = self->getCurrentTrack();
                 if (!t) return nb::none();
                 return nb::cast(PySubSection<Track>{*t, self});
-            })
+            },
+            "The active track, or None if not available.")
         .def_prop_ro(
             "participants",
             [](const std::shared_ptr<SimData>& self) {
@@ -318,7 +345,8 @@ void bind_sim_data(nb::module_& m) {
                         nb::cast(PySubSection<Participant>{p, self}));
                 }
                 return result;
-            })
+            },
+            "List of all participants/drivers in the session.")
         .def_prop_ro(
             "sessions",
             [](const std::shared_ptr<SimData>& self) {
@@ -328,14 +356,16 @@ void bind_sim_data(nb::module_& m) {
                         nb::cast(PySubSection<Session>{s, self}));
                 }
                 return result;
-            })
+            },
+            "List of all sim sessions.")
         .def_prop_ro(
             "current_session",
             [](const std::shared_ptr<SimData>& self) -> nb::object {
                 const auto* s = self->getCurrentSession();
                 if (!s) return nb::none();
                 return nb::cast(PySubSection<Session>{*s, self});
-            })
+            },
+            "The active sim session, or None if not available.")
         .def_prop_ro(
             "tires",
             [](const std::shared_ptr<SimData>& self) {
@@ -345,7 +375,8 @@ void bind_sim_data(nb::module_& m) {
                         nb::cast(PySubSection<Tire>{t, self}));
                 }
                 return result;
-            })
+            },
+            "List of all tires.")
         .def("__repr__", [](const SimData& self) {
             return "<SimData revision=" +
                    std::to_string(self.getRevision()) + ">";

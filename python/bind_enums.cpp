@@ -21,18 +21,25 @@ using sc_api::core::Type;
 namespace device_info = sc_api::core::device_info;
 
 void bind_enums(nb::module_& m) {
-    nb::enum_<SessionState>(m, "SessionState")
+    nb::enum_<SessionState>(m, "SessionState",
+                            "Connection lifecycle state of a session with Simucube Tuner. "
+                            "Returned by session queries and delivered via SessionStateChanged events.")
         .value("invalid", SessionState::invalid)
         .value("connected_monitor", SessionState::connected_monitor)
         .value("connected_control", SessionState::connected_control)
         .value("session_lost", SessionState::session_lost);
 
-    nb::enum_<Session::ControlFlag>(m, "ControlFlag", nb::is_flag())
+    nb::enum_<Session::ControlFlag>(m, "ControlFlag",
+                                    "Flags selecting which device capabilities to request when entering control mode. "
+                                    "Values can be combined with the | operator.",
+                                    nb::is_flag())
         .value("control_ffb_effects", Session::control_ffb_effects)
         .value("control_telemetry", Session::control_telemetry)
         .value("control_sim_data", Session::control_sim_data);
 
-    nb::enum_<ResultCode>(m, "ResultCode")
+    nb::enum_<ResultCode>(m, "ResultCode",
+                          "Low-level operation result codes. "
+                          "Most error values are automatically raised as Python exceptions; direct use is rarely needed.")
         .value("ok", ResultCode::ok)
         .value("error_invalid_argument", ResultCode::error_invalid_argument)
         .value("error_invalid_format", ResultCode::error_invalid_format)
@@ -50,13 +57,17 @@ void bind_enums(nb::module_& m) {
         .value("error_cannot_connect", ResultCode::error_cannot_connect)
         .value("error_protocol", ResultCode::error_protocol);
 
-    nb::enum_<ActionResult>(m, "ActionResult")
+    nb::enum_<ActionResult>(m, "ActionResult",
+                            "Progress state of an asynchronous operation. "
+                            "Poll an action's result to determine whether it is still running, succeeded, or failed.")
         .value("inprogress", ActionResult::inprogress)
         .value("complete", ActionResult::complete)
         .value("failed", ActionResult::failed)
         .value("would_block", ActionResult::would_block);
 
-    nb::enum_<Type::BaseType>(m, "BaseType")
+    nb::enum_<Type::BaseType>(m, "BaseType",
+                              "Scalar data type of a variable or telemetry channel. "
+                              "Used to interpret raw values returned by VariableDefinitions and TelemetryDefinitions.")
         .value("invalid", Type::invalid)
         .value("boolean", Type::boolean)
         .value("i8", Type::i8)
@@ -70,7 +81,9 @@ void bind_enums(nb::module_& m) {
         .value("f64", Type::f64)
         .value("cstring", Type::cstring);
 
-    nb::enum_<device_info::DeviceRole>(m, "DeviceRole")
+    nb::enum_<device_info::DeviceRole>(m, "DeviceRole",
+                                       "The functional role of a Simucube device in the hardware setup, "
+                                       "such as wheelbase, pedal, or button box.")
         .value("wheel", device_info::DeviceRole::wheel)
         .value("wheelbase", device_info::DeviceRole::wheelbase)
         .value("throttle_pedal", device_info::DeviceRole::throttle_pedal)
@@ -83,7 +96,9 @@ void bind_enums(nb::module_& m) {
         .value("unknown", device_info::DeviceRole::unknown)
         .value("other", device_info::DeviceRole::other);
 
-    nb::enum_<device_info::ControlType>(m, "ControlType")
+    nb::enum_<device_info::ControlType>(m, "ControlType",
+                                        "Physical control type of a component on a device, "
+                                        "such as a pedal, button, hat switch, or rotary encoder.")
         .value("wheelbase", device_info::ControlType::wheelbase)
         .value("wheel", device_info::ControlType::wheel)
         .value("pedal", device_info::ControlType::pedal)
@@ -99,7 +114,9 @@ void bind_enums(nb::module_& m) {
         .value("unknown", device_info::ControlType::unknown)
         .value("other", device_info::ControlType::other);
 
-    nb::enum_<device_info::FeedbackType>(m, "FeedbackType")
+    nb::enum_<device_info::FeedbackType>(m, "FeedbackType",
+                                         "Output/feedback mechanism type of a device component, "
+                                         "such as a direct-input wheelbase, active pedal, or RGB light.")
         .value("direct_input", device_info::FeedbackType::direct_input)
         .value("wheelbase", device_info::FeedbackType::wheelbase)
         .value("active_pedal", device_info::FeedbackType::active_pedal)
@@ -108,7 +125,9 @@ void bind_enums(nb::module_& m) {
         .value("unknown", device_info::FeedbackType::unknown)
         .value("other", device_info::FeedbackType::other);
 
-    nb::enum_<device_info::InputType>(m, "InputType")
+    nb::enum_<device_info::InputType>(m, "InputType",
+                                      "Physical input mechanism type of a device component, "
+                                      "such as an analog axis, button, or rotary encoder.")
         .value("axis", device_info::InputType::axis)
         .value("button", device_info::InputType::button)
         .value("inc_rot_enc", device_info::InputType::inc_rot_enc)
@@ -116,7 +135,9 @@ void bind_enums(nb::module_& m) {
         .value("unknown", device_info::InputType::unknown)
         .value("other", device_info::InputType::other);
 
-    nb::enum_<device_info::InputRole>(m, "InputRole")
+    nb::enum_<device_info::InputRole>(m, "InputRole",
+                                      "Semantic role of a device input, identifying its in-game function "
+                                      "such as steering, throttle, brake, or a specific car control action.")
         .value("steering", device_info::InputRole::steering)
         .value("throttle", device_info::InputRole::throttle)
         .value("brake", device_info::InputRole::brake)
@@ -286,18 +307,22 @@ void bind_enums(nb::module_& m) {
         .value("unmapped", device_info::InputRole::unmapped)
         .value("other", device_info::InputRole::other);
 
-    nb::enum_<OffsetType>(m, "OffsetType")
+    nb::enum_<OffsetType>(m, "OffsetType",
+                          "Units for an FFB effect offset value. "
+                          "Torque-based offsets apply to wheelbases; force- and position-based offsets apply to active pedals.")
         .value("torque_Nm", OffsetType::torque_Nm)
         .value("torque_relative", OffsetType::torque_relative)
         .value("force_N", OffsetType::force_N)
         .value("force_relative", OffsetType::force_relative)
         .value("position_mm", OffsetType::position_mm);
 
-    nb::enum_<InterpolationType>(m, "InterpolationType")
+    nb::enum_<InterpolationType>(m, "InterpolationType",
+                                 "Interpolation method applied between FFB effect data point samples.")
         .value("none", InterpolationType::none)
         .value("linear", InterpolationType::linear);
 
-    nb::enum_<FilterType>(m, "FilterType")
+    nb::enum_<FilterType>(m, "FilterType",
+                          "Filter applied to the FFB output signal, such as a low-pass filter or slew rate limiter.")
         .value("none", FilterType::none)
         .value("low_pass", FilterType::low_pass)
         .value("slew_rate_limit", FilterType::slew_rate_limit);

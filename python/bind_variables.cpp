@@ -183,14 +183,23 @@ static nb::object read_array(const VariableDefinition& var) {
 void bind_variables(nb::module_& m) {
     // --- Type ---
 
-    nb::class_<Type>(m, "Type")
-        .def_prop_ro("base_type", &Type::getBaseType)
-        .def_prop_ro("is_array", &Type::isArray)
-        .def_prop_ro("array_size", &Type::getArraySize)
-        .def_prop_ro("is_bit", &Type::isBit)
-        .def_prop_ro("bit_index", &Type::getBitIndex)
-        .def_prop_ro("is_invalid", &Type::isInvalid)
-        .def_prop_ro("is_base_type", &Type::isBaseType)
+    nb::class_<Type>(m, "Type",
+                     "Describes the data type of a variable, including its base type, "
+                     "array dimensions, and bit-field position.")
+        .def_prop_ro("base_type", &Type::getBaseType,
+                     "The scalar element type (BaseType enum) of this variable.")
+        .def_prop_ro("is_array", &Type::isArray,
+                     "True if this variable holds an array of values rather than a single scalar.")
+        .def_prop_ro("array_size", &Type::getArraySize,
+                     "Number of elements in the array; 0 if the variable is not an array.")
+        .def_prop_ro("is_bit", &Type::isBit,
+                     "True if this variable represents a single bit within a larger integer.")
+        .def_prop_ro("bit_index", &Type::getBitIndex,
+                     "Zero-based index of the bit within the underlying integer; meaningful only when is_bit is True.")
+        .def_prop_ro("is_invalid", &Type::isInvalid,
+                     "True if this type descriptor is invalid or unset.")
+        .def_prop_ro("is_base_type", &Type::isBaseType,
+                     "True if this type describes a simple scalar (not a bit-field and not an array).")
         .def("__eq__",
              [](const Type& a, const Type& b) { return a == b; })
         .def("__repr__", [](const Type& self) {
@@ -199,13 +208,18 @@ void bind_variables(nb::module_& m) {
 
     // --- VariableDefinition ---
 
-    nb::class_<VariableDefinition>(m, "VariableDefinition")
+    nb::class_<VariableDefinition>(m, "VariableDefinition",
+                                    "Metadata for a single real-time variable readable from shared memory.")
         .def_prop_ro("name",
-                      [](const VariableDefinition& self) { return std::string(self.name); })
-        .def_prop_ro("type", [](const VariableDefinition& self) { return self.type; })
+                      [](const VariableDefinition& self) { return std::string(self.name); },
+                      "Unique name of the variable.")
+        .def_prop_ro("type", [](const VariableDefinition& self) { return self.type; },
+                     "Data type descriptor for this variable.")
         .def_prop_ro("device_session_id",
-                      [](const VariableDefinition& self) { return self.device_session_id; })
-        .def_prop_ro("flags", [](const VariableDefinition& self) { return self.flags; })
+                      [](const VariableDefinition& self) { return self.device_session_id; },
+                      "Session-scoped identifier of the device that owns this variable.")
+        .def_prop_ro("flags", [](const VariableDefinition& self) { return self.flags; },
+                     "Variable flags providing additional metadata about this variable.")
         .def("__bool__",
              [](const VariableDefinition& self) { return static_cast<bool>(self); })
         .def("__repr__", [](const VariableDefinition& self) {
@@ -216,7 +230,9 @@ void bind_variables(nb::module_& m) {
 
     // --- VariableDefinitions ---
 
-    nb::class_<VariableDefinitions>(m, "VariableDefinitions")
+    nb::class_<VariableDefinitions>(m, "VariableDefinitions",
+                                     "Session-scoped collection of all real-time variable definitions "
+                                     "readable from shared memory.")
         .def("__len__", &VariableDefinitions::size)
         .def(
             "__contains__",
@@ -243,7 +259,8 @@ void bind_variables(nb::module_& m) {
                 }
                 return self[static_cast<uint32_t>(index)];
             },
-            nb::arg("index"))
+            nb::arg("index"),
+            "Return the variable definition at the given index.")
         .def(
             "find",
             [](const VariableDefinitions& self, const std::string& name,
@@ -253,7 +270,8 @@ void bind_variables(nb::module_& m) {
                 if (!def) return nb::none();
                 return nb::cast(def);
             },
-            nb::arg("name"), nb::arg("device") = nb::none())
+            nb::arg("name"), nb::arg("device") = nb::none(),
+            "Find a variable by name, optionally restricted to a specific device. Returns None if not found.")
         .def_prop_ro("names",
                       [](const VariableDefinitions& self) {
                           std::vector<std::string> names;
@@ -262,25 +280,32 @@ void bind_variables(nb::module_& m) {
                               names.emplace_back(self[i].name);
                           }
                           return names;
-                      })
+                      },
+                      "List of all variable names in this collection.")
         .def_prop_ro("session",
                       [](const VariableDefinitions& self) -> nb::object {
                           auto s = self.getSession();
                           if (!s) return nb::none();
                           return nb::cast(s);
-                      })
+                      },
+                      "The Session that owns this collection, or None if the session has expired.")
         .def(
             "read_value",
             [](const VariableDefinitions&, const VariableDefinition& var) {
                 return read_value(var);
             },
-            nb::arg("var"))
+            nb::arg("var"),
+            "Read the current scalar value of a variable from shared memory. "
+            "Returns a bool, int, float, or str depending on the variable type, "
+            "or None if the value is unavailable. Bit-type variables are returned as bool.")
         .def(
             "read_array",
             [](const VariableDefinitions&, const VariableDefinition& var) {
                 return read_array(var);
             },
-            nb::arg("var"))
+            nb::arg("var"),
+            "Read the current array value of a variable as a numpy ndarray using an atomic copy. "
+            "Returns None if the value is unavailable, the variable is not an array type, or the base type is cstring.")
         .def("__repr__", [](const VariableDefinitions& self) {
             return "<VariableDefinitions size=" + std::to_string(self.size()) + ">";
         });

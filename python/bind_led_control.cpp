@@ -18,14 +18,17 @@ using sc_api::core::RgbColor;
 using sc_api::core::Session;
 
 void bind_led_control(nb::module_& m) {
-    nb::class_<LedControl>(m, "LedControl")
+    nb::class_<LedControl>(m, "LedControl",
+                           "Controls RGB LEDs on a device. Requires control session state. "
+                           "Use as a context manager to automatically release LED control on exit.")
         .def(
             "__init__",
             [](LedControl* self, const std::shared_ptr<Session>& session,
                DeviceSessionId device) {
                 new (self) LedControl(session, device);
             },
-            nb::arg("session"), nb::arg("device"))
+            nb::arg("session"), nb::arg("device"),
+            "Acquire LED control for the given session and device.")
         .def(
             "set_leds",
             [](LedControl& self, const nb::list& indices_list,
@@ -48,11 +51,20 @@ void bind_led_control(nb::module_& m) {
                     indices.data(), colors.data(),
                     static_cast<unsigned>(indices.size()));
             },
-            nb::arg("indices"), nb::arg("colors"))
-        .def("clear", &LedControl::clearLeds)
-        .def("release", &LedControl::releaseControl)
-        .def_prop_ro("device", &LedControl::getDevice)
-        .def_prop_ro("session", &LedControl::getSession)
+            nb::arg("indices"), nb::arg("colors"),
+            "Set colors for a list of LEDs.\n\n"
+            ":param indices: List of LED indices (from RgbLightFeedback.index).\n"
+            ":param colors: List of RgbColor values, one per index. Must be the same length as indices.\n"
+            ":returns: True on success. Raises ValueError if lengths differ.")
+        .def("clear", &LedControl::clearLeds,
+             "Turn off all LEDs currently controlled by this instance.")
+        .def("release", &LedControl::releaseControl,
+             "Release LED control, allowing other controllers to take over. "
+             "LEDs are not explicitly cleared; call clear() first if needed.")
+        .def_prop_ro("device", &LedControl::getDevice,
+                     "The device session ID this controller is attached to.")
+        .def_prop_ro("session", &LedControl::getSession,
+                     "The session this controller belongs to.")
         .def(
             "__enter__",
             [](LedControl& self) -> LedControl& { return self; },

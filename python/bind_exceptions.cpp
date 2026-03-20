@@ -30,16 +30,51 @@ static PyObject* create_exception(nb::module_& m, const char* name, PyObject* ba
 void bind_exceptions(nb::module_& m) {
     SimucubeError_type =
         create_exception(m, "SimucubeError", PyExc_Exception);
+    {
+        PyObject* doc = PyUnicode_FromString("Base class for all Simucube-specific errors.");
+        PyObject_SetAttrString(SimucubeError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
+
     StateError_type =
         create_exception(m, "StateError", SimucubeError_type, PyExc_RuntimeError);
+    {
+        PyObject* doc = PyUnicode_FromString("Operation is invalid in the current session state (e.g. not registered for control).");
+        PyObject_SetAttrString(StateError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
+
     IncompatibleError_type =
         create_exception(m, "IncompatibleError", SimucubeError_type, PyExc_RuntimeError);
+    {
+        PyObject* doc = PyUnicode_FromString("Version mismatch between the API and Simucube Tuner.");
+        PyObject_SetAttrString(IncompatibleError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
+
     BusyError_type =
         create_exception(m, "BusyError", SimucubeError_type, PyExc_RuntimeError);
+    {
+        PyObject* doc = PyUnicode_FromString("Another controller currently holds the requested resource.");
+        PyObject_SetAttrString(BusyError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
+
     InternalError_type =
         create_exception(m, "InternalError", SimucubeError_type, PyExc_RuntimeError);
+    {
+        PyObject* doc = PyUnicode_FromString("Unexpected internal or protocol error.");
+        PyObject_SetAttrString(InternalError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
+
     SimucubeConnectionError_type =
         create_exception(m, "SimucubeConnectionError", SimucubeError_type, PyExc_ConnectionError);
+    {
+        PyObject* doc = PyUnicode_FromString("Cannot connect to Simucube Tuner (not running or IPC unavailable).");
+        PyObject_SetAttrString(SimucubeConnectionError_type, "__doc__", doc);
+        Py_DECREF(doc);
+    }
 }
 
 void throw_internal_error(const char* msg) {
