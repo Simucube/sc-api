@@ -72,4 +72,8 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif ()
 endif ()
 
-target_include_directories(libeddsa PUBLIC inc)
+target_include_directories(libeddsa PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>)
+
+install(TARGETS libeddsa EXPORT sc-apiTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib)

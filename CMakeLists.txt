@@ -31,8 +31,39 @@ add_library(sc-api
     src/events.cpp
 )
 
-target_include_directories(sc-api PUBLIC inc)
+target_include_directories(sc-api PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:include>)
 target_link_libraries(sc-api PUBLIC sc-api-core)
+
+# --- Install ---
+include(CMakePackageConfigHelpers)
+
+install(TARGETS sc-api EXPORT sc-apiTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib)
+
+install(DIRECTORY inc/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
+
+install(EXPORT sc-apiTargets
+    FILE sc-apiTargets.cmake
+    NAMESPACE sc-api::
+    DESTINATION lib/cmake/sc-api)
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sc-apiConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
+    INSTALL_DESTINATION lib/cmake/sc-api)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
+    DESTINATION lib/cmake/sc-api)
 
 
 if (SC_API_EXAMPLES)

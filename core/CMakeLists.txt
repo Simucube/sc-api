@@ -6,7 +6,9 @@ project(sc-api-core VERSION 0.0.1)
 # Guard: host projects (e.g. gorilla) may already define this for firmware use.
 if (NOT TARGET sc-api-core-protocol_types)
     add_library(sc-api-core-protocol_types INTERFACE)
-    target_include_directories(sc-api-core-protocol_types INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+    target_include_directories(sc-api-core-protocol_types INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<INSTALL_INTERFACE:include>)
 endif()
 
 if (NOT TARGET libeddsa)
@@ -36,7 +38,7 @@ add_custom_command(OUTPUT ${TELEMETRY_REFS_OUTPUT}
     VERBATIM
 )
 target_sources(sc-api-core PRIVATE ${TELEMETRY_REFS_OUTPUT})
-target_include_directories(sc-api-core PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/gen)
+target_include_directories(sc-api-core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gen>)
 
 # --- Device info enum generation ---
 set(DEVICE_INFO_DEFS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/core/device_info_definitions.h")
@@ -87,6 +89,16 @@ foreach(group ${property_groups})
     list(APPEND gen_sim_data_sources ${PROP_GEN_SRC}/${group}.cpp)
 endforeach()
 target_sources(sc-api-core PRIVATE ${gen_sim_data_headers} ${gen_sim_data_sources})
+
+# --- Install ---
+install(TARGETS sc-api-core EXPORT sc-apiTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib)
+if (TARGET sc-api-core-protocol_types)
+    install(TARGETS sc-api-core-protocol_types EXPORT sc-apiTargets)
+endif()
+install(DIRECTORY inc/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
 
 #           ASIO
 # ========================
