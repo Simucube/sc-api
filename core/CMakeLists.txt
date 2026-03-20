@@ -38,6 +38,21 @@ add_custom_command(OUTPUT ${TELEMETRY_REFS_OUTPUT}
 target_sources(sc-api-core PRIVATE ${TELEMETRY_REFS_OUTPUT})
 target_include_directories(sc-api-core PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/gen)
 
+# --- Device info enum generation ---
+set(DEVICE_INFO_DEFS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/core/device_info_definitions.h")
+add_custom_command(OUTPUT ${DEVICE_INFO_DEFS_OUTPUT}
+    COMMAND Python::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_device_info_defs.py
+        --template ${CMAKE_CURRENT_SOURCE_DIR}/scripts/template/device_info_definitions.h
+        --output ${DEVICE_INFO_DEFS_OUTPUT}
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/device_info_enums.json
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_device_info_defs.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/template/device_info_definitions.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/device_info_enums.json
+    VERBATIM
+)
+target_sources(sc-api-core PRIVATE ${DEVICE_INFO_DEFS_OUTPUT})
+
 # --- Property definitions generation ---
 set(PROP_GEN_HDR "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/core/sim_data")
 set(PROP_GEN_SRC "${CMAKE_CURRENT_BINARY_DIR}/gen_src/core/sim_data")

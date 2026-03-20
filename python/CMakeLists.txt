@@ -65,6 +65,23 @@ add_custom_command(
 target_sources(sc-api-python PRIVATE ${SIM_DATA_TABLES_CPP})
 target_include_directories(sc-api-python PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen)
 
+# ---------------------------------------------------------------------------
+# Generate device_info enum bindings from JSON
+# ---------------------------------------------------------------------------
+set(DEVICE_INFO_BINDINGS_CPP "${CMAKE_CURRENT_BINARY_DIR}/gen/device_info_enums_generated.h")
+add_custom_command(
+    OUTPUT ${DEVICE_INFO_BINDINGS_CPP}
+    COMMAND Python::Interpreter
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_device_info_bindings.py
+        --output ${DEVICE_INFO_BINDINGS_CPP}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core/data/device_info_enums.json
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_device_info_bindings.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core/data/device_info_enums.json
+    VERBATIM
+)
+target_sources(sc-api-python PRIVATE ${DEVICE_INFO_BINDINGS_CPP})
+
 install(TARGETS sc-api-python LIBRARY DESTINATION simucube_api)
 
 # Stub generation for IDE/type-checker support (PEP 561).
