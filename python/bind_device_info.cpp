@@ -314,7 +314,7 @@ void bind_device_info(nb::module_& m) {
             "Return the DeviceInfo with the given session ID, or None if not found.")
         .def(
             "find_first",
-            [](const std::shared_ptr<FullInfo>& self, nb::callable predicate) -> nb::object {
+            [](const std::shared_ptr<FullInfo>& self, const nb::callable& predicate) -> nb::object {
                 for (std::size_t i = 0; i < self->getDeviceCount(); ++i) {
                     auto ptr = self->getByIndex(i);
                     nb::object py_dev = nb::cast(ptr);
@@ -328,7 +328,7 @@ void bind_device_info(nb::module_& m) {
             "Return the first DeviceInfo for which predicate returns True, or None if no match.")
         .def(
             "find_all",
-            [](const std::shared_ptr<FullInfo>& self, nb::callable predicate) {
+            [](const std::shared_ptr<FullInfo>& self, const nb::callable& predicate) {
                 nb::list result;
                 for (std::size_t i = 0; i < self->getDeviceCount(); ++i) {
                     nb::object py_dev = nb::cast(self->getByIndex(i));
