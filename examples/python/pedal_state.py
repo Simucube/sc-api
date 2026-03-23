@@ -3,18 +3,15 @@
 import simucube_api
 
 with simucube_api.Api() as api:
-    pedals = []  # list of (uid, role, force_var, position_var)
-    variables = None
+    pedals = []  # list of (uid, role, VariableObject)
 
     for event in api.events(timeout=1.0):
         if event is None:
             # Timeout -- print current pedal state
             if pedals:
                 print("ActivePedals:")
-                for uid, role, force_var, pos_var in pedals:
-                    force = force_var.value
-                    position = pos_var.value
-                    print(f"  {role}, uid={uid}, position: {position} mm, force: {force} N")
+                for uid, role, ap in pedals:
+                    print(f"  {role}, uid={uid}, position: {ap.position} mm, force: {ap.force} N")
                 print()
             continue
 
@@ -29,8 +26,12 @@ with simucube_api.Api() as api:
                 )
                 pedals = []
                 for ap in active_pedals:
-                    force_var = variables.find("ap.pedal_face_force_N", device=ap.session_id)
-                    pos_var = variables.find("ap.pedal_face_pos_mm", device=ap.session_id)
-                    if force_var and pos_var:
-                        pedals.append((ap.uid, ap.role, force_var, pos_var))
+                    try:
+                        ap_vars = simucube_api.VariableObject(variables, {
+                            "force": "ap.force_N",
+                            "position": "ap.pedal_face_pos_mm",
+                        }, device_id=ap.session_id)
+                    except KeyError:
+                        continue
+                    pedals.append((ap.uid, ap.role, ap_vars))
                 print(f"Devices changed -- found {len(pedals)} ActivePedal(s)")

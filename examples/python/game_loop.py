@@ -81,7 +81,7 @@ with simucube_api.Api(
                     )
                 )
                 variables = session.variables
-                force_var = variables.find("ap.pedal_face_force_N", device=brake_id)
+                force_var = variables.find("ap.force_N", device=brake_id)
                 print(f"Brake pedal initialized: session_id={brake_id}")
 
         # Generate effect
