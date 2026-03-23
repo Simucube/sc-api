@@ -124,11 +124,11 @@ void bind_api(nb::module_& m) {
         .def("__eq__",
              [](const DeviceSessionId& a, const DeviceSessionId& b) {
                  return a == b;
-             })
+             }, nb::is_operator())
         .def("__lt__",
              [](const DeviceSessionId& a, const DeviceSessionId& b) {
                  return a < b;
-             })
+             }, nb::is_operator())
         .def("__hash__",
              [](const DeviceSessionId& d) {
                  return std::hash<uint16_t>()(d.id);
@@ -191,7 +191,8 @@ void bind_api(nb::module_& m) {
         .def_prop_ro("b", [](const RgbColor& c) { return c.b; },
                      "Blue channel (0–255).")
         .def("__eq__",
-             [](const RgbColor& a, const RgbColor& b) { return a == b; })
+             [](const RgbColor& a, const RgbColor& b) { return a == b; },
+             nb::is_operator())
         .def("__repr__", [](const RgbColor& c) {
             return "RgbColor(" + std::to_string(c.r) + ", " +
                    std::to_string(c.g) + ", " + std::to_string(c.b) + ")";
@@ -209,7 +210,10 @@ void bind_api(nb::module_& m) {
                      "Current session state (``SessionState`` enum).")
         .def_prop_ro("controller_id", &Session::getControllerId,
                      "Numeric ID assigned to this controller by Tuner.")
-        .def_prop_ro("control_flags", &Session::getControlFlags,
+        .def_prop_ro("control_flags",
+                     [](const Session& self) {
+                         return static_cast<Session::ControlFlag>(self.getControlFlags());
+                     },
                      "Bitmask of ``ControlFlag`` values granted to this session.")
         .def(
             "register_to_control",

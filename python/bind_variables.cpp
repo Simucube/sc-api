@@ -201,7 +201,8 @@ void bind_variables(nb::module_& m) {
         .def_prop_ro("is_base_type", &Type::isBaseType,
                      "True if this type describes a simple scalar (not a bit-field and not an array).")
         .def("__eq__",
-             [](const Type& a, const Type& b) { return a == b; })
+             [](const Type& a, const Type& b) { return a == b; },
+             nb::is_operator())
         .def("__repr__", [](const Type& self) {
             return "<Type " + self.toString() + ">";
         });

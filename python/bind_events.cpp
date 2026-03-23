@@ -32,7 +32,9 @@ void bind_events(nb::module_& m) {
             "Identifier of the controller that triggered the state change.")
         .def_prop_ro(
             "control_flags",
-            [](const SessionStateChanged& e) { return e.control_flags; },
+            [](const SessionStateChanged& e) {
+                return static_cast<Session::ControlFlag>(e.control_flags);
+            },
             "Bitmask of ``ControlFlag`` values granted for this session state.")
         .def("__repr__", [](const SessionStateChanged& e) {
             return std::string("<SessionStateChanged state=") +

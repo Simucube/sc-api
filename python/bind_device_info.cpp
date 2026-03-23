@@ -256,6 +256,23 @@ void bind_device_info(nb::module_& m) {
                    std::string(sc_api::core::device_info::toString(self.getRole())) + ">";
         });
 
+    // --- FullInfoIterator (yields DeviceInfoPtr to avoid copying non-copyable DeviceInfo) ---
+
+    struct FullInfoIterator {
+        std::shared_ptr<FullInfo> info;
+        std::size_t index = 0;
+        std::size_t count = 0;
+
+        DeviceInfoPtr next() {
+            if (index >= count) throw nb::stop_iteration();
+            return info->getByIndex(index++);
+        }
+    };
+
+    nb::class_<FullInfoIterator>(m, "FullInfoIterator")
+        .def("__iter__", [](FullInfoIterator& self) -> FullInfoIterator& { return self; })
+        .def("__next__", &FullInfoIterator::next);
+
     // --- FullInfo (held via shared_ptr<FullInfo>) ---
 
     nb::class_<FullInfo>(m, "FullInfo",
@@ -264,25 +281,23 @@ void bind_device_info(nb::module_& m) {
         .def(
             "__iter__",
             [](const std::shared_ptr<FullInfo>& self) {
-                return nb::make_iterator(nb::type<FullInfo>(), "FullInfoIterator",
-                                         self->begin(), self->end());
-            },
-            nb::keep_alive<0, 1>())
+                return FullInfoIterator{self, 0, self->getDeviceCount()};
+            })
         .def(
             "__getitem__",
-            [](const FullInfo& self, int index) -> DeviceInfoPtr {
-                int size = static_cast<int>(self.getDeviceCount());
+            [](const std::shared_ptr<FullInfo>& self, int index) -> DeviceInfoPtr {
+                int size = static_cast<int>(self->getDeviceCount());
                 if (index < 0) index += size;
                 if (index < 0 || index >= size) {
                     throw nb::index_error("FullInfo index out of range");
                 }
-                return self.getByIndex(static_cast<std::size_t>(index));
+                return self->getByIndex(static_cast<std::size_t>(index));
             },
             nb::arg("index"))
         .def(
             "get_by_uid",
-            [](const FullInfo& self, const std::string& uid) -> nb::object {
-                auto ptr = self.getByUid(uid);
+            [](const std::shared_ptr<FullInfo>& self, const std::string& uid) -> nb::object {
+                auto ptr = self->getByUid(uid);
                 if (!ptr) return nb::none();
                 return nb::cast(ptr);
             },
@@ -290,8 +305,8 @@ void bind_device_info(nb::module_& m) {
             "Return the DeviceInfo with the given persistent UID, or None if not found.")
         .def(
             "get_by_session_id",
-            [](const FullInfo& self, DeviceSessionId id) -> nb::object {
-                auto ptr = self.getBySessionId(id);
+            [](const std::shared_ptr<FullInfo>& self, DeviceSessionId id) -> nb::object {
+                auto ptr = self->getBySessionId(id);
                 if (!ptr) return nb::none();
                 return nb::cast(ptr);
             },
@@ -299,19 +314,29 @@ void bind_device_info(nb::module_& m) {
             "Return the DeviceInfo with the given session ID, or None if not found.")
         .def(
             "find_first",
-            [](const FullInfo& self,
-               const std::function<bool(const DeviceInfo&)>& predicate) -> nb::object {
-                auto ptr = self.findFirstByFilter(predicate);
-                if (!ptr) return nb::none();
-                return nb::cast(ptr);
+            [](const std::shared_ptr<FullInfo>& self, nb::callable predicate) -> nb::object {
+                for (std::size_t i = 0; i < self->getDeviceCount(); ++i) {
+                    auto ptr = self->getByIndex(i);
+                    nb::object py_dev = nb::cast(ptr);
+                    if (nb::cast<bool>(predicate(py_dev))) {
+                        return py_dev;
+                    }
+                }
+                return nb::none();
             },
             nb::arg("predicate"),
             "Return the first DeviceInfo for which predicate returns True, or None if no match.")
         .def(
             "find_all",
-            [](const FullInfo& self,
-               const std::function<bool(const DeviceInfo&)>& predicate) {
-                return self.findAllByFilter(predicate);
+            [](const std::shared_ptr<FullInfo>& self, nb::callable predicate) {
+                nb::list result;
+                for (std::size_t i = 0; i < self->getDeviceCount(); ++i) {
+                    nb::object py_dev = nb::cast(self->getByIndex(i));
+                    if (nb::cast<bool>(predicate(py_dev))) {
+                        result.append(py_dev);
+                    }
+                }
+                return result;
             },
             nb::arg("predicate"),
             "Return a list of all DeviceInfo entries for which predicate returns True.")

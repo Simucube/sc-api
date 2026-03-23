@@ -71,7 +71,7 @@ void bind_ffb(nb::module_& m) {
         .def("__eq__",
              [](const PipelineConfig& a, const PipelineConfig& b) {
                  return a == b;
-             })
+             }, nb::is_operator())
         .def("__repr__", [](const PipelineConfig& self) {
             auto enum_name = [](auto val) {
                 return nb::cast<std::string>(nb::repr(nb::cast(val)));
