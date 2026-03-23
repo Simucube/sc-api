@@ -12,7 +12,7 @@ with simucube_api.Api() as api:
             if variables and len(variables) > 0:
                 print("Current values:")
                 for var in variables:
-                    val = variables.read_value(var)
+                    val = var.value
                     print(f"  {var.name}: {val}")
                 print()
             continue
@@ -34,6 +34,6 @@ with simucube_api.Api() as api:
             variables = session.variables
             print(f"\nVariable definitions changed ({len(variables)} variables):")
             for var in variables:
-                val = variables.read_value(var)
+                val = var.value
                 print(f"  {var.name}  type={var.type}  device={var.device_session_id}  value={val}")
             print()

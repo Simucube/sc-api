@@ -12,8 +12,8 @@ with simucube_api.Api() as api:
             if pedals:
                 print("ActivePedals:")
                 for uid, role, force_var, pos_var in pedals:
-                    force = variables.read_value(force_var)
-                    position = variables.read_value(pos_var)
+                    force = force_var.value
+                    position = pos_var.value
                     print(f"  {role}, uid={uid}, position: {position} mm, force: {force} N")
                 print()
             continue

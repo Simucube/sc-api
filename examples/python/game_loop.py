@@ -97,7 +97,7 @@ with simucube_api.Api(
 
             frame_count += 1
             if frame_count % 1000 == 0 and force_var and variables:
-                force = variables.read_value(force_var)
+                force = force_var.value
                 print(f"Brake force: {force} N")
 
         # Wait for next update cycle
