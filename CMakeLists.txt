@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 option(SC_API_PYTHON "Enable building Python bindings (Python and nanobind required)" OFF)
 option(SC_API_EXAMPLES "Enable building example applications" ${SimucubeAPI_IS_TOP_LEVEL})
 option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${SimucubeAPI_IS_TOP_LEVEL})
+option(SC_API_INSTALL "Enable install targets" ${SimucubeAPI_IS_TOP_LEVEL})
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND SC_API_INSTALL)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Default install path" FORCE)
+endif()
 
 option(SC_API_DEFINE_WINNT "Define _WIN32_WINNT" ${SimucubeAPI_IS_TOP_LEVEL})
 if (SC_API_DEFINE_WINNT)
@@ -36,34 +41,36 @@ target_include_directories(sc-api PUBLIC
     $<INSTALL_INTERFACE:include>)
 target_link_libraries(sc-api PUBLIC sc-api-core)
 
-# --- Install ---
-include(CMakePackageConfigHelpers)
+if (SC_API_INSTALL)
+    # --- Install ---
+    include(CMakePackageConfigHelpers)
 
-install(TARGETS sc-api EXPORT sc-apiTargets
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib)
+    install(TARGETS sc-api EXPORT sc-apiTargets
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib)
 
-install(DIRECTORY inc/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
+    install(DIRECTORY inc/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
 
-install(EXPORT sc-apiTargets
-    FILE sc-apiTargets.cmake
-    NAMESPACE sc-api::
-    DESTINATION lib/cmake/sc-api)
+    install(EXPORT sc-apiTargets
+        FILE sc-apiTargets.cmake
+        NAMESPACE sc-api::
+        DESTINATION lib/cmake/sc-api)
 
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sc-apiConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
-    INSTALL_DESTINATION lib/cmake/sc-api)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sc-apiConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
+        INSTALL_DESTINATION lib/cmake/sc-api)
 
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion)
 
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
-    DESTINATION lib/cmake/sc-api)
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
+        DESTINATION lib/cmake/sc-api)
+endif()
 
 
 if (SC_API_EXAMPLES)
