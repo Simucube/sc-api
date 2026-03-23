@@ -163,6 +163,73 @@ class TelemetryUpdateObject:
         return f"<TelemetryUpdateObject {group!r}>"
 
 
+class VariableObject:
+    """Read-only attribute-style access to device variables.
+
+    Maps friendly attribute names to actual variable names in the
+    definitions, reading live values from shared memory on each access.
+
+    Usage::
+
+        ap = VariableObject(session.variables, {
+            "force": "ap.pedal_face_force_N",
+            "position": "ap.pedal_position_mm",
+        }, device_id=DeviceSessionId(1))
+        print(ap.force)
+        print(ap.position)
+
+    Args:
+        variable_definitions: A VariableDefinitions collection from the
+            active session.
+        mapping: Dict mapping attribute names to actual variable names.
+        device_id: Optional DeviceSessionId to filter variables by device.
+
+    Raises:
+        KeyError: If a variable name from *mapping* is not found in
+            *variable_definitions* (with the given *device_id*).
+    """
+
+    def __init__(self, variable_definitions, mapping, device_id=None):
+        resolved = {}
+        for attr, var_name in mapping.items():
+            if device_id is not None:
+                var_def = variable_definitions.find(var_name, device=device_id)
+            else:
+                var_def = variable_definitions.find(var_name)
+            if var_def is None:
+                raise KeyError(
+                    f"Variable {var_name!r} not found in definitions"
+                    + (f" for device {device_id}" if device_id is not None else "")
+                )
+            resolved[attr] = var_def
+        object.__setattr__(self, "_vars", resolved)
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        raise AttributeError(
+            "VariableObject is read-only", name=name, obj=self
+        )
+
+    def __getattr__(self, name):
+        """Read the current value of a mapped variable.
+
+        Raises:
+            AttributeError: If *name* is not in the mapping.
+        """
+        vars_ = object.__getattribute__(self, "_vars")
+        try:
+            return vars_[name].value
+        except KeyError:
+            raise AttributeError(name, name=name, obj=self) from None
+
+    def __repr__(self):
+        vars_ = object.__getattribute__(self, "_vars")
+        names = ", ".join(vars_)
+        return f"<VariableObject [{names}]>"
+
+
 __all__ = [
     "__version__",
     # Enums
@@ -236,8 +303,38 @@ __all__ = [
     "SimucubeConnectionError",
     # Pure-Python helpers
     "TelemetryUpdateObject",
+    "VariableObject",
+    "telemetry_variables",
     "duration_ns_from_hz",
 ]
+
+
+def telemetry_variables(variable_definitions, telemetry_definitions):
+    """Create a VariableObject for reading telemetry values and availability.
+
+    For each telemetry definition, maps two attributes:
+
+    - ``<name>`` -- the telemetry value (variable ``t.<name>``)
+    - ``has_<name>`` -- whether any source is providing the
+      telemetry (variable ``ta.<name>``)
+
+    Usage::
+
+        tv = telemetry_variables(session.variables, session.telemetries)
+        if tv.has_engine_rpm:
+            print(tv.engine_rpm)
+
+    Args:
+        variable_definitions: A VariableDefinitions collection from the
+            active session.
+        telemetry_definitions: A TelemetryDefinitions collection from the
+            active session.
+    """
+    mapping = {}
+    for tdef in telemetry_definitions:
+        mapping[tdef.name] = f"t.{tdef.name}"
+        mapping[f"has_{tdef.name}"] = f"ta.{tdef.name}"
+    return VariableObject(variable_definitions, mapping)
 
 
 def duration_ns_from_hz(hz: int) -> int:
