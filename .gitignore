@@ -54,3 +54,8 @@ __pycache__/
 
 # Python package linking install files
 *.egg-info/
+
+# Generated Python binding tables
+simucube_api/_sim_data.py
+
+.claude/

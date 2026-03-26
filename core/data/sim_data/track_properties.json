@@ -1,0 +1,49 @@
+{
+    "name": {
+        "type": "string",
+        "desc": "Full name of the track (variant)",
+        "usages": ["tuner", "dash"]
+    },
+    "base_name": {
+        "type": "string",
+        "desc": "Shorter base name of the track. Might be the same as \"name\"",
+        "usages": ["tuner", "dash"]
+    },
+    "variant": {
+        "type": "string",
+        "desc": "Track variant name",
+        "usages": ["tuner", "dash"]
+    },
+    "country": {
+        "type": "string",
+        "desc": "ISO 3166-1 alpha-3, three-letter country code, where the track is located",
+        "usages": ["dash"]
+    },
+    "track_style": {
+        "type": "string",
+        "desc": "Style of the track: \"circuit\", \"stage\"",
+        "options": ["circuit", "stage"],
+        "usages": ["dash", "tuner"]
+    },
+    "has_joker": {
+        "type": "bool",
+        "desc": "True if the track has a rallycross-style joker lap",
+        "usages": ["dash"]
+    },
+    "track_length": {
+        "type": "f32",
+        "desc": "Length of the track in meters",
+        "usages": ["dash"]
+    },
+    "sector_count": {
+        "type": "i32",
+        "desc": "Number of sectors in this track",
+        "usages": ["dash"]
+    },
+    "pitlane_speed_limit": {
+        "type": "f32",
+        "desc": "Speed limit in pitlane in m/s",
+        "usages": ["dash"]
+    }
+    
+}

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["scikit-build-core>=0.4.3", "nanobind>=1.3.2"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "simucube-api"
+description = "Python bindings for Simucube device control"
+license = {text = "MIT"}
+dynamic = ["version"]
+requires-python = ">=3.11"
+dependencies = ["numpy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+]
+
+[tool.scikit-build]
+minimum-version = "0.4"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["simucube_api"]
+
+[tool.scikit-build.cmake.define]
+SC_API_PYTHON = "ON"
+SC_API_EXAMPLES = "OFF"
+SC_API_GENERATE_DOCS = "OFF"
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "CMakeLists.txt"
+regex = "project\\(SimucubeAPI VERSION (?P<value>[0-9.]+)\\)"
+
+[tool.cibuildwheel]
+build = "cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
+test-command = "python -c \"import simucube_api; print(simucube_api.__version__)\""

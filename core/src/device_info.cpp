@@ -159,6 +159,7 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
                         c.variable.id                = var;
                         c.variable.device_session_id = this_device_id;
                     } else {
+                        // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage)
                         if (std::from_chars(var.data(), var.data() + dev_id_pos, c.variable.device_session_id.id, 16)
                                 .ec == std::errc()) {
                             c.variable.id = var.substr(dev_id_pos + 1);

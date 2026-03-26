@@ -51,7 +51,7 @@ bool buildEffectOffsetDataAction(ActionBuilder& builder, EffectPipelineRef pipel
         hdr = new (payload + sizeof(SC_API_PROTOCOL_EncryptedActionHeader_t)) Header();
     } else {
         payload =
-            builder.startBuilding(SC_API_PROTOCOL_ACTION_FB_EFFECT, sizeof(Header) + sizeof(float) * sample_count);
+            builder.startBuilding(SC_API_PROTOCOL_ACTION_FB_EFFECT, sizeof(Header) + (sizeof(float) * sample_count));
 
         if (!payload) return false;
 

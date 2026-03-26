@@ -1,0 +1,27 @@
+{
+    "name": {
+        "type": "string",
+        "descr": "Name of the simulator",
+        "usages": ["tuner", "dash"]
+    },
+    "process_detection": {
+        "type": "bool",
+        "descr": "Simulator process startup can be detected",
+        "usages": ["tuner"]
+    },
+    "max_rpm_available" : {
+        "type": "bool",
+        "descr": "Engine max RPM available",
+        "usages": ["tuner"]
+    },
+    "full_shift_light_data_available" : {
+        "type": "bool",
+        "descr": "Shift light level available",
+        "usages": ["tuner"]
+    },
+    "vehicle_detection_support" : {
+        "type": "bool",
+        "desc": "Current player car can be detected",
+        "usages": ["tuner"]
+    }
+}

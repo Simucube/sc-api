@@ -1,0 +1,18 @@
+{
+    "name": {
+        "type": "string",
+        "desc": "Name of the tire compound"
+    },
+    "short_name": {
+        "type": "string",
+        "desc": "Short name of the tire compound"
+    },
+    "hardness_order": {
+        "type": "i32",
+        "desc": "Arbitrary number defining sorting order of different compounds based on their hardness. Higher number is considered harder"
+    },
+    "weather": {
+        "type": "string",
+        "desc": "Intended weather condition for this tire: eg. \"dry\", \"light_rain\", \"heavy_rain\", \"snow\""
+    }
+}

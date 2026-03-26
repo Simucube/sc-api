@@ -67,4 +67,6 @@ if (MSVC)
     set_source_files_properties(src/util/bson_reader.cpp PROPERTIES COMPILE_FLAGS /wd4018)
 endif()
 
-target_include_directories(sc-api-core PUBLIC inc)
+target_include_directories(sc-api-core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:include>)

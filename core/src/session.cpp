@@ -420,7 +420,7 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
     p_->receive_buffer.resize(k_rx_buffer_size);
 
     std::size_t written_bytes = asio::write(p_->main_socket, asio::buffer(ptr, size));
-    if (size != written_bytes) {
+    if (static_cast<std::size_t>(size) != written_bytes) {
         p_->main_socket.close();
         return ResultCode::error_cannot_connect;
     }
@@ -442,7 +442,7 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
                 return ResultCode::error_protocol;
             }
             needed_bytes = total_document_size;
-            if (read_bytes == total_document_size) {
+            if (read_bytes == static_cast<std::size_t>(total_document_size)) {
                 break;
             }
         }

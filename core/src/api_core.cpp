@@ -152,7 +152,7 @@ ResultCode ApiCore::Impl::tryCopySessionRef(SessionRef& session) {
 
     static_assert(sizeof(session.path) == sizeof(shm_core_ptr_->session_shm_path));
 
-    for (int i = 0; i < sizeof(shm_core_ptr_->session_shm_path); ++i) {
+    for (std::size_t i = 0; i < sizeof(shm_core_ptr_->session_shm_path); ++i) {
         session.path[i] = shm_core_ptr_->session_shm_path[i];
     }
 
@@ -201,7 +201,7 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
 
     shm_refs.resize(session_copy->shm_reference_count);
     for (unsigned i = 0; i < session_copy->shm_reference_count; ++i) {
-        const uint8_t* ref_ptr = shm_block_ref_start + (std::size_t)shm_block_size * i;
+        const uint8_t* ref_ptr = shm_block_ref_start + ((std::size_t)shm_block_size * i);
         shm_refs[i]            = reinterpret_cast<const SC_API_PROTOCOL_ShmBlockReference_t*>(ref_ptr);
     }
 

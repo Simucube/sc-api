@@ -294,7 +294,7 @@ bool TelemetrySystem::updateDefinitions() {
 
     for (std::size_t i = cur_defs_->defs.size(); i < def_count; ++i) {
         const auto* def_ptr =
-            reinterpret_cast<const SC_API_PROTOCOL_TelemetryDef_t*>(defs_start_ + (ptrdiff_t)defs_size_ * i);
+            reinterpret_cast<const SC_API_PROTOCOL_TelemetryDef_t*>(defs_start_ + ((ptrdiff_t)defs_size_ * i));
 
         TelemetryDefinition def;
         def.id           = def_ptr->id;

@@ -1,0 +1,62 @@
+{
+    "name": {
+        "type": "string",
+        "desc": "Name of the participant (driver)",
+        "usages": ["dash"]
+    },
+    "abbrev_name": {
+        "type": "string",
+        "desc": "Abbreviated name for the driver, used when character space is limited",
+        "usages": ["dash"]
+    },
+    "team_name": {
+        "type": "string",
+        "desc": "Name of the team that the participant represents",
+        "usages": ["dash"]
+    },
+    "vehicle_number": {
+        "type": "i32",
+        "desc": "Car number of the participant (not necessarily unique if multiple players drive same car)",
+        "usages": ["dash"]
+    },
+    "vehicle_id": {
+        "type": "string",
+        "desc": "Id of the vehicle that this participant uses",
+        "usages": ["dash"]
+    },
+    "in_current_session": {
+        "type": "bool",
+        "desc": "True if participant is part of the currently active session"
+    },
+    "on_track": {
+        "type": "bool",
+        "desc": "Participant is currently on the track (or on pitlane). false, if participant is inside pitbox",
+        "usages": ["dash"]
+    },
+    "tire_id": {
+        "type": "i8",
+        "desc": "Id of the tire compound currently used. Used as default when per-wheel tire ids are not specified",
+        "usages": ["dash"]
+    },
+    "tire_id_lr": {
+        "type": "i32",
+        "desc": "Left rear tire id",
+        "usages": ["dash"]
+    },
+    "tire_id_rr": {
+        "type": "i32",
+        "desc": "Right rear tire id",
+        "usages": ["dash"]
+    },
+    "tire_id_lf": {
+        "type": "i32",
+        "desc": "Left front tire id",
+        "usages": ["dash"]
+    },
+    "tire_id_rf": {
+        "type": "i32",
+        "desc": "Right front tire id",
+        "usages": ["dash"]
+    }
+    
+}

@@ -69,6 +69,7 @@ class TelemetryBase {
 
 public:
     TelemetryBase(std::string&& name, Type type);
+    virtual ~TelemetryBase() = default;
 
     const std::string& getName() const { return name_; }
     Type               getType() const { return type_; }
@@ -214,7 +215,6 @@ private:
     uint16_t                    set_payload_size_ = 0;
     uint16_t                    group_id_         = 0;
     bool                        prepared_         = false;
-    bool                        enabled_          = false;
 };
 
 /** List of all available telemetries
@@ -243,7 +243,7 @@ public:
     TelemetryDefinitions& operator=(const TelemetryDefinitions& defs) = default;
 
     const_iterator         begin() const { return s_->defs.begin(); }
-    const_iterator         end() const { return s_->defs.begin(); }
+    const_iterator         end() const { return s_->defs.end(); }
     const_reverse_iterator rbegin() const { return s_->defs.rbegin(); }
     const_reverse_iterator rend() const { return s_->defs.rend(); }
     size_type              size() const { return s_->defs.size(); }

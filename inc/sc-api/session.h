@@ -6,6 +6,7 @@
 
 #ifndef SC_API_INTERNAL_SESSION_H_
 #define SC_API_INTERNAL_SESSION_H_
+#include <sc-api/core/device.h>
 #include <sc-api/core/session.h>
 
 namespace sc_api {

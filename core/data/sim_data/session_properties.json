@@ -1,0 +1,32 @@
+{
+    "player_participant_id": {
+        "type": "i32",
+        "desc": "Id of the participant data that refers to the player on this PC",
+        "usages": ["tuner", "dash"]
+    },
+    "player_vehicle_id": {
+        "type": "string",
+        "desc": "ID of the vehicle that player drives. Should match the id listed in participant data.",
+        "usages": ["tuner", "dash"]
+    },
+    "track_id": {
+        "type": "string",
+        "desc": "ID of the track that is used for this session"
+    },
+    "session_type": {
+        "type": "string",
+        "desc": "Session type: \"qualifying\", \"race\", \"practice\", \"free_roam\", \"hotlap\"",
+        "usages": ["tuner", "dash"],
+        "options": ["qualifying", "race", "practice", "free_roam", "hotlap"]
+    },
+    "session_name": {
+        "type": "string",
+        "desc": "User readable name of the session. Eg. \"Qualifying\" or \"Practice 1\"",
+        "usages": ["tuner", "dash"]
+    },
+    "number_of_laps": {
+        "type": "i32",
+        "desc": "Number of laps participants must complete to finish the race",
+        "usages": ["dash"]
+    }
+}

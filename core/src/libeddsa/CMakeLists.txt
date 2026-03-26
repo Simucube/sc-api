@@ -72,13 +72,8 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif ()
 endif ()
 
-target_include_directories(libeddsa PUBLIC inc)
+target_include_directories(libeddsa PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>)
 
-if (SC_LINK_UNIT_TESTS)
-    # Disable tests for now. They don't really produce any useful info and python test fails randomly
-    # add_subdirectory(test)
-endif ()
-
-if(NOT CMAKE_CROSSCOMPILING)
-    install(DIRECTORY . DESTINATION sc-api-core/src/libeddsa)
-endif()
+install(TARGETS libeddsa EXPORT sc-apiTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib)
