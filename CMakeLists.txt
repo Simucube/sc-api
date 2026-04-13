@@ -18,6 +18,14 @@ if (SC_API_DEFINE_WINNT)
     add_compile_definitions(_WIN32_WINNT=0x0601)
 endif()
 
+
+find_package(Threads REQUIRED QUIET)
+if (SC_API_PYTHON)
+    find_package(Python 3.11 COMPONENTS Interpreter Development.Module REQUIRED)
+else()
+    find_package(Python 3.11 COMPONENTS Interpreter REQUIRED)
+endif()
+
 # Core part of the API is directly exported from Simucube internal sources
 add_subdirectory(core)
 
