@@ -37,6 +37,22 @@ set_target_properties(sc-api-python PROPERTIES OUTPUT_NAME _native)
 target_link_libraries(sc-api-python PRIVATE sc-api)
 target_compile_definitions(sc-api-python PRIVATE SC_API_VERSION="${PROJECT_VERSION}")
 
+# Ensure Python's libs/ directory is on the linker search path on Windows.
+# pyconfig.h injects a `#pragma comment(lib, "pythonXYZ.lib")` auto-link whose
+# release/debug variant is chosen by `_DEBUG` at compile time. When that
+# variant differs from the one FindPython passes explicitly (e.g. release CRT
+# on a Python install that only exposes the debug lib on the search path), the
+# linker fails with "cannot open file pythonXYZ.lib". Adding the Python libs
+# directory makes both variants resolvable regardless of which one is chosen.
+if (WIN32 AND Python_LIBRARIES)
+    foreach(_sc_py_lib IN LISTS Python_LIBRARIES)
+        get_filename_component(_sc_py_lib_dir "${_sc_py_lib}" DIRECTORY)
+        if (_sc_py_lib_dir)
+            target_link_directories(sc-api-python PRIVATE "${_sc_py_lib_dir}")
+        endif()
+    endforeach()
+endif()
+
 # ---------------------------------------------------------------------------
 # Generate sim_data property tables (C++ header + Python key lists) from JSON
 # ---------------------------------------------------------------------------
