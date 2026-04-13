@@ -115,6 +115,16 @@
         ],
         "default": 0
     },
+    "abs_setting_max": {
+        "type": "i8",
+        "prio": "env",
+        "descr": "Maximum ABS setting",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
+    },
     "drs_active": {
         "type": "bool",
         "prio": "low",
@@ -352,10 +362,50 @@
         ],
         "default": 0
     },
-    "tc_setting2": {
+    "tc_setting_max": {
+        "type": "i8",
+        "prio": "env",
+        "descr": "Maximum traction control setting",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
+    },
+    "tc_power_cut_setting": {
         "type": "i8",
         "prio": "low",
-        "descr": "Current traction control 2 setting",
+        "descr": "Current traction control power cut setting",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
+    },
+    "tc_power_cut_setting_max": {
+        "type": "i8",
+        "prio": "env",
+        "descr": "Maximum traction control power cut setting",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
+    },
+    "tc_slip_angle_setting": {
+        "type": "i8",
+        "prio": "low",
+        "descr": "Current traction control slip angle setting",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
+    },
+    "tc_slip_angle_setting_max": {
+        "type": "i8",
+        "prio": "env",
+        "descr": "Maximum traction control slip angle setting",
         "usages": [
             "dash",
             "tuner"
