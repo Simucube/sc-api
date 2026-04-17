@@ -3,7 +3,6 @@ project(sc-api-core VERSION 0.0.1)
 
 # Lightweight INTERFACE target exposing only protocol type definitions.
 # Used by consumers that need types.h without linking the full sc-api-core.
-# Guard: host projects (e.g. gorilla) may already define this for firmware use.
 if (NOT TARGET sc-api-core-protocol_types)
     add_library(sc-api-core-protocol_types INTERFACE)
     target_include_directories(sc-api-core-protocol_types INTERFACE
@@ -15,14 +14,82 @@ if (NOT TARGET libeddsa)
     add_subdirectory(src/libeddsa)
 endif()
 
-include(sc-api-core.cmake)
+add_library(sc-api-core
+    inc/sc-api/core/result.h
+    inc/sc-api/core/protocol/actions.h
+    inc/sc-api/core/protocol/core.h
+    inc/sc-api/core/protocol/bson_shm_blocks.h
+    inc/sc-api/core/protocol/variables.h
+    inc/sc-api/core/device_info.h
+    inc/sc-api/core/device_info_fwd.h
+
+    inc/sc-api/core/variables.h src/variables.cpp
+
+    inc/sc-api/core/session.h src/session.cpp
+    src/compatibility.h src/compatibility.cpp
+    src/device_info_internal.h src/device_info.cpp
+    src/shm_bson_data_provider.h src/shm_bson_data_provider.cpp
+    inc/sc-api/core/action.h src/action.cpp
+
+    src/crypto/gcm.h
+    src/crypto/gcm.c
+    src/crypto/aes.h
+    src/crypto/aes.c
+    src/crypto/ecdh.h
+    src/crypto/ecdh.c
+    inc/sc-api/core/protocol/security.h
+    src/session.cpp
+    inc/sc-api/core/protocol/variable_types.h
+    inc/sc-api/core/util/bson_builder.h src/util/bson_builder.cpp
+    inc/sc-api/core/util/bson_reader.h src/util/bson_reader.cpp
+    inc/sc-api/core/protocol/telemetry.h
+
+    inc/sc-api/core/sim_data_builder.h src/sim_data_builder.cpp
+
+    inc/sc-api/core/telemetry.h
+    src/telemetry.cpp
+    src/security_impl.h
+    src/security_impl.cpp
+    inc/sc-api/core/api_core.h
+    src/api.cpp
+    inc/sc-api/core/api.h
+    src/api_core.cpp
+    inc/sc-api/core/ffb.h
+    src/ffb.cpp
+    inc/sc-api/core/led_control.h
+    src/led_control.cpp
+    inc/sc-api/core/time.h
+    src/time.cpp
+    inc/sc-api/core/compatibility.h
+    src/command_parsing.h src/command_parsing.cpp
+
+    inc/sc-api/core/device.h
+    src/device.cpp
+    inc/sc-api/core/type.h
+    src/type.cpp
+
+    inc/sc-api/core/sim_data.h src/sim_data.cpp
+
+    inc/sc-api/core/protocol/commands.h
+    inc/sc-api/core/events.h src/events.cpp
+    inc/sc-api/core/session_fwd.h
+    inc/sc-api/core/command.h
+    src/command.cpp
+)
+
+# Suppress warnings on 3rd party components
+if (MSVC)
+    set_source_files_properties(src/crypto/gcm.c PROPERTIES COMPILE_FLAGS /wd4267)
+    set_source_files_properties(src/util/bson_reader.cpp PROPERTIES COMPILE_FLAGS /wd4018)
+endif()
+
+target_include_directories(sc-api-core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:include>)
 
 set_property(TARGET sc-api-core PROPERTY CXX_STANDARD 17)
 
 target_link_libraries(sc-api-core PRIVATE libeddsa)
-
-find_package(Python COMPONENTS Interpreter REQUIRED)
-find_package(Threads REQUIRED QUIET)
 
 # --- Telemetry references generation ---
 set(TELEMETRY_REFS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/core/telemetry_references.h")

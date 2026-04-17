@@ -1,5 +1,6 @@
 #include "sc-api/core/api.h"
 
+#include <algorithm>
 #include <cassert>
 #include <thread>
 
