@@ -59,7 +59,8 @@
         "descr": "Currently selected engine map",
         "prio": "low",
         "usages": [
-            "dash"
+            "dash",
+            "tuner"
         ],
         "default": 0
     },
