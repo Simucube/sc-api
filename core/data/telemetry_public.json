@@ -159,6 +159,39 @@
         ],
         "default": false
     },
+    "active_aero_active": {
+        "type": "bool",
+        "prio": "low",
+        "descr": "True, when active aerodynamics is engaged.",
+        "usages": [
+            "effects",
+            "tuner",
+            "dash"
+        ],
+        "default": false
+    },
+    "active_aero_activatable": {
+        "type": "bool",
+        "prio": "low",
+        "descr": "True, when active aerodynamics can currently be activated.",
+        "usages": [
+            "effects",
+            "tuner",
+            "dash"
+        ],
+        "default": false
+    },
+    "overtake_active": {
+        "type": "bool",
+        "prio": "low",
+        "descr": "True, when overtake mode (e.g. push-to-pass) is currently active",
+        "usages": [
+            "effects",
+            "tuner",
+            "dash"
+        ],
+        "default": false
+    },
     "wipers_enabled": {
         "type": "bool",
         "prio": "env",
