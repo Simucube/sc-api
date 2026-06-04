@@ -23,5 +23,15 @@
         "type": "bool",
         "desc": "Current player car can be detected",
         "usages": ["tuner"]
+    },
+    "sim_version": {
+        "type": "string",
+        "descr": "User-facing version of the sim. Format is sim-specific.",
+        "usages": ["tuner"]
+    },
+    "telemetry_version": {
+        "type": "string",
+        "descr": "Version of the sim's telemetry API / data format, if any. Format is sim-specific.",
+        "usages": ["tuner"]
     }
 }
