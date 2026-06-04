@@ -1,22 +1,22 @@
 {
     "name": {
         "type": "string",
-        "descr": "Name of the simulator",
+        "desc": "Name of the simulator",
         "usages": ["tuner", "dash"]
     },
     "process_detection": {
         "type": "bool",
-        "descr": "Simulator process startup can be detected",
+        "desc": "Simulator process startup can be detected",
         "usages": ["tuner"]
     },
     "max_rpm_available" : {
         "type": "bool",
-        "descr": "Engine max RPM available",
+        "desc": "Engine max RPM available",
         "usages": ["tuner"]
     },
     "full_shift_light_data_available" : {
         "type": "bool",
-        "descr": "Shift light level available",
+        "desc": "Shift light level available",
         "usages": ["tuner"]
     },
     "vehicle_detection_support" : {
@@ -26,12 +26,12 @@
     },
     "sim_version": {
         "type": "string",
-        "descr": "User-facing version of the sim. Format is sim-specific.",
+        "desc": "User-facing version of the sim. Format is sim-specific.",
         "usages": ["tuner"]
     },
     "telemetry_version": {
         "type": "string",
-        "descr": "Version of the sim's telemetry API / data format, if any. Format is sim-specific.",
+        "desc": "Version of the sim's telemetry API / data format, if any. Format is sim-specific.",
         "usages": ["tuner"]
     }
 }

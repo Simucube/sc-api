@@ -58,9 +58,9 @@ def main():
             print(f"Unknown type '{t_type}' for telemetry '{name}'", file=sys.stderr)
             return 1
 
-        descr = entry.get("descr", "")
-        if descr:
-            refs += f"/** {descr} */\n"
+        desc = entry.get("desc", "")
+        if desc:
+            refs += f"/** {desc} */\n"
         refs += f'inline constexpr TelemetryReference<{cpp_type}> {name}{{ "{name}" }};\n\n'
 
     with open(args.template, encoding="UTF-8") as f:

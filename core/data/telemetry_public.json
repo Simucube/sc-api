@@ -2,7 +2,7 @@
     "physics_running": {
         "type": "bool",
         "prio": "high",
-        "descr": "True when game physics is currently running",
+        "desc": "True when game physics is currently running",
         "usages": [
             "effects",
             "tuner",
@@ -13,7 +13,7 @@
     "telemetry_emulation": {
         "type": "bool",
         "prio": "high",
-        "descr": "Telemetry is generated for purposes of testing effects. Additional safety limits are applied",
+        "desc": "Telemetry is generated for purposes of testing effects. Additional safety limits are applied",
         "usages": [
             "effects",
             "tuner",
@@ -23,7 +23,7 @@
     },
     "engine_rpm": {
         "type": "f32",
-        "descr": "Engine RPM",
+        "desc": "Engine RPM",
         "prio": "high",
         "usages": [
             "effects",
@@ -35,7 +35,7 @@
     },
     "engine_idle_rpm": {
         "type": "i16",
-        "descr": "Engine idle RPM",
+        "desc": "Engine idle RPM",
         "prio": "env",
         "usages": [
             "dash"
@@ -45,7 +45,7 @@
     },
     "engine_max_rpm": {
         "type": "i16",
-        "descr": "Max RPM that engine can safely handle",
+        "desc": "Max RPM that engine can safely handle",
         "prio": "env",
         "usages": [
             "dash",
@@ -56,7 +56,7 @@
     },
     "engine_map": {
         "type": "i8",
-        "descr": "Currently selected engine map",
+        "desc": "Currently selected engine map",
         "prio": "low",
         "usages": [
             "dash",
@@ -66,7 +66,7 @@
     },
     "engine_running": {
         "type": "bool",
-        "descr": "True, when the engine is running",
+        "desc": "True, when the engine is running",
         "prio": "low",
         "usages": [
             "dash",
@@ -76,7 +76,7 @@
     },
     "ignition_on": {
         "type": "bool",
-        "descr": "True, when the ignition is on",
+        "desc": "True, when the ignition is on",
         "prio": "env",
         "usages": [
             "dash",
@@ -87,7 +87,7 @@
     "transmission_gear": {
         "type": "i8",
         "prio": "high",
-        "descr": "Selected transmission gear (0 == neutral, -1 = reverse, 1 = first gear,...)",
+        "desc": "Selected transmission gear (0 == neutral, -1 = reverse, 1 = first gear,...)",
         "usages": [
             "effects",
             "tuner",
@@ -98,7 +98,7 @@
     "abs_active": {
         "type": "bool",
         "prio": "high",
-        "descr": "True, if ABS is currently reducing brake pressure",
+        "desc": "True, if ABS is currently reducing brake pressure",
         "usages": [
             "effects",
             "tuner",
@@ -109,7 +109,7 @@
     "abs_setting": {
         "type": "i8",
         "prio": "low",
-        "descr": "Current ABS setting",
+        "desc": "Current ABS setting",
         "usages": [
             "dash",
             "tuner"
@@ -119,7 +119,7 @@
     "abs_setting_max": {
         "type": "i8",
         "prio": "env",
-        "descr": "Maximum ABS setting",
+        "desc": "Maximum ABS setting",
         "usages": [
             "dash",
             "tuner"
@@ -129,7 +129,7 @@
     "drs_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when drag reduction system is activated",
+        "desc": "True, when drag reduction system is activated",
         "usages": [
             "effects",
             "tuner",
@@ -140,7 +140,7 @@
     "drs_available": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when drag reduction system can be activated after the next activation line.",
+        "desc": "True, when drag reduction system can be activated after the next activation line.",
         "usages": [
             "effects",
             "tuner",
@@ -151,7 +151,7 @@
     "drs_activatable": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when drag reduction system can currently be activated by pressing DRS button",
+        "desc": "True, when drag reduction system can currently be activated by pressing DRS button",
         "usages": [
             "effects",
             "tuner",
@@ -162,7 +162,7 @@
     "active_aero_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when active aerodynamics is engaged.",
+        "desc": "True, when active aerodynamics is engaged.",
         "usages": [
             "effects",
             "tuner",
@@ -173,7 +173,7 @@
     "active_aero_activatable": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when active aerodynamics can currently be activated.",
+        "desc": "True, when active aerodynamics can currently be activated.",
         "usages": [
             "effects",
             "tuner",
@@ -184,7 +184,7 @@
     "overtake_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when overtake mode (e.g. push-to-pass) is currently active",
+        "desc": "True, when overtake mode (e.g. push-to-pass) is currently active",
         "usages": [
             "effects",
             "tuner",
@@ -195,7 +195,7 @@
     "wipers_enabled": {
         "type": "bool",
         "prio": "env",
-        "descr": "True, when wipers are enabled",
+        "desc": "True, when wipers are enabled",
         "usages": [
             "dash"
         ],
@@ -204,7 +204,7 @@
     "low_beam_enabled": {
         "type": "bool",
         "prio": "env",
-        "descr": "True, when low beam lights are enabled",
+        "desc": "True, when low beam lights are enabled",
         "usages": [
             "dash"
         ],
@@ -213,7 +213,7 @@
     "high_beam_enabled": {
         "type": "bool",
         "prio": "env",
-        "descr": "True, when high beam lights are enabled",
+        "desc": "True, when high beam lights are enabled",
         "usages": [
             "dash"
         ],
@@ -222,7 +222,7 @@
     "left_blinker_light_on": {
         "type": "bool",
         "prio": "low",
-        "descr": "True when left blinker light is on. Should generally keep toggling while turn signal is active",
+        "desc": "True when left blinker light is on. Should generally keep toggling while turn signal is active",
         "usages": [
             "dash"
         ],
@@ -231,7 +231,7 @@
     "right_blinker_light_on": {
         "type": "bool",
         "prio": "low",
-        "descr": "True when right blinker light is on. Should generally keep toggling while turn signal is active",
+        "desc": "True when right blinker light is on. Should generally keep toggling while turn signal is active",
         "usages": [
             "dash"
         ],
@@ -240,7 +240,7 @@
     "left_turn_signal_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True when left turn signal is active.",
+        "desc": "True when left turn signal is active.",
         "usages": [
             "dash"
         ],
@@ -249,7 +249,7 @@
     "right_turn_signal_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True when right turn signal is active.",
+        "desc": "True when right turn signal is active.",
         "usages": [
             "dash"
         ],
@@ -258,7 +258,7 @@
     "pit_limiter_active": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when pit limiter is activated",
+        "desc": "True, when pit limiter is activated",
         "usages": [
             "dash",
             "tuner"
@@ -268,7 +268,7 @@
     "local_velocity_x": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car forward local velocity in m/s",
+        "desc": "Player car forward local velocity in m/s",
         "usages": [
             "effects"
         ],
@@ -277,7 +277,7 @@
     "local_velocity_y": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car leftwards local velocity in m/s",
+        "desc": "Player car leftwards local velocity in m/s",
         "usages": [
             "effects"
         ],
@@ -286,7 +286,7 @@
     "local_velocity_z": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car upward local velocity in m/s",
+        "desc": "Player car upward local velocity in m/s",
         "usages": [
             "effects"
         ],
@@ -295,7 +295,7 @@
     "local_acceleration_x": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car forward local acceleration in m/s^2",
+        "desc": "Player car forward local acceleration in m/s^2",
         "usages": [
             "effects"
         ],
@@ -305,7 +305,7 @@
     "local_acceleration_y": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car leftwards local acceleration in m/s^2",
+        "desc": "Player car leftwards local acceleration in m/s^2",
         "usages": [
             "effects"
         ],
@@ -315,7 +315,7 @@
     "local_acceleration_z": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car upwards local acceleration in m/s^2",
+        "desc": "Player car upwards local acceleration in m/s^2",
         "usages": [
             "effects"
         ],
@@ -325,7 +325,7 @@
     "local_rotation_yaw": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car rotation +yaw, clockwise (looking car from up), in radians. Range 0 to 2*PI",
+        "desc": "Player car rotation +yaw, clockwise (looking car from up), in radians. Range 0 to 2*PI",
         "usages": [
             "effects"
         ],
@@ -334,7 +334,7 @@
     "local_rotation_pitch": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car rotation +pitch, front upwards, rear down, in radians",
+        "desc": "Player car rotation +pitch, front upwards, rear down, in radians",
         "usages": [
             "effects"
         ],
@@ -343,7 +343,7 @@
     "local_rotation_roll": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car rotation +roll, left-side up, right-side down, in radians",
+        "desc": "Player car rotation +roll, left-side up, right-side down, in radians",
         "usages": [
             "effects"
         ],
@@ -352,7 +352,7 @@
     "local_angular_velocity_yaw": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car angular velocity +yaw, clockwise (looking car from up), in rad/s",
+        "desc": "Player car angular velocity +yaw, clockwise (looking car from up), in rad/s",
         "usages": [
             "effects"
         ],
@@ -361,7 +361,7 @@
     "local_angular_velocity_pitch": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car angular velocity +pitch, front upwards, rear down, in rad/s",
+        "desc": "Player car angular velocity +pitch, front upwards, rear down, in rad/s",
         "usages": [
             "effects"
         ],
@@ -370,7 +370,7 @@
     "local_angular_velocity_roll": {
         "type": "f32",
         "prio": "high",
-        "descr": "Player car angular velocity +roll, left-side up, right-side down, in rad/s",
+        "desc": "Player car angular velocity +roll, left-side up, right-side down, in rad/s",
         "usages": [
             "effects"
         ],
@@ -379,7 +379,7 @@
     "tc_active": {
         "type": "bool",
         "prio": "high",
-        "descr": "Traction control is currently active and braking some wheel.",
+        "desc": "Traction control is currently active and braking some wheel.",
         "usages": [
             "effects",
             "tuner"
@@ -389,7 +389,7 @@
     "tc_setting": {
         "type": "i8",
         "prio": "low",
-        "descr": "Current traction control setting",
+        "desc": "Current traction control setting",
         "usages": [
             "dash",
             "tuner"
@@ -399,7 +399,7 @@
     "tc_setting_max": {
         "type": "i8",
         "prio": "env",
-        "descr": "Maximum traction control setting",
+        "desc": "Maximum traction control setting",
         "usages": [
             "dash",
             "tuner"
@@ -409,7 +409,7 @@
     "tc_power_cut_setting": {
         "type": "i8",
         "prio": "low",
-        "descr": "Current traction control power cut setting",
+        "desc": "Current traction control power cut setting",
         "usages": [
             "dash",
             "tuner"
@@ -419,7 +419,7 @@
     "tc_power_cut_setting_max": {
         "type": "i8",
         "prio": "env",
-        "descr": "Maximum traction control power cut setting",
+        "desc": "Maximum traction control power cut setting",
         "usages": [
             "dash",
             "tuner"
@@ -429,7 +429,7 @@
     "tc_slip_angle_setting": {
         "type": "i8",
         "prio": "low",
-        "descr": "Current traction control slip angle setting",
+        "desc": "Current traction control slip angle setting",
         "usages": [
             "dash",
             "tuner"
@@ -439,7 +439,7 @@
     "tc_slip_angle_setting_max": {
         "type": "i8",
         "prio": "env",
-        "descr": "Maximum traction control slip angle setting",
+        "desc": "Maximum traction control slip angle setting",
         "usages": [
             "dash",
             "tuner"
@@ -449,7 +449,7 @@
     "shift_light_start_rpm": {
         "type": "i16",
         "prio": "low",
-        "descr": "Engine RPM level where first shift light should light up",
+        "desc": "Engine RPM level where first shift light should light up",
         "usages": [
             "effects",
             "dash",
@@ -460,7 +460,7 @@
     "shift_light_end_rpm": {
         "type": "i16",
         "prio": "low",
-        "descr": "Engine RPM level where last shift light should light up and up shift should be done",
+        "desc": "Engine RPM level where last shift light should light up and up shift should be done",
         "usages": [
             "effects",
             "dash",
@@ -471,7 +471,7 @@
     "shift_light_over_rev_rpm": {
         "type": "i16",
         "prio": "low",
-        "descr": "Engine RPM level where shift lights should blink to indicate over-rev",
+        "desc": "Engine RPM level where shift lights should blink to indicate over-rev",
         "usages": [
             "effects",
             "dash",
@@ -482,7 +482,7 @@
     "wheel_ang_vel_fl": {
         "type": "f32",
         "prio": "high",
-        "descr": "Front-left wheel angular velocity in radians/s",
+        "desc": "Front-left wheel angular velocity in radians/s",
         "usages": [
             "effects"
         ],
@@ -492,7 +492,7 @@
     "wheel_ang_vel_fr": {
         "type": "f32",
         "prio": "high",
-        "descr": "Front-right wheel angular velocity in radians/s",
+        "desc": "Front-right wheel angular velocity in radians/s",
         "usages": [
             "effects"
         ],
@@ -502,7 +502,7 @@
     "wheel_ang_vel_rl": {
         "type": "f32",
         "prio": "high",
-        "descr": "Rear-left wheel angular velocity in radians/s",
+        "desc": "Rear-left wheel angular velocity in radians/s",
         "usages": [
             "effects"
         ],
@@ -512,7 +512,7 @@
     "wheel_ang_vel_rr": {
         "type": "f32",
         "prio": "high",
-        "descr": "Rear-right wheel angular velocity in radians/s",
+        "desc": "Rear-right wheel angular velocity in radians/s",
         "usages": [
             "effects"
         ],
@@ -525,7 +525,7 @@
         "usages": [
             "dash"
         ],
-        "descr": "Front brake balance percentage (0-100)",
+        "desc": "Front brake balance percentage (0-100)",
         "default": 55.0
     },
     "brake_input": {
@@ -535,7 +535,7 @@
             "effects",
             "dash"
         ],
-        "descr": "Brake input value (0-1)",
+        "desc": "Brake input value (0-1)",
         "default": 0.0
     },
     "throttle_input": {
@@ -544,13 +544,13 @@
         "usages": [
             "dash"
         ],
-        "descr": "Throttle input value (0-1)",
+        "desc": "Throttle input value (0-1)",
         "default": 0.0
     },
     "shift_light_level": {
         "type": "u8",
         "prio": "high",
-        "descr": "Fraction of the shift lights lit. 0 = all lights off, 255 = all lights on",
+        "desc": "Fraction of the shift lights lit. 0 = all lights off, 255 = all lights on",
         "derived": "scale_to_255(engine_rpm, shift_start_rpm, shift_end_rpm)",
         "usages": [
             "dash",
@@ -561,7 +561,7 @@
     "spotter_car_on_left": {
         "type": "bool",
         "prio": "low",
-        "descr": "Spotter detects a car on the left side",
+        "desc": "Spotter detects a car on the left side",
         "usages": [
             "dash",
             "tuner"
@@ -571,7 +571,7 @@
     "spotter_car_on_right": {
         "type": "bool",
         "prio": "low",
-        "descr": "Spotter detects a car on the right side",
+        "desc": "Spotter detects a car on the right side",
         "usages": [
             "dash",
             "tuner"
@@ -581,7 +581,7 @@
     "spotter_second_car_on_left": {
         "type": "bool",
         "prio": "low",
-        "descr": "Spotter detects a second car on the left side",
+        "desc": "Spotter detects a second car on the left side",
         "usages": [
             "dash",
             "tuner"
@@ -591,7 +591,7 @@
     "spotter_second_car_on_right": {
         "type": "bool",
         "prio": "low",
-        "descr": "Spotter detects a second car on the right side",
+        "desc": "Spotter detects a second car on the right side",
         "usages": [
             "dash",
             "tuner"
@@ -601,7 +601,7 @@
     "shift_light_over_rev": {
         "type": "bool",
         "prio": "low",
-        "descr": "True when engine RPM exceeds the over-rev threshold",
+        "desc": "True when engine RPM exceeds the over-rev threshold",
         "usages": [
             "dash",
             "tuner"
@@ -611,7 +611,7 @@
     "flag_green": {
         "type": "bool",
         "prio": "low",
-        "descr": "Green flag",
+        "desc": "Green flag",
         "usages": [
             "dash",
             "tuner"
@@ -621,7 +621,7 @@
     "flag_yellow": {
         "type": "bool",
         "prio": "low",
-        "descr": "Yellow flag is active in the current sector",
+        "desc": "Yellow flag is active in the current sector",
         "usages": [
             "dash",
             "tuner"
@@ -631,7 +631,7 @@
     "flag_full_yellow": {
         "type": "bool",
         "prio": "low",
-        "descr": "Full track yellow flag is active",
+        "desc": "Full track yellow flag is active",
         "usages": [
             "dash",
             "tuner"
@@ -641,7 +641,7 @@
     "flag_blue": {
         "type": "bool",
         "prio": "low",
-        "descr": "Blue flag is waved for the player",
+        "desc": "Blue flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -651,7 +651,7 @@
     "flag_black": {
         "type": "bool",
         "prio": "low",
-        "descr": "Black flag is waved for the player",
+        "desc": "Black flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -661,7 +661,7 @@
     "flag_red": {
         "type": "bool",
         "prio": "low",
-        "descr": "Red flag is waved for the player",
+        "desc": "Red flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -671,7 +671,7 @@
     "flag_white": {
         "type": "bool",
         "prio": "low",
-        "descr": "White flag is waved for the player",
+        "desc": "White flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -681,7 +681,7 @@
     "flag_checkered": {
         "type": "bool",
         "prio": "low",
-        "descr": "Checkered flag is waved for the player",
+        "desc": "Checkered flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -691,7 +691,7 @@
     "flag_black_white": {
         "type": "bool",
         "prio": "low",
-        "descr": "Half black, half white flag is waved for the player",
+        "desc": "Half black, half white flag is waved for the player",
         "usages": [
             "dash",
             "tuner"
@@ -701,7 +701,7 @@
     "lap_time_previous": {
         "type": "f32",
         "prio": "env",
-        "descr": "Player lap time in seconds from the previous completed lap",
+        "desc": "Player lap time in seconds from the previous completed lap",
         "usages": [
             "dash"
         ],
@@ -711,7 +711,7 @@
     "lap_time_best": {
         "type": "f32",
         "prio": "env",
-        "descr": "Player lap time in seconds from the best completed lap",
+        "desc": "Player lap time in seconds from the best completed lap",
         "usages": [
             "dash"
         ],
@@ -721,7 +721,7 @@
     "lap_time_current": {
         "type": "f32",
         "prio": "low",
-        "descr": "Player elapsed time on the current lap",
+        "desc": "Player elapsed time on the current lap",
         "usages": [
             "dash"
         ],
@@ -731,7 +731,7 @@
     "lap_time_estimate": {
         "type": "f32",
         "prio": "low",
-        "descr": "Predicted final laptime for the current lap",
+        "desc": "Predicted final laptime for the current lap",
         "usages": [
             "dash"
         ],
@@ -741,7 +741,7 @@
     "current_lap_valid": {
         "type": "bool",
         "prio": "low",
-        "descr": "True, when current lap is valid",
+        "desc": "True, when current lap is valid",
         "usages": [
             "dash"
         ],
@@ -750,7 +750,7 @@
     "speed": {
         "type": "f32",
         "prio": "high",
-        "descr": "Car forward velocity as measured by the speedometer (may differ from the \"gps\" speed local_velocity_x)",
+        "desc": "Car forward velocity as measured by the speedometer (may differ from the \"gps\" speed local_velocity_x)",
         "usages": [
             "effects",
             "dash"
@@ -761,7 +761,7 @@
     "time": {
         "type": "f32",
         "prio": "low",
-        "descr": "In-game time of day, seconds from midnight",
+        "desc": "In-game time of day, seconds from midnight",
         "usages": [
             "dash"
         ],

@@ -1,88 +1,88 @@
 {
     "name": {
         "type": "string",
-        "descr": "Name of the car",
+        "desc": "Name of the car",
         "usages": ["tuner", "dash"]
     },
     "short_name": {
         "type": "string",
-        "descr": "Shorter name of the car",
+        "desc": "Shorter name of the car",
         "usages": ["tuner", "dash"]
     },
     "model": {
         "type": "string",
-        "descr": "Model name of the car",
+        "desc": "Model name of the car",
         "usages": ["tuner", "dash"]
     },
     "brand": {
         "type": "string",
-        "descr": "Brand name of the car",
+        "desc": "Brand name of the car",
         "usages": ["tuner", "dash"]
     },
     "non_unique": {
         "type": "bool",
-        "descr": "True if this vehicle id is not uniquely identifiable. Used when adapting telemetry from a sim that does not offer a good way to identify the vehicle; a single vehicle id is used with this set to true."
+        "desc": "True if this vehicle id is not uniquely identifiable. Used when adapting telemetry from a sim that does not offer a good way to identify the vehicle; a single vehicle id is used with this set to true."
     },
     "class_name": {
         "type": "string",
-        "descr": "Name of the car class",
+        "desc": "Name of the car class",
         "usages": ["tuner", "dash"]
     },
 
     "engine_idle_rpm" : {
         "type": "f32",
-        "descr": "Engine RPM when idle",
+        "desc": "Engine RPM when idle",
         "usages": ["tuner", "dash"]
     },
     "engine_redline_rpm": {
         "type": "f32",
-        "descr": "Engine redline RPM",
+        "desc": "Engine redline RPM",
         "usages": ["effects", "tuner", "dash"]
     },
     "shift_light_first_rpm": {
         "type": "f32",
-        "descr": "Engine RPM when first shifting light appears. If between [0 - 1] then this is considered to be relative to max rpm value.",
+        "desc": "Engine RPM when first shifting light appears. If between [0 - 1] then this is considered to be relative to max rpm value.",
         "usages": ["tuner", "dash"]
     },
     "shift_light_last_rpm": {
         "type": "f32",
-        "descr": "Engine RPM when last shifting light is lit. If between [0 - 1] then this is considered to be relative to max rpm value.",
+        "desc": "Engine RPM when last shifting light is lit. If between [0 - 1] then this is considered to be relative to max rpm value.",
         "usages": ["tuner", "dash", "effects"]
     },
     "shift_light_blink_rpm": {
         "type": "f32",
-        "descr" : "Engine RPM when shifting lights should blink or otherwise indicate that RPM is too high. If between [0 - 1] then this is considered to be relative to max rpm value.",
+        "desc": "Engine RPM when shifting lights should blink or otherwise indicate that RPM is too high. If between [0 - 1] then this is considered to be relative to max rpm value.",
         "usages": ["tuner", "dash", "effects"]
     },
 
     "gearbox_forward_gears": {
         "type": "i8",
-        "descr": "Number of forward gears the gearbox has",
+        "desc": "Number of forward gears the gearbox has",
         "usages": ["tuner"]
     },
     "gearbox_backward_gears": {
         "type": "i8",
-        "descr": "Number of backward/reverse gears the gearbox has",
+        "desc": "Number of backward/reverse gears the gearbox has",
         "usages": ["tuner"]
     },
     "has_drs": {
         "type": "bool",
-        "descr": "Car has drag reduction system",
+        "desc": "Car has drag reduction system",
         "usages": ["dash"]
     },
     "steering_wheel_rotation_deg": {
         "type": "f32",
-        "descr": "Number of degrees of rotation that the car steering wheel has from fully left to fully right",
+        "desc": "Number of degrees of rotation that the car steering wheel has from fully left to fully right",
         "usages": ["effects", "tuner"]
     },
     "has_abs": {
         "type": "bool",
-        "descr": "Car has anti-lock brakes",
+        "desc": "Car has anti-lock brakes",
         "usages": ["tuner","dash"]
     },
     "has_tc": {
         "type": "bool",
-        "descr": "Car has traction control system",
+        "desc": "Car has traction control system",
         "usages": ["tuner", "dash"]
     }
 }
