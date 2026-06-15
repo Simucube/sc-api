@@ -96,8 +96,8 @@ def parse_properties(properties_file):
 
         t = ConfigProperty(t_name, t_type)
 
-        if "descr" in t_data:
-            t.description = t_data["descr"]
+        if "desc" in t_data:
+            t.description = t_data["desc"]
 
         properties.append(t)
 
