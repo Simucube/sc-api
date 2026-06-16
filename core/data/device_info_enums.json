@@ -41,6 +41,7 @@
                 { "name": "rot_enc", "description": "Rotary encoder" },
                 { "name": "funky_switch", "description": "Combination of button, 4-way directional and rotary encoder" },
                 { "name": "light", "description": "Controllable light. Only for feedback and doesn't function as input." },
+                { "name": "screen", "description": "Device screen / display surface" },
                 { "name": "unknown", "description": "Used as placeholder for unavailable data." },
                 { "name": "other", "description": "Used when the control type is some other than what is supported by this API version" }
             ]
@@ -58,6 +59,7 @@
                 { "name": "active_pedal", "description": "ActivePedal" },
                 { "name": "rgb_light", "description": "Fully controllable rgb light" },
                 { "name": "light", "description": "Light that can only be turned on or off" },
+                { "name": "screen", "description": "Streamable screen the simulator can push dash frames to" },
                 { "name": "unknown", "description": "Placeholder for unavailable data." },
                 { "name": "other", "description": "Used when the feedback type is some other than what is supported by this API version" }
             ]
