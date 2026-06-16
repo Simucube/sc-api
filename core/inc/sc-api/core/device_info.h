@@ -139,6 +139,9 @@ struct Feedback {
  * Parses the BSON parameters from a Feedback entry to provide easy access to RGB light properties.
  */
 struct RgbLightFeedback {
+    /** FeedbackType this typed view parses. Lets DeviceInfo::getTypedFeedbacks() select it. */
+    static constexpr FeedbackType k_feedback_type = FeedbackType::rgb_light;
+
     std::string_view id;
     std::string_view control;
     int32_t          index = -1;  ///< LED index, -1 if invalid
@@ -178,9 +181,43 @@ public:
     /** Returns true, if any of this device's feedbacks has the given FeedbackType */
     bool hasFeedbackType(FeedbackType type) const;
 
+    /** Get all feedbacks of FeedbackT's type, parsed into the typed view FeedbackT.
+     *
+     * Generic form of getRgbLights(). FeedbackT must provide:
+     *   - `static constexpr FeedbackType k_feedback_type` — the FeedbackType it represents,
+     *   - `static FeedbackT fromFeedback(const Feedback&)` — parses a Feedback's parameters,
+     *   - `bool isValid() const` — whether the parse produced a usable value.
+     * Only valid parses are returned.
+     */
+    template <typename FeedbackT>
+    std::vector<FeedbackT> getTypedFeedbacks() const {
+        std::vector<FeedbackT> result;
+        for (const auto& feedback : d_.feedbacks_) {
+            if (feedback.type != FeedbackT::k_feedback_type) continue;
+            FeedbackT parsed = FeedbackT::fromFeedback(feedback);
+            if (parsed.isValid()) result.push_back(parsed);
+        }
+        return result;
+    }
+
+    /** Get the first feedback of FeedbackT's type, parsed into the typed view FeedbackT.
+     *
+     * Returns an invalid (default-constructed) FeedbackT if the device has no such feedback or the
+     * parse fails. Same FeedbackT requirements as getTypedFeedbacks().
+     */
+    template <typename FeedbackT>
+    FeedbackT getTypedFeedback() const {
+        for (const auto& feedback : d_.feedbacks_) {
+            if (feedback.type != FeedbackT::k_feedback_type) continue;
+            FeedbackT parsed = FeedbackT::fromFeedback(feedback);
+            if (parsed.isValid()) return parsed;
+        }
+        return FeedbackT{};
+    }
+
     /** Get all RGB light feedbacks for this device
      *
-     * Filters feedbacks to only include FeedbackType::rgb_light entries and parses their parameters.
+     * Convenience wrapper for getTypedFeedbacks<RgbLightFeedback>().
      *
      * @return Vector of RgbLightFeedback with parsed LED indices
      */

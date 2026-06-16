@@ -434,20 +434,7 @@ bool DeviceInfo::hasFeedbackType(FeedbackType type) const {
     return false;
 }
 
-std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const {
-    std::vector<RgbLightFeedback> rgb_lights;
-
-    for (const auto& feedback : d_.feedbacks_) {
-        if (feedback.type == FeedbackType::rgb_light) {
-            auto rgb_light = RgbLightFeedback::fromFeedback(feedback);
-            if (rgb_light.isValid()) {
-                rgb_lights.push_back(rgb_light);
-            }
-        }
-    }
-
-    return rgb_lights;
-}
+std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const { return getTypedFeedbacks<RgbLightFeedback>(); }
 
 BsonBuffer DeviceInfo::getRawBson() const {
     assert(full_info_);
