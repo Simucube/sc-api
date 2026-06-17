@@ -15,6 +15,7 @@ namespace device_info {
 
 using ::sc_api::core::device_info::Control;
 using ::sc_api::core::device_info::ControlType;
+using ::sc_api::core::device_info::DashPixelFormat;
 using ::sc_api::core::device_info::DeviceInfo;
 using ::sc_api::core::device_info::DeviceInfoPtr;
 using ::sc_api::core::device_info::DeviceRole;
@@ -25,6 +26,7 @@ using ::sc_api::core::device_info::Input;
 using ::sc_api::core::device_info::InputRole;
 using ::sc_api::core::device_info::InputType;
 using ::sc_api::core::device_info::RgbLightFeedback;
+using ::sc_api::core::device_info::ScreenFeedback;
 using ::sc_api::core::device_info::UsbDeviceInfo;
 
 }  // namespace device_info

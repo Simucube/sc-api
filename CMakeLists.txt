@@ -31,6 +31,7 @@ add_subdirectory(core)
 
 add_library(sc-api
     inc/sc-api/api.h
+    inc/sc-api/dash_stream.h
     inc/sc-api/device_info.h
     inc/sc-api/events.h
     inc/sc-api/ffb.h

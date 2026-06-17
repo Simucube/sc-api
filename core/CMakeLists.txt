@@ -19,6 +19,7 @@ add_library(sc-api-core
     inc/sc-api/core/protocol/actions.h
     inc/sc-api/core/protocol/core.h
     inc/sc-api/core/protocol/bson_shm_blocks.h
+    inc/sc-api/core/protocol/dash_stream.h
     inc/sc-api/core/protocol/variables.h
     inc/sc-api/core/device_info.h
     inc/sc-api/core/device_info_fwd.h
@@ -58,6 +59,8 @@ add_library(sc-api-core
     src/ffb.cpp
     inc/sc-api/core/led_control.h
     src/led_control.cpp
+    inc/sc-api/core/dash_stream.h
+    src/dash_stream.cpp
     inc/sc-api/core/time.h
     src/time.cpp
     inc/sc-api/core/compatibility.h

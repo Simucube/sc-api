@@ -158,6 +158,50 @@ struct RgbLightFeedback {
     bool isValid() const { return index >= 0; }
 };
 
+/** Pixel format of a streamable device screen. */
+enum class DashPixelFormat : uint8_t {
+    rgb565,  ///< 16-bit RGB (5-6-5 layout), 2 bytes per pixel
+};
+
+constexpr std::string_view toString(DashPixelFormat f) {
+    switch (f) {
+        case DashPixelFormat::rgb565:
+            return "rgb565";
+    }
+    return "rgb565";
+}
+
+constexpr std::optional<DashPixelFormat> dashPixelFormatFromString(std::string_view s) {
+    if (s == "rgb565") return DashPixelFormat::rgb565;
+    return std::nullopt;
+}
+
+/** Helper struct for accessing streamable screen feedback information
+ *
+ * Parses the BSON parameters from a FeedbackType::screen Feedback entry into screen geometry.
+ */
+struct ScreenFeedback {
+    /** FeedbackType this typed view parses. Lets DeviceInfo::getTypedFeedbacks() select it. */
+    static constexpr FeedbackType k_feedback_type = FeedbackType::screen;
+
+    std::string_view id;
+    std::string_view control;
+    uint16_t         width        = 0;
+    uint16_t         height       = 0;
+    DashPixelFormat  pixel_format = DashPixelFormat::rgb565;
+
+    /** Construct from a generic Feedback entry
+     *
+     * @param fb Feedback entry to parse (should have type FeedbackType::screen)
+     * @return ScreenFeedback with parsed geometry, or invalid (width == 0) on type mismatch or
+     *         missing/malformed parameters
+     */
+    static ScreenFeedback fromFeedback(const Feedback& fb);
+
+    bool     isValid() const { return width != 0 && height != 0; }
+    explicit operator bool() const { return isValid(); }
+};
+
 class DeviceInfo {
     friend class sc_api::core::internal::DeviceInfoProvider;
     friend class FullInfo;
@@ -222,6 +266,14 @@ public:
      * @return Vector of RgbLightFeedback with parsed LED indices
      */
     std::vector<RgbLightFeedback> getRgbLights() const;
+
+    /** Get all streamable screen feedbacks for this device
+     *
+     * Convenience wrapper for getTypedFeedbacks<ScreenFeedback>().
+     *
+     * @return Vector of ScreenFeedback with parsed screen geometry
+     */
+    std::vector<ScreenFeedback> getScreens() const;
 
     const std::vector<HidAxisInput>   getHidAxisInput() const { return d_.hid_axis_; }
     const std::vector<HidButtonInput> getHidButtonInput() const { return d_.hid_buttons_; }
