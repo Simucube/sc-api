@@ -9,12 +9,12 @@
 #ifndef SC_API_CORE_DASH_STREAM_H_
 #define SC_API_CORE_DASH_STREAM_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 
 #include "sc-api/core/session.h"
+#include "sc-api/core/time.h"
 
 namespace sc_api::core {
 
@@ -44,8 +44,8 @@ struct StreamFeedback {
     uint32_t device_frame_counter = 0;
     /** Frames/packets the device dropped. */
     uint32_t dropped_count        = 0;
-    /** Backend monotonic timestamp (microseconds) of the last @c device_frame_counter advance. */
-    uint64_t last_ack_time_us     = 0;
+    /** Backend monotonic timestamp of the last @c device_frame_counter advance. */
+    Clock::time_point last_ack_time;
 };
 
 /**
@@ -57,25 +57,24 @@ struct StreamFeedback {
  * @note Not thread-safe. Serialize calls to @ref streamFrame externally when
  *       sharing a single instance across threads.
  *
+ * The streamer connects lazily: the buffer is requested from the backend on the first
+ * @ref streamFrame (and retried with backoff while the backend is unavailable). Call @ref open
+ * up front only if you want to detect a connection failure before the first frame.
+ *
  * Example usage:
  * @code
  * DashStreamer streamer(session, device_session_id);
- * if (!streamer.isValid()) {
- *     // Failed to allocate buffer
- *     return;
- * }
  *
- * // Stream frames
  * uint16_t* rgb565_pixels = ...;
- * streamer.streamFrame(800, 480, rgb565_pixels);
+ * if (streamer.streamFrame(800, 480, rgb565_pixels) == FrameResult::failed) {
+ *     // Not connected yet (retrying) or the frame was rejected.
+ * }
  * @endcode
  */
 class DashStreamer {
 public:
     /**
      * @brief Construct a dash streamer for a device
-     *
-     * Automatically requests a shared memory buffer from the backend service.
      *
      * @param session Active API session
      * @param device_session_id Target device session ID
@@ -100,11 +99,22 @@ public:
     DashStreamer& operator=(DashStreamer&& other) noexcept;
 
     /**
-     * @brief Check if streamer is valid and ready to stream
+     * @brief Whether the shared-memory buffer is open and ready to stream.
      *
-     * @return true if buffer was successfully allocated
+     * False until the buffer has been opened — either by an explicit @ref open or lazily by the
+     * first @ref streamFrame. Construction alone does not open the buffer.
+     *
+     * @return true if the buffer is allocated and mapped.
      */
     bool isValid() const;
+
+    /** @brief Attempt to open stream
+     *
+     *  Requests a shared memory buffer for sending stream data.
+     *
+     *  @return true, if backend responded to request and shared memory buffer could be obtained.
+     */
+    bool open();
 
     /**
      * @brief Stream a dashboard frame
@@ -167,6 +177,8 @@ public:
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
+
+    bool tryOpenIfNecessary();
 };
 
 }  // namespace sc_api::core

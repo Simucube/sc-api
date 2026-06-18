@@ -1,7 +1,9 @@
 #include "sc-api/core/dash_stream.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -21,6 +23,13 @@ struct DashStreamer::Impl {
     uint16_t                               device_session_id = 0;
     sc_api::core::internal::SharedMemory   shm;
     std::size_t                            buffer_size = 0;
+
+    // Backoff for the lazy open() path: open() issues a blocking command (up to a ~1 s timeout on an
+    // unresponsive backend), so without a cooldown a per-frame render loop would re-attempt — and
+    // potentially block — on every frame while disconnected. steady_clock for monotonic local timing
+    // (Clock is QPC/cross-process and stubbed off-Windows, wrong tool for a local cooldown).
+    std::optional<std::chrono::steady_clock::time_point> last_failed_open;
+    static constexpr auto k_open_retry_interval = std::chrono::milliseconds{500};
 
     Impl(std::shared_ptr<sc_api::core::Session> sess, uint16_t dev_id)
         : session(std::move(sess)), device_session_id(dev_id) {}
@@ -48,26 +57,6 @@ DashStreamer::DashStreamer(std::shared_ptr<sc_api::core::Session> session, uint1
     if (!impl_->session) {
         return;
     }
-
-    sc_api::core::CommandRequest req{dsp::k_service_name, dsp::k_cmd_request_buffer};
-    req.docAddElement(dsp::k_field_device_session_id, device_session_id);
-
-    // WARNING: blockingCommand has no timeout — hangs if backend is unresponsive (GOR-790).
-    auto response = impl_->session->blockingCommand(std::move(req));
-    if (!response.isSuccess()) {
-        // Failed to request buffer
-        return;
-    }
-
-    sc_api::core::util::BsonReader reader(response.getPayload().data(), response.getPayload().size());
-    std::string_view               shm_path;
-    int32_t                        buffer_size = 0;
-    if (reader.tryFindAndGet(dsp::k_field_shm_path, shm_path) &&
-        reader.tryFindAndGet(dsp::k_field_buffer_size, buffer_size) && buffer_size > 0) {
-        if (impl_->shm.openForReadWrite(std::string(shm_path).c_str(), static_cast<std::size_t>(buffer_size))) {
-            impl_->buffer_size = static_cast<std::size_t>(buffer_size);
-        }
-    }
 }
 
 // Release logic lives in Impl::~Impl() so that move-assignment of DashStreamer
@@ -79,10 +68,44 @@ DashStreamer& DashStreamer::operator=(DashStreamer&& other) noexcept = default;
 
 bool DashStreamer::isValid() const { return impl_ && impl_->shm.isOpen(); }
 
+bool DashStreamer::open() {
+    if (isValid()) return true;
+    if (!impl_ || !impl_->session) return false;
+
+    sc_api::core::CommandRequest req{dsp::k_service_name, dsp::k_cmd_request_buffer};
+    req.docAddElement(dsp::k_field_device_session_id, impl_->device_session_id);
+    req.docAddElement(dsp::k_field_version, k_dash_frame_shm_version);
+    req.docAddElement(dsp::k_field_format, dsp::k_format_rgb565);
+
+    auto response = impl_->session->blockingCommand(std::move(req));
+    if (response.isSuccess()) {
+        sc_api::core::util::BsonReader reader(response.getPayload().data(), response.getPayload().size());
+        std::string_view               shm_path;
+        int32_t                        buffer_size = 0;
+        if (reader.tryFindAndGet(dsp::k_field_shm_path, shm_path) &&
+            reader.tryFindAndGet(dsp::k_field_buffer_size, buffer_size) && buffer_size > 0) {
+            if (impl_->shm.openForReadWrite(std::string(shm_path).c_str(), static_cast<std::size_t>(buffer_size))) {
+                impl_->buffer_size      = static_cast<std::size_t>(buffer_size);
+
+                auto* shm_data          = static_cast<DashFrameShm*>(impl_->shm.getBuffer());
+                shm_data->version       = k_dash_frame_shm_version;
+                shm_data->feature_flags = 0;
+                std::memset(shm_data->reserved_, 0, sizeof(shm_data->reserved_));
+                impl_->last_failed_open.reset();
+                return true;
+            }
+        }
+    }
+
+    impl_->last_failed_open = std::chrono::steady_clock::now();
+    return false;
+}
+
 FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data) {
-    if (!isValid() || !rgb565_data) {
+    if (!rgb565_data) {
         return FrameResult::failed;
     }
+    if (!tryOpenIfNecessary()) return FrameResult::failed;
 
     // Check whether the requested frame fits the allocated shared-memory buffer.
     // Reject oversize frames instead of corrupting memory past the mapping.
@@ -94,14 +117,15 @@ FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uin
 
     auto* shm_data                  = static_cast<DashFrameShm*>(impl_->shm.getBuffer());
 
-    // Read current SHM revision as the single source of truth. No local shadow
-    // of frame_revision — that previously drifted if the buffer was recreated.
+    // Read current SHM revision as the single source of truth
     const uint32_t current_revision = shm_data->revision.load(std::memory_order_acquire);
     if ((current_revision % 2) == 1) {
         // Odd = backend has not yet consumed the previous frame. Drop this one.
         return FrameResult::dropped;
     }
 
+    shm_data->offset_x = 0;
+    shm_data->offset_y = 0;
     shm_data->width  = width;
     shm_data->height = height;
 
@@ -145,7 +169,7 @@ StreamFeedback DashStreamer::getStreamFeedback() const {
     fb.is_owner             = shm_data->is_owner.load(std::memory_order_acquire) != 0;
     fb.device_frame_counter = shm_data->device_frame_counter.load(std::memory_order_acquire);
     fb.dropped_count        = shm_data->dropped_count.load(std::memory_order_acquire);
-    fb.last_ack_time_us     = shm_data->last_ack_time_us.load(std::memory_order_acquire);
+    fb.last_ack_time = Clock::time_point{Clock::duration{shm_data->last_ack_time.load(std::memory_order_acquire)}};
     return fb;
 }
 
@@ -154,6 +178,18 @@ std::optional<uint16_t> DashStreamer::getDeviceSessionId() const {
         return std::nullopt;
     }
     return impl_->device_session_id;
+}
+
+bool DashStreamer::tryOpenIfNecessary() {
+    if (isValid()) return true;
+    if (!impl_) return false;
+    // Rate-limit reconnect attempts so a disconnected stream doesn't block the caller's render loop
+    // on a blocking open() every frame. Explicit open() is not throttled — only this lazy path.
+    if (impl_->last_failed_open &&
+        (std::chrono::steady_clock::now() - *impl_->last_failed_open) < Impl::k_open_retry_interval) {
+        return false;
+    }
+    return open();
 }
 
 }  // namespace sc_api::core

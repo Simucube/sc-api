@@ -3,6 +3,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -23,15 +24,23 @@
 
 namespace sc_api::core {
 
-/** Sync state for blocking commands */
-struct BlockingSyncState {
+namespace {
+
+/** Per-call synchronization state for a blocking command. Heap-allocated and co-owned (shared_ptr)
+ *  by both the waiting thread and the result callback, so it outlives a timed-out wait: a late
+ *  response then writes into live state instead of a dangling stack pointer. Per-call (not a shared
+ *  global) so concurrent or reentrant blocking commands never clash. The result callback runs on
+ *  the session io thread, a different thread from the caller — everything it touches goes through
+ *  the captured shared_ptr, never thread-local storage. */
+template <typename T>
+struct BlockingCall {
     std::mutex              mutex;
     std::condition_variable cv;
-    void*                   result;
+    bool                    done = false;
+    T                       result{};
 };
 
-// Sync primitives to handle blocking commands
-static thread_local BlockingSyncState s_cmd_sync_state;
+}  // namespace
 
 namespace {
 
@@ -112,7 +121,7 @@ bool Session::asyncCommand(CommandRequest&& req, std::function<void(const AsyncC
     return p_->startSendCommand(packet_buffer, cmd_id, std::move(result_cb));
 }
 
-CommandResult Session::blockingCommand(CommandRequest&& req) {
+CommandResult Session::blockingCommand(CommandRequest&& req, std::chrono::milliseconds timeout) {
     if (!p_) {
         return CommandResult::createFailure(ResultCode::error_invalid_state, "Session is closed");
     }
@@ -120,24 +129,26 @@ CommandResult Session::blockingCommand(CommandRequest&& req) {
     int32_t              cmd_id        = p_->command_id_counter.fetch_add(1, std::memory_order_relaxed);
     std::vector<uint8_t> packet_buffer = req.finalize(cmd_id);
 
-    CommandResult result;
-    s_cmd_sync_state.result = &result;
-    auto result_cb          = [sync_state = &s_cmd_sync_state](const AsyncCommandResult& r) {
+    auto state     = std::make_shared<BlockingCall<CommandResult>>();
+    auto result_cb = [state](const AsyncCommandResult& r) {
         {
-            std::lock_guard lock(sync_state->mutex);
-            *reinterpret_cast<CommandResult*>(sync_state->result) = CommandResult::createFromAsync(r);
-            sync_state->result                                    = nullptr;
+            std::lock_guard lock(state->mutex);
+            state->result = CommandResult::createFromAsync(r);
+            state->done   = true;
         }
-        sync_state->cv.notify_all();
+        state->cv.notify_all();
     };
 
-    std::unique_lock lock(s_cmd_sync_state.mutex);
     if (!p_->startSendCommand(packet_buffer, cmd_id, result_cb)) {
         return CommandResult::createFailure(ResultCode::error_no_control, "Not registered to control");
     }
 
-    s_cmd_sync_state.cv.wait(lock, [&result = s_cmd_sync_state.result]() { return result == nullptr; });
-    return result;
+    std::unique_lock lock(state->mutex);
+    if (!state->cv.wait_for(lock, timeout, [&] { return state->done; })) {
+        return CommandResult::createFailure(ResultCode::error_timeout, "Didn't receive response within timeout");
+    }
+
+    return state->result;
 }
 
 ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
@@ -148,25 +159,24 @@ ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
     int32_t              cmd_id        = p_->command_id_counter.fetch_add(1, std::memory_order_relaxed);
     std::vector<uint8_t> packet_buffer = req.finalize(cmd_id);
 
-    ResultCode result_code             = ResultCode::ok;
-    s_cmd_sync_state.result            = &result_code;
-    auto result_cb                     = [sync_state = &s_cmd_sync_state](const AsyncCommandResult& r) {
+    auto state     = std::make_shared<BlockingCall<ResultCode>>();
+    auto result_cb = [state](const AsyncCommandResult& r) {
         {
-            std::lock_guard lock(sync_state->mutex);
-            *reinterpret_cast<ResultCode*>(sync_state->result) = r.getResultCode();
-            sync_state->result                              = nullptr;
+            std::lock_guard lock(state->mutex);
+            state->result = r.getResultCode();
+            state->done   = true;
         }
-        sync_state->cv.notify_all();
+        state->cv.notify_all();
     };
 
-    std::unique_lock lock(s_cmd_sync_state.mutex);
     if (!p_->startSendCommand(packet_buffer, cmd_id, result_cb)) {
         return ResultCode::error_no_control;
     }
 
-    s_cmd_sync_state.cv.wait(lock, [&result = s_cmd_sync_state.result]() { return result == nullptr; });
+    std::unique_lock lock(state->mutex);
+    state->cv.wait(lock, [&] { return state->done; });
 
-    return result_code;
+    return state->result;
 }
 
 bool Session::blockingReplaceSimData(sim_data::SimDataUpdateBuilder& builder) {
