@@ -139,6 +139,9 @@ struct Feedback {
  * Parses the BSON parameters from a Feedback entry to provide easy access to RGB light properties.
  */
 struct RgbLightFeedback {
+    /** FeedbackType this typed view parses. Lets DeviceInfo::getTypedFeedbacks() select it. */
+    static constexpr FeedbackType k_feedback_type = FeedbackType::rgb_light;
+
     std::string_view id;
     std::string_view control;
     int32_t          index = -1;  ///< LED index, -1 if invalid
@@ -153,6 +156,50 @@ struct RgbLightFeedback {
     /** Check if this represents a valid RGB light */
     explicit operator bool() const { return index >= 0; }
     bool isValid() const { return index >= 0; }
+};
+
+/** Pixel format of a streamable device screen. */
+enum class DashPixelFormat : uint8_t {
+    rgb565,  ///< 16-bit RGB (5-6-5 layout), 2 bytes per pixel
+};
+
+constexpr std::string_view toString(DashPixelFormat f) {
+    switch (f) {
+        case DashPixelFormat::rgb565:
+            return "rgb565";
+    }
+    return "rgb565";
+}
+
+constexpr std::optional<DashPixelFormat> dashPixelFormatFromString(std::string_view s) {
+    if (s == "rgb565") return DashPixelFormat::rgb565;
+    return std::nullopt;
+}
+
+/** Helper struct for accessing streamable screen feedback information
+ *
+ * Parses the BSON parameters from a FeedbackType::screen Feedback entry into screen geometry.
+ */
+struct ScreenFeedback {
+    /** FeedbackType this typed view parses. Lets DeviceInfo::getTypedFeedbacks() select it. */
+    static constexpr FeedbackType k_feedback_type = FeedbackType::screen;
+
+    std::string_view id;
+    std::string_view control;
+    uint16_t         width        = 0;
+    uint16_t         height       = 0;
+    DashPixelFormat  pixel_format = DashPixelFormat::rgb565;
+
+    /** Construct from a generic Feedback entry
+     *
+     * @param fb Feedback entry to parse (should have type FeedbackType::screen)
+     * @return ScreenFeedback with parsed geometry, or invalid (width == 0) on type mismatch or
+     *         missing/malformed parameters
+     */
+    static ScreenFeedback fromFeedback(const Feedback& fb);
+
+    bool     isValid() const { return width != 0 && height != 0; }
+    explicit operator bool() const { return isValid(); }
 };
 
 class DeviceInfo {
@@ -178,13 +225,55 @@ public:
     /** Returns true, if any of this device's feedbacks has the given FeedbackType */
     bool hasFeedbackType(FeedbackType type) const;
 
+    /** Get all feedbacks of FeedbackT's type, parsed into the typed view FeedbackT.
+     *
+     * Generic form of getRgbLights(). FeedbackT must provide:
+     *   - `static constexpr FeedbackType k_feedback_type` — the FeedbackType it represents,
+     *   - `static FeedbackT fromFeedback(const Feedback&)` — parses a Feedback's parameters,
+     *   - `bool isValid() const` — whether the parse produced a usable value.
+     * Only valid parses are returned.
+     */
+    template <typename FeedbackT>
+    std::vector<FeedbackT> getTypedFeedbacks() const {
+        std::vector<FeedbackT> result;
+        for (const auto& feedback : d_.feedbacks_) {
+            if (feedback.type != FeedbackT::k_feedback_type) continue;
+            FeedbackT parsed = FeedbackT::fromFeedback(feedback);
+            if (parsed.isValid()) result.push_back(parsed);
+        }
+        return result;
+    }
+
+    /** Get the first feedback of FeedbackT's type, parsed into the typed view FeedbackT.
+     *
+     * Returns an invalid (default-constructed) FeedbackT if the device has no such feedback or the
+     * parse fails. Same FeedbackT requirements as getTypedFeedbacks().
+     */
+    template <typename FeedbackT>
+    FeedbackT getTypedFeedback() const {
+        for (const auto& feedback : d_.feedbacks_) {
+            if (feedback.type != FeedbackT::k_feedback_type) continue;
+            FeedbackT parsed = FeedbackT::fromFeedback(feedback);
+            if (parsed.isValid()) return parsed;
+        }
+        return FeedbackT{};
+    }
+
     /** Get all RGB light feedbacks for this device
      *
-     * Filters feedbacks to only include FeedbackType::rgb_light entries and parses their parameters.
+     * Convenience wrapper for getTypedFeedbacks<RgbLightFeedback>().
      *
      * @return Vector of RgbLightFeedback with parsed LED indices
      */
     std::vector<RgbLightFeedback> getRgbLights() const;
+
+    /** Get all streamable screen feedbacks for this device
+     *
+     * Convenience wrapper for getTypedFeedbacks<ScreenFeedback>().
+     *
+     * @return Vector of ScreenFeedback with parsed screen geometry
+     */
+    std::vector<ScreenFeedback> getScreens() const;
 
     const std::vector<HidAxisInput>   getHidAxisInput() const { return d_.hid_axis_; }
     const std::vector<HidButtonInput> getHidButtonInput() const { return d_.hid_buttons_; }

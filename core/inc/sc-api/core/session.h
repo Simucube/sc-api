@@ -284,7 +284,8 @@ public:
     bool asyncCommand(CommandRequest&& req, std::function<void(const AsyncCommandResult&)> result_cb);
 
     /** Executes command and blocks until respon */
-    CommandResult blockingCommand(CommandRequest&& req);
+    CommandResult blockingCommand(CommandRequest&&          req,
+                                  std::chrono::milliseconds timeout = std::chrono::milliseconds{1000});
 
     /** Executes command and blocks until reply is received or connection is lost */
     ResultCode blockingSimpleCommand(CommandRequest&& req);

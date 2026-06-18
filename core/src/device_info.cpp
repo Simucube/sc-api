@@ -92,6 +92,39 @@ RgbLightFeedback RgbLightFeedback::fromFeedback(const Feedback& feedback) {
     return result;
 }
 
+ScreenFeedback ScreenFeedback::fromFeedback(const Feedback& fb) {
+    ScreenFeedback result;
+    result.id      = fb.id;
+    result.control = fb.control;
+
+    if (fb.type != FeedbackType::screen || !fb.parameters) {
+        return result;
+    }
+
+    // Each tryFindAndGet scans the whole parameters sub-doc, so key order is irrelevant —
+    // same idiom as DeviceInfo::Data::parse.
+    util::BsonReader r(fb.parameters);
+
+    int32_t width = 0;
+    if (r.tryFindAndGet("width", width)) {
+        result.width = static_cast<uint16_t>(width);
+    }
+
+    int32_t height = 0;
+    if (r.tryFindAndGet("height", height)) {
+        result.height = static_cast<uint16_t>(height);
+    }
+
+    std::string_view pixel_format;
+    if (r.tryFindAndGet("pixel_format", pixel_format)) {
+        if (auto parsed = dashPixelFormatFromString(pixel_format)) {
+            result.pixel_format = *parsed;
+        }
+    }
+
+    return result;
+}
+
 DeviceInfo::DeviceInfo() : full_info_(nullptr) {}
 
 void DeviceInfo::construct(Data&& data, FullInfo* info) {
@@ -434,20 +467,9 @@ bool DeviceInfo::hasFeedbackType(FeedbackType type) const {
     return false;
 }
 
-std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const {
-    std::vector<RgbLightFeedback> rgb_lights;
+std::vector<RgbLightFeedback> DeviceInfo::getRgbLights() const { return getTypedFeedbacks<RgbLightFeedback>(); }
 
-    for (const auto& feedback : d_.feedbacks_) {
-        if (feedback.type == FeedbackType::rgb_light) {
-            auto rgb_light = RgbLightFeedback::fromFeedback(feedback);
-            if (rgb_light.isValid()) {
-                rgb_lights.push_back(rgb_light);
-            }
-        }
-    }
-
-    return rgb_lights;
-}
+std::vector<ScreenFeedback> DeviceInfo::getScreens() const { return getTypedFeedbacks<ScreenFeedback>(); }
 
 BsonBuffer DeviceInfo::getRawBson() const {
     assert(full_info_);

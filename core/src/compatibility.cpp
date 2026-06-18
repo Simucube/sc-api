@@ -17,7 +17,7 @@ namespace sc_api::core::internal {
 
 SharedMemory::SharedMemory() noexcept : shm_handle_(INVALID_HANDLE_VALUE), shm_buffer_(nullptr) {}
 
-SharedMemory::~SharedMemory() {}
+SharedMemory::~SharedMemory() { close(); }
 
 SharedMemory::SharedMemory(SharedMemory&& s) noexcept
     : shm_handle_(s.shm_handle_), shm_buffer_(s.shm_buffer_), size_(s.size_) {
