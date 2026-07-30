@@ -5,21 +5,21 @@
 
 #include <string>
 
-#include <sc-api/core/device.h>
-#include <sc-api/core/ffb.h>
-#include <sc-api/core/session.h>
-#include <sc-api/core/time.h>
+#include <sc-api/device.h>
+#include <sc-api/ffb.h>
+#include <sc-api/session.h>
+#include <sc-api/time.h>
 
 namespace nb = nanobind;
 
-using sc_api::core::Clock;
-using sc_api::core::DeviceSessionId;
-using sc_api::core::FfbPipeline;
-using sc_api::core::FilterType;
-using sc_api::core::InterpolationType;
-using sc_api::core::OffsetType;
-using sc_api::core::PipelineConfig;
-using sc_api::core::Session;
+using sc_api::Clock;
+using sc_api::DeviceSessionId;
+using sc_api::FfbPipeline;
+using sc_api::FilterType;
+using sc_api::InterpolationType;
+using sc_api::OffsetType;
+using sc_api::PipelineConfig;
+using sc_api::Session;
 
 // Proxy type for Clock static methods
 struct PyClock {};

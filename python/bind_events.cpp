@@ -4,18 +4,18 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 
-#include <sc-api/core/events.h>
-#include <sc-api/core/session.h>
+#include <sc-api/events.h>
+#include <sc-api/session.h>
 
 namespace nb = nanobind;
 
-using sc_api::core::Session;
-using sc_api::core::SessionState;
-using sc_api::core::session_event::DeviceInfoChanged;
-using sc_api::core::session_event::SessionStateChanged;
-using sc_api::core::session_event::SimDataChanged;
-using sc_api::core::session_event::TelemetryDefinitionsChanged;
-using sc_api::core::session_event::VariableDefinitionsChanged;
+using sc_api::Session;
+using sc_api::SessionState;
+using sc_api::event::DeviceInfoChanged;
+using sc_api::event::SessionStateChanged;
+using sc_api::event::SimDataChanged;
+using sc_api::event::TelemetryDefinitionsChanged;
+using sc_api::event::VariableDefinitionsChanged;
 
 void bind_events(nb::module_& m) {
     nb::class_<SessionStateChanged>(m, "SessionStateChanged",

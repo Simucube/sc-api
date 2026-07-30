@@ -1,24 +1,24 @@
 #include <nanobind/nanobind.h>
 
-#include <sc-api/core/action.h>
-#include <sc-api/core/device_info_definitions.h>
-#include <sc-api/core/ffb.h>
-#include <sc-api/core/result.h>
-#include <sc-api/core/session.h>
-#include <sc-api/core/session_fwd.h>
-#include <sc-api/core/type.h>
+#include <sc-api/action.h>
+#include <sc-api/device_info_definitions.h>
+#include <sc-api/ffb.h>
+#include <sc-api/result.h>
+#include <sc-api/session.h>
+#include <sc-api/session_fwd.h>
+#include <sc-api/type.h>
 
 namespace nb = nanobind;
 
+using sc_api::ActionResult;
+using sc_api::FilterType;
+using sc_api::InterpolationType;
+using sc_api::OffsetType;
 using sc_api::ResultCode;
-using sc_api::core::ActionResult;
-using sc_api::core::FilterType;
-using sc_api::core::InterpolationType;
-using sc_api::core::OffsetType;
-using sc_api::core::Session;
-using sc_api::core::SessionState;
-using sc_api::core::Type;
-namespace device_info = sc_api::core::device_info;
+using sc_api::Session;
+using sc_api::SessionState;
+using sc_api::Type;
+namespace device_info = sc_api::device_info;
 
 void bind_enums(nb::module_& m) {
     nb::enum_<SessionState>(m, "SessionState",

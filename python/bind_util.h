@@ -1,16 +1,16 @@
 #pragma once
 
-#include <sc-api/core/session_fwd.h>
+#include <sc-api/session_fwd.h>
 
-inline const char* session_state_str(sc_api::core::SessionState s) {
+inline const char* session_state_str(sc_api::SessionState s) {
     switch (s) {
-        case sc_api::core::SessionState::invalid:
+        case sc_api::SessionState::invalid:
             return "invalid";
-        case sc_api::core::SessionState::connected_monitor:
+        case sc_api::SessionState::connected_monitor:
             return "connected_monitor";
-        case sc_api::core::SessionState::connected_control:
+        case sc_api::SessionState::connected_control:
             return "connected_control";
-        case sc_api::core::SessionState::session_lost:
+        case sc_api::SessionState::session_lost:
             return "session_lost";
         default:
             return "unknown";

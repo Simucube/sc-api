@@ -10,18 +10,18 @@
 #include <string>
 #include <vector>
 
-#include <sc-api/core/sim_data.h>
-#include <sc-api/core/sim_data_builder.h>
-#include <sc-api/core/sim_data/participant.h>
-#include <sc-api/core/sim_data/session.h>
-#include <sc-api/core/sim_data/sim.h>
-#include <sc-api/core/sim_data/tire.h>
-#include <sc-api/core/sim_data/track.h>
-#include <sc-api/core/sim_data/vehicle.h>
+#include <sc-api/sim_data.h>
+#include <sc-api/sim_data_builder.h>
+#include <sc-api/sim_data/participant.h>
+#include <sc-api/sim_data/session.h>
+#include <sc-api/sim_data/sim.h>
+#include <sc-api/sim_data/tire.h>
+#include <sc-api/sim_data/track.h>
+#include <sc-api/sim_data/vehicle.h>
 
 namespace nb = nanobind;
 
-using namespace sc_api::core::sim_data;
+using namespace sc_api::sim_data;
 
 // ---------------------------------------------------------------------------
 // PySubSection: prevents SimData GC while subsection pointers are alive
@@ -46,7 +46,7 @@ struct PropertyEntry {
 
 template <typename SubSection, typename Builder, typename T, typename PropClass>
 PropertyEntry<SubSection, Builder> make_entry(
-    const sc_api::core::sim_data::TypedAndClassifiedPropertyRef<T, PropClass>& ref) {
+    const sc_api::sim_data::TypedAndClassifiedPropertyRef<T, PropClass>& ref) {
     return {
         ref.name.data(),  // NOLINT(bugprone-suspicious-stringview-data-usage)
         [&ref](const SubSection& s) -> nb::object {
@@ -240,7 +240,7 @@ void bind_sim_data(nb::module_& m) {
             });
     add_dict_methods(participant_cls, &get_participant_table());
 
-    // --- SimSession (sim_data::Session, avoid name clash with core::Session) ---
+    // --- SimSession (sim_data::Session, avoid name clash with sc_api::Session) ---
     auto session_cls =
         nb::class_<PySubSection<Session>>(m, "SimSession",
                                           "Sim session info (practice, qualifying, race, etc.).")

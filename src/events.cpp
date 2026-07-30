@@ -1,6 +1,7 @@
 #include "sc-api/events.h"
 
 namespace sc_api::event {
+
 const SessionStateChanged* getIfSessionStateChanged(const Event* e) { return std::get_if<SessionStateChanged>(e); }
 
 const VariableDefinitionsChanged* getIfVariableDefinitionsChanged(const Event* e) {

@@ -11,37 +11,37 @@
 #include <chrono>
 #include <variant>
 
-#include <sc-api/core/api.h>
-#include <sc-api/core/device.h>
-#include <sc-api/core/device_info.h>
-#include <sc-api/core/events.h>
-#include <sc-api/core/led_control.h>
-#include <sc-api/core/session.h>
-#include <sc-api/core/sim_data.h>
-#include <sc-api/core/sim_data_builder.h>
-#include <sc-api/core/util/event_queue.h>
-#include <sc-api/core/telemetry.h>
-#include <sc-api/core/variables.h>
+#include <sc-api/api.h>
+#include <sc-api/device.h>
+#include <sc-api/device_info.h>
+#include <sc-api/events.h>
+#include <sc-api/led_control.h>
+#include <sc-api/session.h>
+#include <sc-api/sim_data.h>
+#include <sc-api/sim_data_builder.h>
+#include <sc-api/util/event_queue.h>
+#include <sc-api/telemetry.h>
+#include <sc-api/variables.h>
 
 namespace nb = nanobind;
 
+using sc_api::Api;
+using sc_api::ApiUserInformation;
+using sc_api::DeviceSessionId;
+using sc_api::Event;
+using sc_api::NoAuthControlEnabler;
+using sc_api::NoEvent;
 using sc_api::ResultCode;
-using sc_api::core::Api;
-using sc_api::core::ApiUserInformation;
-using sc_api::core::DeviceSessionId;
-using sc_api::core::Event;
-using sc_api::core::NoAuthControlEnabler;
-using sc_api::core::NoEvent;
-using sc_api::core::RgbColor;
-using sc_api::core::Session;
-using sc_api::core::SessionState;
-using sc_api::core::session_event::DeviceInfoChanged;
-using sc_api::core::session_event::SessionStateChanged;
-using sc_api::core::session_event::SimDataChanged;
-using sc_api::core::session_event::TelemetryDefinitionsChanged;
-using sc_api::core::session_event::VariableDefinitionsChanged;
+using sc_api::RgbColor;
+using sc_api::Session;
+using sc_api::SessionState;
+using sc_api::event::DeviceInfoChanged;
+using sc_api::event::SessionStateChanged;
+using sc_api::event::SimDataChanged;
+using sc_api::event::TelemetryDefinitionsChanged;
+using sc_api::event::VariableDefinitionsChanged;
 
-using EventQueueT = sc_api::core::util::EventQueue<Event>;
+using EventQueueT = sc_api::util::EventQueue<Event>;
 
 // --- Variant unwrapping helper ---
 
@@ -289,7 +289,7 @@ void bind_api(nb::module_& m) {
                             "or as data['sim']['id']");
                     }
                 }
-                sc_api::core::sim_data::SimDataUpdateBuilder builder(
+                sc_api::sim_data::SimDataUpdateBuilder builder(
                     resolved_sim_id, activate);
                 populate_sim_data_builder(builder, data);
                 bool ok;
@@ -332,7 +332,7 @@ void bind_api(nb::module_& m) {
                             "or as data['sim']['id']");
                     }
                 }
-                sc_api::core::sim_data::SimDataUpdateBuilder builder(
+                sc_api::sim_data::SimDataUpdateBuilder builder(
                     resolved_sim_id, activate);
                 populate_sim_data_builder(builder, data);
                 bool ok;

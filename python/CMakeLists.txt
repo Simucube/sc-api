@@ -62,18 +62,18 @@ set(SIM_DATA_TABLES_PY "${CMAKE_CURRENT_SOURCE_DIR}/../simucube_api/_sim_data.py
 set(_sim_data_json_deps)
 foreach(group vehicle session sim participant track tire)
     list(APPEND _sim_data_json_deps
-        "${CMAKE_CURRENT_SOURCE_DIR}/../core/data/sim_data/${group}_properties.json")
+        "${CMAKE_CURRENT_SOURCE_DIR}/../data/sim_data/${group}_properties.json")
 endforeach()
 
 add_custom_command(
     OUTPUT ${SIM_DATA_TABLES_CPP} ${SIM_DATA_TABLES_PY}
     COMMAND Python::Interpreter
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_python_binding_tables.py
-        --data-dir ${CMAKE_CURRENT_SOURCE_DIR}/../core/data/sim_data
+        ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_python_binding_tables.py
+        --data-dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/sim_data
         --cpp-output ${SIM_DATA_TABLES_CPP}
         --py-output ${SIM_DATA_TABLES_PY}
     DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_python_binding_tables.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_python_binding_tables.py
         ${_sim_data_json_deps}
     VERBATIM
 )
@@ -88,12 +88,12 @@ set(DEVICE_INFO_BINDINGS_CPP "${CMAKE_CURRENT_BINARY_DIR}/gen/device_info_enums_
 add_custom_command(
     OUTPUT ${DEVICE_INFO_BINDINGS_CPP}
     COMMAND Python::Interpreter
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_device_info_bindings.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_device_info_bindings.py
         --output ${DEVICE_INFO_BINDINGS_CPP}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/data/device_info_enums.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/../data/device_info_enums.json
     DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/scripts/generate_device_info_bindings.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/data/device_info_enums.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_device_info_bindings.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/../data/device_info_enums.json
     VERBATIM
 )
 target_sources(sc-api-python PRIVATE ${DEVICE_INFO_BINDINGS_CPP})

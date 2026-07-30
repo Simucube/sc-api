@@ -10,18 +10,18 @@
 #include <string>
 #include <vector>
 
-#include <sc-api/core/session.h>
-#include <sc-api/core/type.h>
-#include <sc-api/core/variables.h>
+#include <sc-api/session.h>
+#include <sc-api/type.h>
+#include <sc-api/variables.h>
 
 namespace nb = nanobind;
 
-using sc_api::core::DeviceSessionId;
-using sc_api::core::Session;
-using sc_api::core::Type;
-using sc_api::core::VariableDefinition;
-using sc_api::core::VariableDefinitions;
-using sc_api::core::k_invalid_device_session_id;
+using sc_api::DeviceSessionId;
+using sc_api::Session;
+using sc_api::Type;
+using sc_api::VariableDefinition;
+using sc_api::VariableDefinitions;
+using sc_api::k_invalid_device_session_id;
 
 // --- read_value: read a scalar from shared memory ---
 
@@ -120,7 +120,7 @@ static nb::object read_value(const VariableDefinition& var) {
 
 template <typename T>
 static nb::object read_array_typed(const VariableDefinition& var) {
-    sc_api::core::RevisionCountedArrayRef<T> ref(var.type.getArraySize(), var.value_ptr);
+    sc_api::RevisionCountedArrayRef<T> ref(var.type.getArraySize(), var.value_ptr);
     std::vector<T> data = ref.atomicCopy();
     if (data.empty() && var.type.getArraySize() > 0) {
         return nb::none();  // atomic copy failed
@@ -162,7 +162,7 @@ static nb::object read_array(const VariableDefinition& var) {
             return read_array_typed<double>(var);
         case Type::boolean: {
             // std::vector<bool> is special — use uint8_t and convert
-            sc_api::core::RevisionCountedArrayRef<uint8_t> ref(
+            sc_api::RevisionCountedArrayRef<uint8_t> ref(
                 var.type.getArraySize(), var.value_ptr);
             std::vector<uint8_t> data = ref.atomicCopy();
             if (data.empty() && var.type.getArraySize() > 0) {

@@ -4,14 +4,14 @@
 #include <sc-api/ffb.h>
 #include <sc-api/sim_data.h>
 #include <sc-api/telemetry.h>
-#include <sc-api/variables.h>
+#include <sc-api/variable_references.h>
 
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <thread>
 
-using namespace sc_api::core;
+using namespace sc_api;
 
 /** Struct that store ActivePedal related state information and handles */
 struct ApState {

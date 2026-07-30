@@ -12,22 +12,22 @@
 #include <variant>
 #include <vector>
 
-#include <sc-api/core/session.h>
-#include <sc-api/core/telemetry.h>
-#include <sc-api/core/type.h>
+#include <sc-api/session.h>
+#include <sc-api/telemetry.h>
+#include <sc-api/type.h>
 
 #include "bind_exceptions.h"
 
 namespace nb = nanobind;
 
-using sc_api::core::ActionResult;
-using sc_api::core::Session;
-using sc_api::core::Telemetry;
-using sc_api::core::TelemetryBase;
-using sc_api::core::TelemetryDefinition;
-using sc_api::core::TelemetryDefinitions;
-using sc_api::core::TelemetryUpdateGroup;
-using sc_api::core::Type;
+using sc_api::ActionResult;
+using sc_api::Session;
+using sc_api::Telemetry;
+using sc_api::TelemetryBase;
+using sc_api::TelemetryDefinition;
+using sc_api::TelemetryDefinitions;
+using sc_api::TelemetryUpdateGroup;
+using sc_api::Type;
 
 // --- TelemetryGroupHelper: owns Telemetry<T> handles and wraps TelemetryUpdateGroup ---
 

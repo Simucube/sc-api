@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     sc_api::VariableDefinitions      variables;
     while (true) {
         // Get events from API to monitor session state and detect when variable definitions change
-        sc_api::core::Event event;
+        sc_api::Event event;
         if (!session) {
             // This call will block until some event occurs
             event = event_queue->pop();
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
             // SessionStateChanged event occurs when session is connected, disconnected or its state changes because
             // registration for controlling completed.
             // We are not trying to control anything in this example so we only wait for connected_monitor state
-            if (ev->state == sc_api::core::SessionState::connected_monitor) {
+            if (ev->state == sc_api::SessionState::connected_monitor) {
                 session            = ev->session;
                 update_definitions = true;
             } else {

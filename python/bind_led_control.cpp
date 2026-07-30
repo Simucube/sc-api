@@ -6,16 +6,16 @@
 #include <string>
 #include <vector>
 
-#include <sc-api/core/device.h>
-#include <sc-api/core/led_control.h>
-#include <sc-api/core/session.h>
+#include <sc-api/device.h>
+#include <sc-api/led_control.h>
+#include <sc-api/session.h>
 
 namespace nb = nanobind;
 
-using sc_api::core::DeviceSessionId;
-using sc_api::core::LedControl;
-using sc_api::core::RgbColor;
-using sc_api::core::Session;
+using sc_api::DeviceSessionId;
+using sc_api::LedControl;
+using sc_api::RgbColor;
+using sc_api::Session;
 
 void bind_led_control(nb::module_& m) {
     nb::class_<LedControl>(m, "LedControl",

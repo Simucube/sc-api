@@ -9,23 +9,23 @@
 #include <string>
 #include <vector>
 
-#include <sc-api/core/device_info.h>
+#include <sc-api/device_info.h>
 
 namespace nb = nanobind;
 
-using sc_api::core::DeviceSessionId;
-using sc_api::core::device_info::Control;
-using sc_api::core::device_info::DeviceInfo;
-using sc_api::core::device_info::DeviceInfoPtr;
-using sc_api::core::device_info::Feedback;
-using sc_api::core::device_info::FullInfo;
-using sc_api::core::device_info::HidAxisInput;
-using sc_api::core::device_info::HidButtonInput;
-using sc_api::core::device_info::Input;
-using sc_api::core::device_info::InputMapping;
-using sc_api::core::device_info::RgbLightFeedback;
-using sc_api::core::device_info::UsbDeviceInfo;
-using sc_api::core::device_info::VariableRef;
+using sc_api::DeviceSessionId;
+using sc_api::device_info::Control;
+using sc_api::device_info::DeviceInfo;
+using sc_api::device_info::DeviceInfoPtr;
+using sc_api::device_info::Feedback;
+using sc_api::device_info::FullInfo;
+using sc_api::device_info::HidAxisInput;
+using sc_api::device_info::HidButtonInput;
+using sc_api::device_info::Input;
+using sc_api::device_info::InputMapping;
+using sc_api::device_info::RgbLightFeedback;
+using sc_api::device_info::UsbDeviceInfo;
+using sc_api::device_info::VariableRef;
 
 void bind_device_info(nb::module_& m) {
     // --- VariableRef ---
@@ -253,7 +253,7 @@ void bind_device_info(nb::module_& m) {
         .def("__repr__", [](const DeviceInfo& self) {
             return "<DeviceInfo uid='" + std::string(self.getUid()) + "' product_name='" +
                    std::string(self.getProductName()) + "' role=" +
-                   std::string(sc_api::core::device_info::toString(self.getRole())) + ">";
+                   std::string(sc_api::device_info::toString(self.getRole())) + ">";
         });
 
     // --- FullInfoIterator (yields DeviceInfoPtr to avoid copying non-copyable DeviceInfo) ---
