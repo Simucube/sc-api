@@ -46,7 +46,7 @@ public:
     ActionBuilder& operator=(const ActionBuilder&) = default;
     ActionBuilder& operator=(ActionBuilder&&) noexcept;
 
-    void     init(std::shared_ptr<Session> session);
+    void                     init(std::shared_ptr<Session> session);
     std::shared_ptr<Session> getSession() const { return session_; }
 
     /** Clears builder to the empty state */

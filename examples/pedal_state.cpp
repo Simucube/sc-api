@@ -16,8 +16,8 @@ struct PedalData {
 };
 
 int main(int argc, char* argv[]) {
-    Api                                  api_thread;
-    std::unique_ptr<Api::EventQueue>     eventQueue = api_thread.createEventQueue();
+    Api                              api_thread;
+    std::unique_ptr<Api::EventQueue> eventQueue = api_thread.createEventQueue();
 
     std::vector<PedalData>      pedals;
     sc_api::VariableDefinitions variables;

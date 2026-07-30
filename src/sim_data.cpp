@@ -36,7 +36,7 @@ std::shared_ptr<sim_data::SimData> detail::SimDataProvider::parseSimData() {
     uint32_t                   raw_bson_revision = 0;
     {
         std::shared_lock lock(mutex_);
-        raw_bson = getActiveBuffer();
+        raw_bson          = getActiveBuffer();
         raw_bson_revision = getActiveBufferRevision();
         if (parsed_data_ && raw_bson_revision == parsed_data_->getRevision() &&
             raw_bson.get() == parsed_data_->getRawBson()) {

@@ -22,9 +22,9 @@ namespace sc_api {
  * Color values range from 0-255 for each component
  */
 struct RgbColor {
-    uint8_t r = 0;  ///< Red component (0-255)
-    uint8_t g = 0;  ///< Green component (0-255)
-    uint8_t b = 0;  ///< Blue component (0-255)
+    uint8_t r            = 0;  ///< Red component (0-255)
+    uint8_t g            = 0;  ///< Green component (0-255)
+    uint8_t b            = 0;  ///< Blue component (0-255)
 
     constexpr RgbColor() = default;
     constexpr RgbColor(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}

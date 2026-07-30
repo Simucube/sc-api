@@ -40,7 +40,7 @@ typedef struct SC_API_PROTOCOL_TelemetryDef_s {
     uint16_t flags;
 
     /** Type of the value. SC_API_Type_t */
-    SC_API_PROTOCOL_Type_t type;
+    SC_API_PROTOCOL_Type_t            type;
     SC_API_PROTOCOL_TypeVariantData_t type_variant_data;
 
     /** Index of the variable that represents the current state of this telemetry

@@ -155,7 +155,7 @@ struct RgbLightFeedback {
 
     /** Check if this represents a valid RGB light */
     explicit operator bool() const { return index >= 0; }
-    bool isValid() const { return index >= 0; }
+    bool     isValid() const { return index >= 0; }
 };
 
 /** Pixel format of a streamable device screen. */
@@ -384,8 +384,8 @@ public:
         };
 
     private:
-        std::shared_ptr<const FullInfo>   info_;
-        std::size_t                       index_ = 0;
+        std::shared_ptr<const FullInfo> info_;
+        std::size_t                     index_ = 0;
     };
 
     FullInfo(std::vector<DeviceInfo::Data>&& data, uint32_t revision, std::shared_ptr<const uint8_t[]> raw_bson);
@@ -423,7 +423,7 @@ private:
         const DeviceInfo* end() const { return &data[size]; }
     } devices_;
 
-    uint32_t                rev_;
+    uint32_t                         rev_;
     std::shared_ptr<const uint8_t[]> raw_bson_;
 };
 

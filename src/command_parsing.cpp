@@ -1,4 +1,5 @@
 #include "command_parsing.h"
+
 #include <iostream>
 
 namespace sc_api {
@@ -15,7 +16,7 @@ int32_t parseCommandResultHeader(util::BsonReader& reader, std::string_view& com
         if (reader.tryFindAndGet("error_message", error_msg)) {
             std::cerr << "Command failed: " << error_msg << "\n";
         }
-        
+
         return return_code;
     }
 

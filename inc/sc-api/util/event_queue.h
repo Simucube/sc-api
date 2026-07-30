@@ -108,11 +108,11 @@ private:
         cv_.notify_one();
     }
 
-    mutable std::mutex                      m_;
-    std::condition_variable                 cv_;
-    std::queue<EventT>                      queue_;
-    std::weak_ptr<EventProducer<EventT>>    producer_;
-    bool                                    open_     = false;
+    mutable std::mutex                   m_;
+    std::condition_variable              cv_;
+    std::queue<EventT>                   queue_;
+    std::weak_ptr<EventProducer<EventT>> producer_;
+    bool                                 open_ = false;
 };
 
 template <typename EventT>

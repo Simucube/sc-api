@@ -14,17 +14,17 @@
 static constexpr uint16_t k_telemetry_update_group_id = 0;
 
 static void telemetryThread(sc_api::Api* api) {
-    sc_api::TelemetryUpdateGroup        engine_rpm_update_group{0};
+    sc_api::TelemetryUpdateGroup engine_rpm_update_group{0};
 
-    sc_api::Telemetry                   physics_running(sc_api::telemetry::physics_running, true);
-    sc_api::Telemetry                   engine_rpm_telemetry(sc_api::telemetry::engine_rpm, 0.0f);
+    sc_api::Telemetry physics_running(sc_api::telemetry::physics_running, true);
+    sc_api::Telemetry engine_rpm_telemetry(sc_api::telemetry::engine_rpm, 0.0f);
 
     engine_rpm_update_group.add({&physics_running, &engine_rpm_telemetry});
 
-    auto api_event_queue = api->createEventQueue();
+    auto api_event_queue                        = api->createEventQueue();
 
-    float rpm_change     = 10.0f;
-    float cur_rpm        = 1000.0f;
+    float                            rpm_change = 10.0f;
+    float                            cur_rpm    = 1000.0f;
     std::shared_ptr<sc_api::Session> session;
     while (true) {
         // Make sure that telemetry system keeps up-to-date with changes to the session state
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
 
     auto api_event_queue                           = api.createEventQueue();
 
-    std::shared_ptr<sc_api::Session> session = nullptr;
+    std::shared_ptr<sc_api::Session> session       = nullptr;
     sc_api::SessionState             session_state = sc_api::SessionState::invalid;
     while (true) {
         if (auto event = api_event_queue->tryPopFor(std::chrono::milliseconds(200))) {
@@ -116,23 +116,23 @@ int main(int argc, char* argv[]) {
 
             sc_api::CommandRequest req{"core", "echo"};
             req.docAddElement("some_really_important_data", "that we get back in the result");
-            auto cmd_start_time   = std::chrono::high_resolution_clock::now();
-            bool command_sent     = session->asyncCommand(std::move(req), [cmd_start_time](
-                                                                          const sc_api::AsyncCommandResult& result) {
-                auto cmd_reply_time = std::chrono::high_resolution_clock::now();
-                assert(result.getResultCode() == sc_api::ResultCode::ok);
-                assert(result.getPayload());
+            auto cmd_start_time = std::chrono::high_resolution_clock::now();
+            bool command_sent =
+                session->asyncCommand(std::move(req), [cmd_start_time](const sc_api::AsyncCommandResult& result) {
+                    auto cmd_reply_time = std::chrono::high_resolution_clock::now();
+                    assert(result.getResultCode() == sc_api::ResultCode::ok);
+                    assert(result.getPayload());
 
-                sc_api::util::BsonReader r(result.getPayload());
-                assert(r.next() == sc_api::util::BsonReader::ELEMENT_STR);
-                assert(r.key() == "some_really_important_data");
-                assert(r.stringValue() == "that we get back in the result");
+                    sc_api::util::BsonReader r(result.getPayload());
+                    assert(r.next() == sc_api::util::BsonReader::ELEMENT_STR);
+                    assert(r.key() == "some_really_important_data");
+                    assert(r.stringValue() == "that we get back in the result");
 
-                std::cerr
-                    << "Received reply in "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(cmd_reply_time - cmd_start_time).count()
-                    << "us" << std::endl;
-            });
+                    std::cerr << "Received reply in "
+                              << std::chrono::duration_cast<std::chrono::microseconds>(cmd_reply_time - cmd_start_time)
+                                     .count()
+                              << "us" << std::endl;
+                });
 
             if (!command_sent) {
                 std::cerr << "Failed to send echo command" << std::endl;

@@ -252,9 +252,9 @@ TelemetrySystem::TelemetrySystem() {}
 TelemetrySystem::~TelemetrySystem() {}
 
 void TelemetrySystem::initialize(const void* shm_buffer, size_t shm_buffer_size) {
-    cur_defs_                  = TelemetryDefinitions::s_empty_storage;
+    cur_defs_            = TelemetryDefinitions::s_empty_storage;
 
-    const auto* def_shm        = reinterpret_cast<const SC_API_PROTOCOL_TelemetryDefinitionShm_t*>(shm_buffer);
+    const auto* def_shm  = reinterpret_cast<const SC_API_PROTOCOL_TelemetryDefinitionShm_t*>(shm_buffer);
 
     uint32_t data_size   = def_shm->definition_data_size;
     uint32_t defs_offset = def_shm->definition_offset;
@@ -297,7 +297,7 @@ bool TelemetrySystem::updateDefinitions() {
             reinterpret_cast<const SC_API_PROTOCOL_TelemetryDef_t*>(defs_start_ + ((ptrdiff_t)defs_size_ * i));
 
         TelemetryDefinition def;
-        def.id           = def_ptr->id;
+        def.id = def_ptr->id;
 #ifdef _MSC_VER
         def.name = std::string_view(def_ptr->name, strnlen_s(def_ptr->name, sizeof(def_ptr->name) - 1));
 #else

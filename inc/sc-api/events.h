@@ -38,8 +38,7 @@ struct SessionStateChanged : SessionEvent {
 };
 
 /** Device information data has changed */
-struct DeviceInfoChanged : SessionEvent {
-};
+struct DeviceInfoChanged : SessionEvent {};
 
 /** Variable definitions have changed
  *

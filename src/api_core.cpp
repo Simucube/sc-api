@@ -26,7 +26,7 @@ using namespace sc_api::detail;
 
 static std::once_flag s_init_only_once_flag;
 static void           initOnlyOnce() {
-              std::call_once(s_init_only_once_flag, []() { SC_API_gcm_initialize(); });
+    std::call_once(s_init_only_once_flag, []() { SC_API_gcm_initialize(); });
 }
 
 ApiCore::Impl::~Impl() {
@@ -51,7 +51,7 @@ ResultCode ApiCore::Impl::openSession() {
     }
 
     ResultCode r                = ResultCode::error_busy;
-    auto   wait_valid_start = std::chrono::steady_clock::now();
+    auto       wait_valid_start = std::chrono::steady_clock::now();
 
     detail::AlignedUniquePtr<void>   session_data_buf;
     const SC_API_PROTOCOL_Session_t* session_data = nullptr;
@@ -282,7 +282,7 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
     shm_handles->sim_data_provider.setShmBuffer((const uint8_t*)shm_handles->sim_data.getBuffer(),
                                                 shm_handles->sim_data.getSize());
 
-    active_session_                  = api_->constructSession(std::move(shm_handles), session_copy->session_id);
+    active_session_ = api_->constructSession(std::move(shm_handles), session_copy->session_id);
 
     event_producer_->notifyEvent(
         event::SessionStateChanged{{active_session_}, Session::State::connected_monitor, 0, 0});
@@ -362,7 +362,8 @@ std::shared_ptr<Session> ApiCore::getOpenSession() const { return p_->getSession
 
 std::unique_ptr<util::EventQueue<Event>> ApiCore::createEventQueue() { return p_->createEventQueue(); }
 
-std::shared_ptr<Session> ApiCore::constructSession(std::unique_ptr<Session::Internal> shm_handles, uint32_t session_id) {
+std::shared_ptr<Session> ApiCore::constructSession(std::unique_ptr<Session::Internal> shm_handles,
+                                                   uint32_t                           session_id) {
     // make_shared requires public constructor so we need to do a little hidden wrapper
     struct make_shared_enabler : Session {
         make_shared_enabler(ApiCore* api, std::unique_ptr<Internal> handles, uint32_t session_id)

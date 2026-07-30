@@ -30,7 +30,7 @@ class TelemetryDefinitions;
 namespace sim_data {
 class SimData;
 class SimDataUpdateBuilder;
-}
+}  // namespace sim_data
 
 class FfbPipeline;
 
@@ -355,8 +355,8 @@ private:
     mutable std::mutex m_;
 
     std::unique_ptr<Internal> p_;
-    uint32_t                  control_flags_       = 0;
-    State                     state_               = State::connected_monitor;
+    uint32_t                  control_flags_ = 0;
+    State                     state_         = State::connected_monitor;
 
     std::chrono::steady_clock::time_point prev_keep_alive_;
     uint32_t                              session_id_            = 0;
@@ -367,7 +367,7 @@ private:
 
     bool is_running_           = false;
 
-    std::unique_ptr<SecureSessionInterface>          secure_session_;
+    std::unique_ptr<SecureSessionInterface> secure_session_;
 };
 
 }  // namespace sc_api

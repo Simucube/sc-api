@@ -67,10 +67,10 @@ struct ApiState {
     std::shared_ptr<sc_api::Session> session;
 
     // Brake pedal state
-    std::optional<ApState>   brake;
+    std::optional<ApState> brake;
 
     // Do we need to re-initialize brake
-    bool                     init_needed = false;
+    bool init_needed = false;
 
     void reset() {
         brake.reset();
@@ -175,9 +175,9 @@ int main(int argc, char* argv[]) {
     while (true) {
         api_state.update();
 
-        auto    cur_time     = sc_api::Clock::now();
-        float   freq         = 20.0f;
-        double  seconds_from_start =
+        auto   cur_time = sc_api::Clock::now();
+        float  freq     = 20.0f;
+        double seconds_from_start =
             std::chrono::duration_cast<std::chrono::duration<double>>(cur_time - start_time).count();
         float v = (float)std::sin(seconds_from_start * freq * 3.1415 * 2);
 

@@ -29,7 +29,7 @@ struct DashStreamer::Impl {
     // potentially block — on every frame while disconnected. steady_clock for monotonic local timing
     // (Clock is QPC/cross-process and stubbed off-Windows, wrong tool for a local cooldown).
     std::optional<std::chrono::steady_clock::time_point> last_failed_open;
-    static constexpr auto k_open_retry_interval = std::chrono::milliseconds{500};
+    static constexpr auto                                k_open_retry_interval = std::chrono::milliseconds{500};
 
     Impl(std::shared_ptr<sc_api::Session> sess, uint16_t dev_id)
         : session(std::move(sess)), device_session_id(dev_id) {}
@@ -126,8 +126,8 @@ FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uin
 
     shm_data->offset_x = 0;
     shm_data->offset_y = 0;
-    shm_data->width  = width;
-    shm_data->height = height;
+    shm_data->width    = width;
+    shm_data->height   = height;
 
     std::memcpy(shm_data + 1, rgb565_data, frame_size);
 

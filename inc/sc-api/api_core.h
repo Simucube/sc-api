@@ -59,6 +59,7 @@ public:
 
     /** */
     std::unique_ptr<EventQueue> createEventQueue();
+
 private:
     std::unique_ptr<Impl> p_;
 

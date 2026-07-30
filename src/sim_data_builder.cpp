@@ -109,9 +109,7 @@ std::pair<const uint8_t*, int32_t> SimDataUpdateBuilder::finish() {
     return BuilderBase::finish();
 }
 
-std::pair<const uint8_t*, int32_t> BuilderBase::finish() {
-    return b_.finish();
-}
+std::pair<const uint8_t*, int32_t> BuilderBase::finish() { return b_.finish(); }
 
 void BuilderBase::initialize() { b_.initialize(&buffer_); }
 

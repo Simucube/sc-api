@@ -108,7 +108,7 @@ private:
 
     std::vector<ListenerAction> listener_action_queue_;
 
-    ApiCore      api_;
+    ApiCore     api_;
     std::thread thread_;
 };
 

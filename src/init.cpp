@@ -20,25 +20,24 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-static const SC_API_PROTOCOL_Core_t *s_shm_core_ptr = NULL;
+static const SC_API_PROTOCOL_Core_t* s_shm_core_ptr = NULL;
 
 using namespace sc::api_internal;
 
 static sc::api_internal::SharedMemory s_shm_core;
 
-static ShmBlock s_controller_shm;
-static ShmBlock s_device_info_shm;
-static ShmBlock s_variable_header_shm;
-static ShmBlock s_variable_data_shm;
+static ShmBlock                              s_controller_shm;
+static ShmBlock                              s_device_info_shm;
+static ShmBlock                              s_variable_header_shm;
+static ShmBlock                              s_variable_data_shm;
 static std::chrono::steady_clock::time_point s_prev_keep_alive;
 static uint32_t                              s_session_id            = 0;
 static uint32_t                              s_prev_keep_alive_value = 0;
-static constexpr std::chrono::milliseconds k_keep_alive_timeout{200};
+static constexpr std::chrono::milliseconds   k_keep_alive_timeout{200};
 
 static bool first_init_ = true;
 
-static void closeCoreShm(void)
-{
+static void closeCoreShm(void) {
     s_controller_shm.close();
     s_device_info_shm.close();
     s_variable_header_shm.close();
@@ -48,17 +47,15 @@ static void closeCoreShm(void)
     s_shm_core_ptr = NULL;
 }
 
-static bool isCoreShmActiveAndValid(void)
-{
+static bool isCoreShmActiveAndValid(void) {
     std::atomic_thread_fence(std::memory_order_acquire);
     uint32_t start_revision = s_shm_core_ptr->data_revision_counter;
     if (start_revision & 1) {
         return false;
     }
 
-    bool valid = SC_API_IS_SHM_VERSION_COMPATIBLE(SC_API_PROTOCOL_CORE_SHM_VERSION,
-                                                  s_shm_core_ptr->version)
-                 && s_shm_core_ptr->state == SC_API_PROTOCOL_CORE_ACTIVE;
+    bool valid = SC_API_IS_SHM_VERSION_COMPATIBLE(SC_API_PROTOCOL_CORE_SHM_VERSION, s_shm_core_ptr->version) &&
+                 s_shm_core_ptr->state == SC_API_PROTOCOL_CORE_ACTIVE;
 
     std::atomic_thread_fence(std::memory_order_acq_rel);
     return valid && s_shm_core_ptr->data_revision_counter == start_revision;
@@ -171,7 +168,7 @@ static SC_API_Result_t initializeApi(const char* id_name, const char* display_na
             const char* registered_ctrl_start = reinterpret_cast<const char*>(shm_data) + shm->registered_ctrl_offset;
             auto        get_ctrl_ptr          = [&](int idx) {
                 return reinterpret_cast<const SC_API_PROTOCOL_RegisteredController_t*>(registered_ctrl_start +
-                                                                                       idx * shm->registered_ctrl_size);
+                                                                                                                  idx * shm->registered_ctrl_size);
             };
 
             for (uint32_t i = 0; i < shm->registered_ctrl_count; ++i) {
@@ -203,8 +200,7 @@ static SC_API_Result_t initializeApi(const char* id_name, const char* display_na
     closeCoreShm();
     return SC_API_ERROR_TIMEOUT;
 }
-SC_API_Result_t SC_API_initAndConnectForControl(const char *id_name, const char *display_name_utf8)
-{
+SC_API_Result_t SC_API_initAndConnectForControl(const char* id_name, const char* display_name_utf8) {
     return initializeApi(id_name, display_name_utf8, SC_API_PROTOCOL_COMMAND_REGISTER_CONTROL);
 }
 
@@ -212,8 +208,7 @@ SC_API_Result_t SC_API_initAndConnectForMonitoring(const char* id_name, const ch
     return initializeApi(id_name, display_name_utf8, 0);
 }
 
-SC_API_Result_t SC_API_shutdown()
-{
+SC_API_Result_t SC_API_shutdown() {
     if (!s_shm_core.isOpen()) {
         // Nothing to shutdown
         return SC_API_ERROR_STATUS;

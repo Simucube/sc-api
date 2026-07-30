@@ -42,8 +42,7 @@ bool LedControl::setControlledLeds(const uint32_t* indices, unsigned count) {
 
     req.endArray();
 
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {
-    });
+    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
 }
 
 bool LedControl::setColors(const RgbColor* colors, unsigned count) {
@@ -96,8 +95,7 @@ bool LedControl::setColors(const RgbColor* colors, unsigned count) {
     req.endArray();
 
     // Send command asynchronously
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {
-    });
+    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
 }
 
 bool LedControl::setControlledLedsAndColors(const uint32_t* indices, const RgbColor* colors, unsigned count) {
@@ -128,8 +126,7 @@ bool LedControl::setControlledLedsAndColors(const uint32_t* indices, const RgbCo
     }
     req.endArray();
 
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {
-    });
+    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
 }
 
 bool LedControl::clearLeds() {
@@ -140,8 +137,7 @@ bool LedControl::clearLeds() {
     CommandRequest req("led", "clear_controlled");
     req.docAddElement("device_session_id", static_cast<int32_t>(device_.id));
 
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {
-    });
+    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
 }
 
 bool LedControl::releaseControl() {
@@ -165,8 +161,7 @@ bool LedControl::releaseControl() {
     req.docBeginSubArray("indices");
     req.endArray();
 
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {
-    });
+    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
 }
 
 }  // namespace sc_api

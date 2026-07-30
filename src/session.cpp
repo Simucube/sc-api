@@ -129,8 +129,8 @@ CommandResult Session::blockingCommand(CommandRequest&& req, std::chrono::millis
     int32_t              cmd_id        = p_->command_id_counter.fetch_add(1, std::memory_order_relaxed);
     std::vector<uint8_t> packet_buffer = req.finalize(cmd_id);
 
-    auto state     = std::make_shared<BlockingCall<CommandResult>>();
-    auto result_cb = [state](const AsyncCommandResult& r) {
+    auto state                         = std::make_shared<BlockingCall<CommandResult>>();
+    auto result_cb                     = [state](const AsyncCommandResult& r) {
         {
             std::lock_guard lock(state->mutex);
             state->result = CommandResult::createFromAsync(r);
@@ -159,8 +159,8 @@ ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
     int32_t              cmd_id        = p_->command_id_counter.fetch_add(1, std::memory_order_relaxed);
     std::vector<uint8_t> packet_buffer = req.finalize(cmd_id);
 
-    auto state     = std::make_shared<BlockingCall<ResultCode>>();
-    auto result_cb = [state](const AsyncCommandResult& r) {
+    auto state                         = std::make_shared<BlockingCall<ResultCode>>();
+    auto result_cb                     = [state](const AsyncCommandResult& r) {
         {
             std::lock_guard lock(state->mutex);
             state->result = r.getResultCode();

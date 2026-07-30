@@ -41,10 +41,10 @@ struct alignas(k_dash_shm_cache_align) DashFrameShm {
     uint16_t offset_y;
 
     /** Width of the frame data in pixels */
-    uint16_t              width;
+    uint16_t width;
 
     /** Height of the frame data in pixels */
-    uint16_t              height;
+    uint16_t height;
 
     /** Pads the client-written handshake group out to the 64-byte feedback cache line. The alignas
      *  below would insert the same padding on its own; keeping it explicit reserves space for future

@@ -60,7 +60,7 @@ struct Type {
     constexpr bool     isArray() const { return SC_API_TYPE_IS_ARRAY(type); }
     constexpr uint32_t getArraySize() const { return variant_data; }
 
-    constexpr bool isBit() const { return SC_API_TYPE_IS_BIT(type); }
+    constexpr bool     isBit() const { return SC_API_TYPE_IS_BIT(type); }
     constexpr unsigned getBitIndex() const { return variant_data; }
 
     static constexpr uint32_t getBaseTypeByteSize(BaseType type) {

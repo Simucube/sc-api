@@ -39,24 +39,24 @@ struct TelemetryDefinition {
     std::string name;
 
     /** Type of the telemetry data. Currently only BaseTypes are used */
-    Type        type;
+    Type type;
 
     /** Numeric session specific id of the telemetry. Used in commands to refer to particular telemetry
      *
      * This id may change when Tuner is updated so it cannot be relied to stay the same. Use name and type to refer to
      * particular variable.
      */
-    uint16_t    id          = 0;
+    uint16_t id           = 0;
 
     /** Reserved flags */
-    uint16_t    flags       = 0;
+    uint16_t flags        = 0;
 
     /** Index of the variable data that refers to this telemetry data
      *
      * Variable always represents the currently active state and may not necessarily update instantly when
      * TelemetryUpdateGroup is sent.
      */
-    uint32_t    variable_idx = 0;
+    uint32_t variable_idx = 0;
 };
 
 namespace detail {
@@ -81,7 +81,7 @@ protected:
     /** Name is used to find correct telemetry data */
     std::string name_;
 
-    Type        type_;
+    Type type_;
 
     /** This is filled and used by TelemetryUpdateGroup when it finds matching telemetry */
     struct RefState {
@@ -112,7 +112,7 @@ public:
     const uint8_t* getSerializedValueBuf() const override {
         return reinterpret_cast<const uint8_t*>(&value_serialized_);
     }
-    std::size_t    getSerializedValueSize() const override { return sizeof(T); }
+    std::size_t getSerializedValueSize() const override { return sizeof(T); }
 
 private:
     T value_serialized_;

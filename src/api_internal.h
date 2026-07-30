@@ -59,7 +59,7 @@ struct Session::Internal {
 
     std::shared_ptr<util::EventProducer<Event>> api_event_producer_;
 
-    detail::SimDataProvider sim_data_provider;
+    detail::SimDataProvider    sim_data_provider;
     detail::TelemetrySystem    telemetry_;
     detail::VariableProvider   var_provider_;
     detail::DeviceInfoProvider dev_info_provider_;

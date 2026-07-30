@@ -50,13 +50,13 @@ static void printVariableValues(const sc_api::VariableDefinitions& defs) {
 int main(int argc, char* argv[]) {
     sc_api::Api api;
 
-    auto                             event_queue = api.createEventQueue();
+    auto event_queue = api.createEventQueue();
 
     // Currently active session. nullptr when there is no connection
     std::shared_ptr<sc_api::Session> session;
 
     // List of variable definitions that are currently available from the session
-    sc_api::VariableDefinitions      variables;
+    sc_api::VariableDefinitions variables;
     while (true) {
         // Get events from API to monitor session state and detect when variable definitions change
         sc_api::Event event;
