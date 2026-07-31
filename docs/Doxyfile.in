@@ -967,7 +967,6 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/core/inc/sc-api/core/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/docs/
 
 # This tag can be used to specify the character encoding of the source files
@@ -1073,7 +1072,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which Doxygen is
 # run.
 
-EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/core/inc/sc-api/core/protocol/ \
+EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/src/ \
 
 

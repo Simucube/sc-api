@@ -93,18 +93,18 @@ int main(int argc, char* argv[]) {
         pipelineB->configure(configB);
     }
 
-    auto start_time       = sc_api::Clock::now();
+    auto start_time         = sc_api::Clock::now();
 
     // 1000Hz update rate
     // Usually this should match what ever is the simulation rate of the system
-    auto update_rate      = std::chrono::milliseconds(1);
+    auto update_rate        = std::chrono::milliseconds(1);
 
     // Give 5ms time for the samples to reach the pedal and to give some time for pedal to interpolate between
     // separate samples to make transitions smooth. Using lower values often works but if provided samples don't
     // overlap smoothly, there is risk that there are glitches when pedal runs out of samples to play or sample
     // arrives so late that there isn't any more time to do as smooth linear interpolation as was intended
     auto sample_time_offset = std::chrono::milliseconds(5);
-    
+
     // This determines how long sample will play if there are not additional samples provided or following
     // samples take too long to arrive (eg. PC lags)
     auto sample_length      = std::chrono::milliseconds(10);
@@ -124,12 +124,12 @@ int main(int argc, char* argv[]) {
 
         // This example uses current time to specify the start time of the pipeline samples. This is only reliable if
         // sample length is so long that it compensates for scheduling jitter and other sources of timing inaccuracy in
-        // this side of the API. 
+        // this side of the API.
         //
         // If we would generate multiple different samples with lower update rate, it would be better to calculate
         // sample start time based on the end time of the previous sent sample set
-        auto    cur_time     = sc_api::Clock::now();
-        float   freq         = 20.0f;
+        auto  cur_time = sc_api::Clock::now();
+        float freq     = 20.0f;
 
         double seconds_from_start =
             std::chrono::duration_cast<std::chrono::duration<double>>(cur_time - start_time).count();

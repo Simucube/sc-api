@@ -1,7 +1,7 @@
 #include <sc-api/api.h>
 #include <sc-api/device_info.h>
 #include <sc-api/events.h>
-#include <sc-api/variables.h>
+#include <sc-api/variable_references.h>
 
 #include <cassert>
 #include <iostream>
@@ -16,8 +16,8 @@ struct PedalData {
 };
 
 int main(int argc, char* argv[]) {
-    Api                                  api_thread;
-    std::unique_ptr<Api::EventQueue>     eventQueue = api_thread.createEventQueue();
+    Api                              api_thread;
+    std::unique_ptr<Api::EventQueue> eventQueue = api_thread.createEventQueue();
 
     std::vector<PedalData>      pedals;
     sc_api::VariableDefinitions variables;
@@ -58,9 +58,9 @@ int main(int argc, char* argv[]) {
                 // In more complex usage, it is recommended to pass std::shared_ptr<sc_api::Session> with the variable
                 // pointers so that there is never case where sc_api::Session is destroyed early and variable pointers
                 // are left dangling
-                data.force = variables.findValuePointer(sc_api::core::variable::activepedal::force, ap->getSessionId());
-                data.position = variables.findValuePointer(sc_api::core::variable::activepedal::pedal_face_pos_mm,
-                                                           ap->getSessionId());
+                data.force = variables.findValuePointer(sc_api::variable::activepedal::force, ap->getSessionId());
+                data.position =
+                    variables.findValuePointer(sc_api::variable::activepedal::pedal_face_pos_mm, ap->getSessionId());
 
                 assert(data.force && data.position);
                 pedals.push_back(data);

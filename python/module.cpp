@@ -14,7 +14,7 @@ void bind_ffb(nb::module_& m);
 void bind_led_control(nb::module_& m);
 
 NB_MODULE(_native, m) {
-    m.doc() = "Simucube API native bindings";
+    m.doc()               = "Simucube API native bindings";
     m.attr("__version__") = SC_API_VERSION;
 
     bind_enums(m);

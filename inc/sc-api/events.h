@@ -4,38 +4,77 @@
  *
  */
 
-#ifndef SC_API_INTERNAL_EVENTS_H_
-#define SC_API_INTERNAL_EVENTS_H_
+#ifndef SC_API_EVENTS_H_
+#define SC_API_EVENTS_H_
+#include <cstdint>
+#include <memory>
 #include <optional>
+#include <variant>
 
-#include "sc-api/core/events.h"
+#include "session_fwd.h"
 
 namespace sc_api {
 
-using core::Event;
+class Session;
 
 namespace event {
 
-using core::session_event::DeviceInfoChanged;
-using core::session_event::SessionStateChanged;
-using core::session_event::SimDataChanged;
-using core::session_event::TelemetryDefinitionsChanged;
-using core::session_event::VariableDefinitionsChanged;
+struct SessionEvent {
+    /** Currently active Session */
+    std::shared_ptr<Session> session;
+};
+
+/** State of the session has changed or it has been registered again with different control flags */
+struct SessionStateChanged : SessionEvent {
+    /** Current state of the session */
+    SessionState state     = SessionState::invalid;
+
+    /** Controller id of this API user. 0 if session hasn't yet been registered to control */
+    uint16_t controller_id = 0;
+
+    /** Combination of Session::ControlFlag that signify types of control that are allowed within the current session
+     */
+    uint32_t control_flags = 0;
+};
+
+/** Device information data has changed */
+struct DeviceInfoChanged : SessionEvent {};
+
+/** Variable definitions have changed
+ *
+ * During a session, only new variables can be added. Previous definitions are never modified nor removed
+ */
+struct VariableDefinitionsChanged : SessionEvent {};
+
+/** Telemetry definitions have changed*/
+struct TelemetryDefinitionsChanged : SessionEvent {};
+
+/** Simulator data has been updated */
+struct SimDataChanged : SessionEvent {};
+
+}  // namespace event
+
+using NoEvent = std::monostate;
+using Event =
+    std::variant<NoEvent, event::SessionStateChanged, event::DeviceInfoChanged, event::VariableDefinitionsChanged,
+                 event::TelemetryDefinitionsChanged, event::SimDataChanged>;
+
+namespace event {
 
 /** Return pointer to SessionStateChanged event if given event contains that */
-const event::SessionStateChanged* getIfSessionStateChanged(const Event* e);
+const SessionStateChanged* getIfSessionStateChanged(const Event* e);
 
 /** Return pointer to VariableDefinitionsChanged event if given event contains that */
-const event::VariableDefinitionsChanged* getIfVariableDefinitionsChanged(const Event* e);
+const VariableDefinitionsChanged* getIfVariableDefinitionsChanged(const Event* e);
 
 /** Return pointer to DeviceInfoChanged event if given event contains that */
-const event::DeviceInfoChanged* getIfDeviceInfoChanged(const Event* e);
+const DeviceInfoChanged* getIfDeviceInfoChanged(const Event* e);
 
 /** Return pointer to TelemetryDefinitionsChanged event if given event contains that */
-const event::TelemetryDefinitionsChanged* getIfTelemetryDefinitionsChanged(const Event* e);
+const TelemetryDefinitionsChanged* getIfTelemetryDefinitionsChanged(const Event* e);
 
 /** Return pointer to SimDataChanged event if given event contains that */
-const event::SimDataChanged* getIfSimDataChanged(const Event* e);
+const SimDataChanged* getIfSimDataChanged(const Event* e);
 
 /** Return true, if given event is SessionStateChanged */
 bool hasSessionStateChanged(const Event& e);
@@ -54,35 +93,35 @@ bool hasSimDataChanged(const Event& e);
 
 /** Return pointer to SessionStateChanged event if given optional event contains that, otherwise returns nullptr
  */
-inline const event::SessionStateChanged* getIfSessionStateChanged(const std::optional<Event>* e) {
+inline const SessionStateChanged* getIfSessionStateChanged(const std::optional<Event>* e) {
     if (!e->has_value()) return nullptr;
     return getIfSessionStateChanged(&e->value());
 }
 
 /** Return pointer to VariableDefinitionsChanged event if given optional event contains that, otherwise returns nullptr
  */
-inline const event::VariableDefinitionsChanged* getIfVariableDefinitionsChanged(const std::optional<Event>* e) {
+inline const VariableDefinitionsChanged* getIfVariableDefinitionsChanged(const std::optional<Event>* e) {
     if (!e->has_value()) return nullptr;
     return getIfVariableDefinitionsChanged(&e->value());
 }
 
 /** Return pointer to DeviceInfoChanged event if given optional event contains that, otherwise returns nullptr
  */
-inline const event::DeviceInfoChanged* getIfDeviceInfoChanged(const std::optional<Event>* e) {
+inline const DeviceInfoChanged* getIfDeviceInfoChanged(const std::optional<Event>* e) {
     if (!e->has_value()) return nullptr;
     return getIfDeviceInfoChanged(&e->value());
 }
 
 /** Return pointer to TelemetryDefinitionsChanged event if given optional event contains that, otherwise returns nullptr
  */
-inline const event::TelemetryDefinitionsChanged* getIfTelemetryDefinitionsChanged(const std::optional<Event>* e) {
+inline const TelemetryDefinitionsChanged* getIfTelemetryDefinitionsChanged(const std::optional<Event>* e) {
     if (!e->has_value()) return nullptr;
     return getIfTelemetryDefinitionsChanged(&e->value());
 }
 
 /** Return pointer to SimDataChanged event if given optional event contains that, otherwise returns nullptr
  */
-inline const event::SimDataChanged* getIfSimDataChanged(const std::optional<Event>* e) {
+inline const SimDataChanged* getIfSimDataChanged(const std::optional<Event>* e) {
     if (!e->has_value()) return nullptr;
     return getIfSimDataChanged(&e->value());
 }
@@ -91,4 +130,4 @@ inline const event::SimDataChanged* getIfSimDataChanged(const std::optional<Even
 
 }  // namespace sc_api
 
-#endif  // SC_API_INTERNAL_EVENTS_H_
+#endif  // SC_API_EVENTS_H_

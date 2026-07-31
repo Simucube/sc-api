@@ -1,24 +1,23 @@
 #include <nanobind/nanobind.h>
-
-#include <sc-api/core/action.h>
-#include <sc-api/core/device_info_definitions.h>
-#include <sc-api/core/ffb.h>
-#include <sc-api/core/result.h>
-#include <sc-api/core/session.h>
-#include <sc-api/core/session_fwd.h>
-#include <sc-api/core/type.h>
+#include <sc-api/action.h>
+#include <sc-api/device_info_definitions.h>
+#include <sc-api/ffb.h>
+#include <sc-api/result.h>
+#include <sc-api/session.h>
+#include <sc-api/session_fwd.h>
+#include <sc-api/type.h>
 
 namespace nb = nanobind;
 
+using sc_api::ActionResult;
+using sc_api::FilterType;
+using sc_api::InterpolationType;
+using sc_api::OffsetType;
 using sc_api::ResultCode;
-using sc_api::core::ActionResult;
-using sc_api::core::FilterType;
-using sc_api::core::InterpolationType;
-using sc_api::core::OffsetType;
-using sc_api::core::Session;
-using sc_api::core::SessionState;
-using sc_api::core::Type;
-namespace device_info = sc_api::core::device_info;
+using sc_api::Session;
+using sc_api::SessionState;
+using sc_api::Type;
+namespace device_info = sc_api::device_info;
 
 void bind_enums(nb::module_& m) {
     nb::enum_<SessionState>(m, "SessionState",
@@ -37,9 +36,10 @@ void bind_enums(nb::module_& m) {
         .value("control_telemetry", Session::control_telemetry)
         .value("control_sim_data", Session::control_sim_data);
 
-    nb::enum_<ResultCode>(m, "ResultCode",
-                          "Low-level operation result codes. "
-                          "Most error values are automatically raised as Python exceptions; direct use is rarely needed.")
+    nb::enum_<ResultCode>(
+        m, "ResultCode",
+        "Low-level operation result codes. "
+        "Most error values are automatically raised as Python exceptions; direct use is rarely needed.")
         .value("ok", ResultCode::ok)
         .value("error_invalid_argument", ResultCode::error_invalid_argument)
         .value("error_invalid_format", ResultCode::error_invalid_format)
@@ -84,9 +84,10 @@ void bind_enums(nb::module_& m) {
     // device_info enums generated from device_info_enums.json
 #include "device_info_enums_generated.h"
 
-    nb::enum_<OffsetType>(m, "OffsetType",
-                          "Units for an FFB effect offset value. "
-                          "Torque-based offsets apply to wheelbases; force- and position-based offsets apply to active pedals.")
+    nb::enum_<OffsetType>(
+        m, "OffsetType",
+        "Units for an FFB effect offset value. "
+        "Torque-based offsets apply to wheelbases; force- and position-based offsets apply to active pedals.")
         .value("torque_Nm", OffsetType::torque_Nm)
         .value("torque_relative", OffsetType::torque_relative)
         .value("force_N", OffsetType::force_N)

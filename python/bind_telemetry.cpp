@@ -1,9 +1,12 @@
-#include <nanobind/nanobind.h>
 #include <nanobind/make_iterator.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <sc-api/session.h>
+#include <sc-api/telemetry.h>
+#include <sc-api/type.h>
 
 #include <atomic>
 #include <memory>
@@ -12,47 +15,36 @@
 #include <variant>
 #include <vector>
 
-#include <sc-api/core/session.h>
-#include <sc-api/core/telemetry.h>
-#include <sc-api/core/type.h>
-
 #include "bind_exceptions.h"
 
 namespace nb = nanobind;
 
-using sc_api::core::ActionResult;
-using sc_api::core::Session;
-using sc_api::core::Telemetry;
-using sc_api::core::TelemetryBase;
-using sc_api::core::TelemetryDefinition;
-using sc_api::core::TelemetryDefinitions;
-using sc_api::core::TelemetryUpdateGroup;
-using sc_api::core::Type;
+using sc_api::ActionResult;
+using sc_api::Session;
+using sc_api::Telemetry;
+using sc_api::TelemetryBase;
+using sc_api::TelemetryDefinition;
+using sc_api::TelemetryDefinitions;
+using sc_api::TelemetryUpdateGroup;
+using sc_api::Type;
 
 // --- TelemetryGroupHelper: owns Telemetry<T> handles and wraps TelemetryUpdateGroup ---
 
 class TelemetryGroupHelper {
-    using TelemetryVariant = std::variant<
-        std::unique_ptr<Telemetry<bool>>,
-        std::unique_ptr<Telemetry<int8_t>>,
-        std::unique_ptr<Telemetry<uint8_t>>,
-        std::unique_ptr<Telemetry<int16_t>>,
-        std::unique_ptr<Telemetry<uint16_t>>,
-        std::unique_ptr<Telemetry<int32_t>>,
-        std::unique_ptr<Telemetry<uint32_t>>,
-        std::unique_ptr<Telemetry<int64_t>>,
-        std::unique_ptr<Telemetry<float>>,
-        std::unique_ptr<Telemetry<double>>>;
+    using TelemetryVariant = std::variant<std::unique_ptr<Telemetry<bool>>, std::unique_ptr<Telemetry<int8_t>>,
+                                          std::unique_ptr<Telemetry<uint8_t>>, std::unique_ptr<Telemetry<int16_t>>,
+                                          std::unique_ptr<Telemetry<uint16_t>>, std::unique_ptr<Telemetry<int32_t>>,
+                                          std::unique_ptr<Telemetry<uint32_t>>, std::unique_ptr<Telemetry<int64_t>>,
+                                          std::unique_ptr<Telemetry<float>>, std::unique_ptr<Telemetry<double>>>;
 
-    TelemetryDefinitions definitions_;
+    TelemetryDefinitions                              definitions_;
     std::unordered_map<std::string, TelemetryVariant> telemetries_;  // declared BEFORE group_
-    TelemetryUpdateGroup group_;  // destroyed first (reverse decl order)
-    bool dirty_ = true;
-    static inline std::atomic<uint16_t> next_group_id_{0};
+    TelemetryUpdateGroup                              group_;        // destroyed first (reverse decl order)
+    bool                                              dirty_ = true;
+    static inline std::atomic<uint16_t>               next_group_id_{0};
 
 public:
-    explicit TelemetryGroupHelper(const TelemetryDefinitions& defs)
-        : definitions_(defs), group_(next_group_id_++) {}
+    explicit TelemetryGroupHelper(const TelemetryDefinitions& defs) : definitions_(defs), group_(next_group_id_++) {}
 
     void setitem(const std::string& name, nb::object value) {
         const TelemetryDefinition* def = definitions_.find(name);
@@ -63,10 +55,12 @@ public:
         auto it = telemetries_.find(name);
         if (it != telemetries_.end()) {
             // Update existing telemetry value
-            std::visit([&value](auto& ptr) {
-                using T = std::decay_t<decltype(ptr->getValue())>;
-                ptr->setValue(nb::cast<T>(value));
-            }, it->second);
+            std::visit(
+                [&value](auto& ptr) {
+                    using T = std::decay_t<decltype(ptr->getValue())>;
+                    ptr->setValue(nb::cast<T>(value));
+                },
+                it->second);
             return;
         }
 
@@ -122,9 +116,7 @@ public:
             std::vector<TelemetryBase*> ptrs;
             ptrs.reserve(telemetries_.size());
             for (auto& [key, var] : telemetries_) {
-                std::visit([&ptrs](auto& ptr) {
-                    ptrs.push_back(ptr.get());
-                }, var);
+                std::visit([&ptrs](auto& ptr) { ptrs.push_back(ptr.get()); }, var);
             }
             group_.set(std::move(ptrs));
             group_.configure(definitions_);
@@ -141,14 +133,10 @@ public:
         if (it == telemetries_.end()) {
             throw nb::key_error(name.c_str());
         }
-        return std::visit(
-            [](const auto& ptr) -> nb::object { return nb::cast(ptr->getValue()); },
-            it->second);
+        return std::visit([](const auto& ptr) -> nb::object { return nb::cast(ptr->getValue()); }, it->second);
     }
 
-    bool contains(const std::string& name) const {
-        return telemetries_.count(name) > 0;
-    }
+    bool contains(const std::string& name) const { return telemetries_.count(name) > 0; }
 
     size_t len() const { return telemetries_.size(); }
 
@@ -167,42 +155,36 @@ public:
 void bind_telemetry(nb::module_& m) {
     // --- TelemetryDefinition ---
 
-    nb::class_<TelemetryDefinition>(m, "TelemetryDefinition",
-                                     "Metadata for one sendable telemetry channel.")
-        .def_prop_ro("name",
-                      [](const TelemetryDefinition& self) { return self.name; },
-                      "Channel name.")
-        .def_prop_ro("type", [](const TelemetryDefinition& self) { return self.type; },
-                     "Channel data type.")
-        .def_prop_ro("id", [](const TelemetryDefinition& self) { return self.id; },
-                     "Numeric channel identifier.")
-        .def_prop_ro("flags", [](const TelemetryDefinition& self) { return self.flags; },
-                     "Channel flags.")
-        .def_prop_ro("variable_idx",
-                      [](const TelemetryDefinition& self) { return self.variable_idx; },
-                      "Index into the corresponding variable, if any.")
+    nb::class_<TelemetryDefinition>(m, "TelemetryDefinition", "Metadata for one sendable telemetry channel.")
+        .def_prop_ro(
+            "name", [](const TelemetryDefinition& self) { return self.name; }, "Channel name.")
+        .def_prop_ro(
+            "type", [](const TelemetryDefinition& self) { return self.type; }, "Channel data type.")
+        .def_prop_ro(
+            "id", [](const TelemetryDefinition& self) { return self.id; }, "Numeric channel identifier.")
+        .def_prop_ro(
+            "flags", [](const TelemetryDefinition& self) { return self.flags; }, "Channel flags.")
+        .def_prop_ro(
+            "variable_idx", [](const TelemetryDefinition& self) { return self.variable_idx; },
+            "Index into the corresponding variable, if any.")
         .def("__repr__", [](const TelemetryDefinition& self) {
-            return "<TelemetryDefinition name='" + self.name +
-                   "' type=" + self.type.toString() + ">";
+            return "<TelemetryDefinition name='" + self.name + "' type=" + self.type.toString() + ">";
         });
 
     // --- TelemetryDefinitions ---
 
     nb::class_<TelemetryDefinitions>(m, "TelemetryDefinitions",
-                                      "Session-scoped collection of available telemetry channels.")
+                                     "Session-scoped collection of available telemetry channels.")
         .def("__len__", &TelemetryDefinitions::size)
         .def(
             "__contains__",
-            [](const TelemetryDefinitions& self, const std::string& name) {
-                return self.find(name) != nullptr;
-            },
+            [](const TelemetryDefinitions& self, const std::string& name) { return self.find(name) != nullptr; },
             nb::arg("name"))
         .def(
             "__iter__",
             [](const TelemetryDefinitions& self) {
-                return nb::make_iterator(nb::type<TelemetryDefinitions>(),
-                                         "TelemetryDefinitionsIterator",
-                                         self.begin(), self.end());
+                return nb::make_iterator(nb::type<TelemetryDefinitions>(), "TelemetryDefinitionsIterator", self.begin(),
+                                         self.end());
             },
             nb::keep_alive<0, 1>())
         .def(
@@ -218,33 +200,32 @@ void bind_telemetry(nb::module_& m) {
             nb::arg("index"), nb::rv_policy::reference_internal)
         .def(
             "find",
-            [](const TelemetryDefinitions& self, const std::string& name,
-               std::optional<Type> type) -> nb::object {
-                const TelemetryDefinition* def =
-                    type ? self.find(name, *type) : self.find(name);
+            [](const TelemetryDefinitions& self, const std::string& name, std::optional<Type> type) -> nb::object {
+                const TelemetryDefinition* def = type ? self.find(name, *type) : self.find(name);
                 if (!def) return nb::none();
                 return nb::cast(def, nb::rv_policy::reference_internal);
             },
-            nb::arg("name"), nb::arg("type") = nb::none(),
-            nb::keep_alive<0, 1>(),
+            nb::arg("name"), nb::arg("type") = nb::none(), nb::keep_alive<0, 1>(),
             "Find a channel by name, optionally matching type. Returns None if not found.")
-        .def_prop_ro("names",
-                      [](const TelemetryDefinitions& self) {
-                          std::vector<std::string> names;
-                          names.reserve(self.size());
-                          for (auto it = self.begin(); it != self.end(); ++it) {
-                              names.emplace_back(it->name);
-                          }
-                          return names;
-                      },
-                      "List of all telemetry channel names.")
-        .def_prop_ro("session",
-                      [](const TelemetryDefinitions& self) -> nb::object {
-                          auto s = self.getSession();
-                          if (!s) return nb::none();
-                          return nb::cast(s);
-                      },
-                      "Owning Session, or None.")
+        .def_prop_ro(
+            "names",
+            [](const TelemetryDefinitions& self) {
+                std::vector<std::string> names;
+                names.reserve(self.size());
+                for (auto it = self.begin(); it != self.end(); ++it) {
+                    names.emplace_back(it->name);
+                }
+                return names;
+            },
+            "List of all telemetry channel names.")
+        .def_prop_ro(
+            "session",
+            [](const TelemetryDefinitions& self) -> nb::object {
+                auto s = self.getSession();
+                if (!s) return nb::none();
+                return nb::cast(s);
+            },
+            "Owning Session, or None.")
         .def("__repr__", [](const TelemetryDefinitions& self) {
             return "<TelemetryDefinitions size=" + std::to_string(self.size()) + ">";
         });
@@ -252,17 +233,17 @@ void bind_telemetry(nb::module_& m) {
     // --- TelemetryUpdateGroup (via TelemetryGroupHelper) ---
 
     nb::class_<TelemetryGroupHelper>(m, "TelemetryUpdateGroup",
-                                      "Dict-like container for building and sending telemetry updates to the device.")
+                                     "Dict-like container for building and sending telemetry updates to the device.")
         .def(nb::init<TelemetryDefinitions>(), nb::arg("telemetry_definitions"),
              "Construct a group from a TelemetryDefinitions collection.")
-        .def("__setitem__", &TelemetryGroupHelper::setitem,
-             "Set a telemetry value. Raises KeyError if name is not in definitions. Value must match the expected type.")
-        .def("__getitem__", &TelemetryGroupHelper::getitem,
-             "Get the currently set value. Raises KeyError if not set.")
-        .def("__delitem__", &TelemetryGroupHelper::delitem,
-             "Remove a telemetry entry. Raises KeyError if not set.")
+        .def(
+            "__setitem__", &TelemetryGroupHelper::setitem,
+            "Set a telemetry value. Raises KeyError if name is not in definitions. Value must match the expected type.")
+        .def("__getitem__", &TelemetryGroupHelper::getitem, "Get the currently set value. Raises KeyError if not set.")
+        .def("__delitem__", &TelemetryGroupHelper::delitem, "Remove a telemetry entry. Raises KeyError if not set.")
         .def("send", &TelemetryGroupHelper::send,
-             "Send all values to the device. Auto-reconfigures if entries changed since last send. Raises InternalError on failure.")
+             "Send all values to the device. Auto-reconfigures if entries changed since last send. Raises "
+             "InternalError on failure.")
         .def("__contains__", &TelemetryGroupHelper::contains)
         .def("__len__", &TelemetryGroupHelper::len)
         .def_prop_ro("available_names", &TelemetryGroupHelper::available_names,

@@ -41,8 +41,7 @@ Try searching if there is already existing issue regarding the problem and only 
 
 Feature requests and questions can also be asked through issues. Remember to tag the issue correctly.
 
-Pull requests are welcome, but we likely won't accept any that modify contents of core/ directory, because it is exported from internal sources.
-We'll try to move more of the functionality out of "core" over time and limit "core" to just contain low-level protocol.
+Pull requests are welcome.
 
 ## Common terms
 

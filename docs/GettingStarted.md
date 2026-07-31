@@ -28,7 +28,7 @@ std::shared_ptr<Session> session;
 auto                     timeout     = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 std::cout << "Wait 10s for Api session to be estabilished" << std::endl;
 while (auto event = eventQueue->tryPopUntil(timeout)) {
-    handle(*event, [&](const session_event::SessionStateChanged& s) {
+    handle(*event, [&](const event::SessionStateChanged& s) {
         if (s.state == sc_api::SessionState::connected_monitor) {
             session = s.session;
             break;
@@ -129,14 +129,14 @@ for (int i = 0; i < number_of_samples; i++) {
 }
 
 pipeline.generateEffect(
-            sc_api::time::getTimestamp() + sc_api::time::getTimestampFrequencyHz() / 250 /* give 4ms time for these samples to reach the pedal */,
-            sc_api::time::microsecondsToTimestampTicks(10000), 
+            sc_api::Clock::now() + std::chrono::milliseconds(4) /* give 4ms time for these samples to reach the pedal */,
+            std::chrono::microseconds(10000), 
             offsets, 
             number_of_samples);
 ```
 
 It is recommended to keep track for the previous timestamp sent and increase it at regular rate instead of
-using getTimestamp() to generate new timestamp every time effect is sent to avoid PC side scheduling jitter and other
+using Clock::now() to generate a new timestamp every time effect is sent to avoid PC side scheduling jitter and other
 inconsistencies affecting the generated effect. Timestamp updating must be monitored to avoid it getting out sync from
 the actual current time as that could lead to samples arriving too late or early when application has been running for
 a long time.
