@@ -250,6 +250,9 @@ if (SC_API_EXAMPLES)
 endif()
 
 if (SC_API_PYTHON)
+    # Python module build requires position independant code
+    set_target_properties(sc-api PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
     add_subdirectory(python)
 endif()
 
