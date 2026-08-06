@@ -209,22 +209,20 @@ add_custom_command(OUTPUT ${DEVICE_INFO_DEFS_OUTPUT}
 target_sources(sc-api PRIVATE ${DEVICE_INFO_DEFS_OUTPUT})
 
 # --- Property definitions generation ---
+# The property references are header only, so no source files are generated.
 set(PROP_GEN_HDR "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/sim_data")
-set(PROP_GEN_SRC "${CMAKE_CURRENT_BINARY_DIR}/gen_src/sim_data")
 
 function(add_scapi_property_generation group)
     add_custom_command(
-        OUTPUT ${PROP_GEN_HDR}/${group}.h ${PROP_GEN_SRC}/${group}.cpp
+        OUTPUT ${PROP_GEN_HDR}/${group}.h
         COMMAND Python::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_property_definitions.py
             --group ${group}
             --header_dir ${PROP_GEN_HDR}
-            --source_dir ${PROP_GEN_SRC}
             ${CMAKE_CURRENT_SOURCE_DIR}/data/sim_data/${group}_properties.json
         DEPENDS
             ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_property_definitions.py
             ${CMAKE_CURRENT_SOURCE_DIR}/data/sim_data/${group}_properties.json
             ${CMAKE_CURRENT_SOURCE_DIR}/scripts/template_scapi/properties.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/template_scapi/properties.cpp
         VERBATIM
     )
 endfunction()
@@ -234,14 +232,12 @@ foreach(group ${property_groups})
     add_scapi_property_generation(${group})
 endforeach()
 
-# Collect generated sources for sc-api
-set(gen_sim_data_sources)
+# Collect generated headers for sc-api
 set(gen_sim_data_headers)
 foreach(group ${property_groups})
     list(APPEND gen_sim_data_headers ${PROP_GEN_HDR}/${group}.h)
-    list(APPEND gen_sim_data_sources ${PROP_GEN_SRC}/${group}.cpp)
 endforeach()
-target_sources(sc-api PRIVATE ${gen_sim_data_headers} ${gen_sim_data_sources})
+target_sources(sc-api PRIVATE ${gen_sim_data_headers})
 
 #           ASIO
 # ========================

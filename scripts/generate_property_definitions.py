@@ -121,9 +121,7 @@ def generate_scapi_definitions_header(properties: list[ConfigProperty], property
     for prop in properties:
         if prop.description:
             gen_value_refs += "/** " + prop.description + " */\n"
-        # SC_API_EXPORT marks the symbol as dllimport for consumers of a shared
-        # build. It expands to nothing for static builds and while building sc-api.
-        gen_value_refs += "extern SC_API_EXPORT const " + prop_class + "PropertyRef<" + PROPERTY_TYPE_SCAPI_CPP[prop.type] + "> " + prop.name + ";\n\n"
+        gen_value_refs += "inline constexpr " + prop_class + "PropertyRef<" + PROPERTY_TYPE_SCAPI_CPP[prop.type] + "> " + prop.name + "{\"" + prop.name + "\"};\n\n"
 
     output = template_str.replace("HEADER_GUARD_NAME_HERE", "SC_API_SIM_DATA_" + PROPERTY_GROUP_HEADER_GUARD_NAMES[property_group] + "_PROPERTIES_GENERATED_H_")
     output = output.replace("NAMESPACE_NAME_HERE", PROPERTY_GROUP_NAMESPACE_NAMES_SCAPI[property_group])
@@ -134,38 +132,16 @@ def generate_scapi_definitions_header(properties: list[ConfigProperty], property
         out_f.write(output)
 
 
-def generate_scapi_definitions_source(properties: list[ConfigProperty], property_group: str, output_dir: pathlib.Path):
-    source_filename = property_group + ".cpp"
-    with open(SCAPI_TEMPLATE_DIR / "properties.cpp") as template_f:
-        template_str = template_f.read()
-
-    prop_class = PROPERTY_GROUP_CLASS_NAMES[property_group]
-
-    gen_value_refs = ""
-    for prop in properties:
-        gen_value_refs += "const " + prop_class + "PropertyRef<" + PROPERTY_TYPE_SCAPI_CPP[prop.type] + "> " + prop.name + "{\"" + prop.name + "\"};\n"
-
-    output = template_str.replace("NAMESPACE_NAME_HERE", PROPERTY_GROUP_NAMESPACE_NAMES_SCAPI[property_group])
-    output = output.replace("/*HEADER_INCLUDE_HERE*/", "#include \"sc-api/sim_data/" + property_group + ".h\"")
-    output = output.replace("/*PROPERTY_REFERENCES_HERE*/", gen_value_refs)
-
-    os.makedirs(output_dir, exist_ok=True)
-    with open(output_dir / source_filename, "w") as out_f:
-        out_f.write(output)
-
-
 def main():
     parser = argparse.ArgumentParser(prog="generate_property_definitions")
     parser.add_argument("property_list", type=argparse.FileType("r", encoding="UTF-8"))
     parser.add_argument("--group", "-g", required=True)
     parser.add_argument("--header_dir", required=True, type=pathlib.Path)
-    parser.add_argument("--source_dir", required=True, type=pathlib.Path)
     args = parser.parse_args()
 
     properties = parse_properties(args.property_list)
 
     generate_scapi_definitions_header(properties, args.group, args.header_dir)
-    generate_scapi_definitions_source(properties, args.group, args.source_dir)
 
     print(f"Generated {len(properties)} property definitions for group '{args.group}'")
 
