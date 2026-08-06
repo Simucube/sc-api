@@ -15,7 +15,9 @@ check_prototype_definition(explicit_bzero
         HAVE_EXPLICIT_BZERO)
 
 
-add_library(libeddsa
+# OBJECT library so that the compiled objects end up inside the sc-api binary.
+# Consumers then only have to link a single library.
+add_library(libeddsa OBJECT
         inc/libeddsa/eddsa.h
         inc/libeddsa/sha512.h
 
@@ -44,10 +46,9 @@ if (CMAKE_CROSSCOMPILING)
     target_compile_options(libeddsa PRIVATE $<$<CONFIG:Debug>:-Os>)
 endif ()
 
-if (NOT WIN32)
-    # Linux Python modules need position independent code
-    set_property(TARGET libeddsa PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
+# The objects are linked into sc-api, which may be a shared library or a Python
+# extension module, so they always have to be position independent.
+set_property(TARGET libeddsa PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if (MSVC)
     set_source_files_properties(src/fld.c PROPERTIES COMPILE_FLAGS /wd4244)
@@ -74,6 +75,5 @@ endif ()
 
 target_include_directories(libeddsa PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>)
 
-install(TARGETS libeddsa EXPORT sc-apiTargets
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib)
+# No install rule: the objects are part of the sc-api binary and libeddsa
+# headers are not part of the public sc-api interface.

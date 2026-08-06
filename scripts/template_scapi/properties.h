@@ -8,6 +8,7 @@
 #define HEADER_GUARD_NAME_HERE
 #include <cstdint>
 
+#include "sc-api/export.h"
 #include "sc-api/property_reference.h"
 
 namespace NAMESPACE_NAME_HERE {

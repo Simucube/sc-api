@@ -1,0 +1,16 @@
+# pkg-config description for build systems that are not CMake.
+# The prefix is derived from this file's location, so the install tree stays
+# relocatable.
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/@SC_API_PC_LIBDIR@
+includedir=${prefix}/@SC_API_PC_INCLUDEDIR@
+
+Name: sc-api
+Description: Simucube API - control and monitor Simucube devices through Simucube Tuner
+URL: https://github.com/Simucube/sc-api
+Version: @PROJECT_VERSION@
+
+Cflags: -I${includedir}
+Libs: -L${libdir} -lsc-api
+Libs.private: @SC_API_PC_LIBS_PRIVATE@

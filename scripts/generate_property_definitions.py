@@ -121,7 +121,9 @@ def generate_scapi_definitions_header(properties: list[ConfigProperty], property
     for prop in properties:
         if prop.description:
             gen_value_refs += "/** " + prop.description + " */\n"
-        gen_value_refs += "extern const " + prop_class + "PropertyRef<" + PROPERTY_TYPE_SCAPI_CPP[prop.type] + "> " + prop.name + ";\n\n"
+        # SC_API_EXPORT marks the symbol as dllimport for consumers of a shared
+        # build. It expands to nothing for static builds and while building sc-api.
+        gen_value_refs += "extern SC_API_EXPORT const " + prop_class + "PropertyRef<" + PROPERTY_TYPE_SCAPI_CPP[prop.type] + "> " + prop.name + ";\n\n"
 
     output = template_str.replace("HEADER_GUARD_NAME_HERE", "SC_API_SIM_DATA_" + PROPERTY_GROUP_HEADER_GUARD_NAMES[property_group] + "_PROPERTIES_GENERATED_H_")
     output = output.replace("NAMESPACE_NAME_HERE", PROPERTY_GROUP_NAMESPACE_NAMES_SCAPI[property_group])

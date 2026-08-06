@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.20.0)
+
+# Lets MSVC_DEBUG_INFORMATION_FORMAT select how debug info is stored. Used to
+# embed debug info in the static library so that it stays self-contained.
+if (POLICY CMP0141)
+    cmake_policy(SET CMP0141 NEW)
+endif()
+
 project(SimucubeAPI VERSION 0.0.1)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -7,10 +14,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 option(SC_API_PYTHON "Enable building Python bindings (Python and nanobind required)" OFF)
 option(SC_API_EXAMPLES "Enable building example applications" ${SimucubeAPI_IS_TOP_LEVEL})
 option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${SimucubeAPI_IS_TOP_LEVEL})
-option(SC_API_INSTALL "Enable install targets" ${SimucubeAPI_IS_TOP_LEVEL})
+option(SC_API_SHARED "Build sc-api as a shared library (DLL) instead of a static library" ${BUILD_SHARED_LIBS})
+
+# A wheel build only packages the Python extension module. Installing the C++
+# SDK as well would copy include/ and lib/ into the wheel.
+if (SKBUILD)
+    set(SC_API_INSTALL_DEFAULT OFF)
+else()
+    set(SC_API_INSTALL_DEFAULT ${SimucubeAPI_IS_TOP_LEVEL})
+endif()
+option(SC_API_INSTALL "Enable install targets" ${SC_API_INSTALL_DEFAULT})
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND SC_API_INSTALL)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Default install path" FORCE)
+endif()
+
+include(GNUInstallDirs)
+
+if (MSVC AND NOT SC_API_SHARED AND NOT DEFINED CMAKE_MSVC_DEBUG_INFORMATION_FORMAT)
+    # Embed debug info in the objects so that the installed static library is
+    # self-contained. Otherwise consumers need a separate .pdb file next to it
+    # and get LNK4099 warnings without it. Needs CMake 3.25 or newer.
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 endif()
 
 option(SC_API_DEFINE_WINNT "Define _WIN32_WINNT" ${SimucubeAPI_IS_TOP_LEVEL})
@@ -32,14 +57,20 @@ if (NOT TARGET sc-api-protocol_types)
     add_library(sc-api-protocol_types INTERFACE)
     target_include_directories(sc-api-protocol_types INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-        $<INSTALL_INTERFACE:include>)
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 endif()
 
 if (NOT TARGET libeddsa)
     add_subdirectory(src/libeddsa)
 endif()
 
-add_library(sc-api
+if (SC_API_SHARED)
+    set(SC_API_LIBRARY_TYPE SHARED)
+else()
+    set(SC_API_LIBRARY_TYPE STATIC)
+endif()
+
+add_library(sc-api ${SC_API_LIBRARY_TYPE}
     inc/sc-api/result.h
     inc/sc-api/protocol/actions.h
     inc/sc-api/protocol/core.h
@@ -112,11 +143,39 @@ endif()
 
 target_include_directories(sc-api PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-    $<INSTALL_INTERFACE:include>)
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-set_property(TARGET sc-api PROPERTY CXX_STANDARD 17)
+set_target_properties(sc-api PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+    # Debug and release artifacts can be installed into the same prefix
+    DEBUG_POSTFIX "d"
+    POSITION_INDEPENDENT_CODE TRUE)
 
-target_link_libraries(sc-api PRIVATE libeddsa)
+# C++17 is part of the public interface: every public header requires it.
+target_compile_features(sc-api PUBLIC cxx_std_17)
+
+if (SC_API_SHARED)
+    # Export every function and class symbol without annotating the sources.
+    # Global data still needs SC_API_EXPORT, see cmake/export.h.in.
+    set_target_properties(sc-api PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    set(SC_API_BUILT_SHARED 1)
+else()
+    set(SC_API_BUILT_SHARED 0)
+endif()
+
+# Records the build type into the installed headers so that consumers do not
+# have to define anything to get the correct declarations.
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/export.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/export.h
+    @ONLY)
+target_compile_definitions(sc-api PRIVATE SC_API_BUILDING=1)
+
+# $<BUILD_INTERFACE:> keeps libeddsa out of the exported link interface. It is
+# an OBJECT library, so its objects become part of the sc-api binary and there
+# is nothing left to link against at install time.
+target_link_libraries(sc-api PRIVATE $<BUILD_INTERFACE:libeddsa>)
 
 # --- Telemetry references generation ---
 set(TELEMETRY_REFS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/telemetry_references.h")
@@ -210,28 +269,55 @@ endif ()
 
 if (SC_API_INSTALL)
     # --- Install ---
+    #
+    # The install tree is meant to be usable without CMake:
+    #
+    #   <prefix>/include            single directory to add to the include path
+    #   <prefix>/lib                single library to link (sc-api / sc-apid)
+    #   <prefix>/bin                sc-api.dll, shared builds only
+    #   <prefix>/lib/cmake/sc-api   package config for CMake consumers
+    #   <prefix>/lib/pkgconfig      package config for pkg-config consumers
+    #
     include(CMakePackageConfigHelpers)
 
+    set(SC_API_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/sc-api)
+
     install(TARGETS sc-api EXPORT sc-apiTargets
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+    if (SC_API_SHARED AND MSVC)
+        install(FILES $<TARGET_PDB_FILE:sc-api> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
+    endif()
 
     if (TARGET sc-api-protocol_types)
         install(TARGETS sc-api-protocol_types EXPORT sc-apiTargets)
     endif()
 
-    install(DIRECTORY inc/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/ DESTINATION include/sc-api FILES_MATCHING PATTERN "*.h")
+    # Hand written and generated headers are merged into the same tree so that
+    # <prefix>/include is the only include path a consumer needs.
+    install(DIRECTORY inc/sc-api/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sc-api FILES_MATCHING PATTERN "*.h")
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sc-api FILES_MATCHING PATTERN "*.h")
 
+    install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/docs/INTEGRATION.md
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/sc-api)
+
+    # --- CMake package config ---
     install(EXPORT sc-apiTargets
         FILE sc-apiTargets.cmake
         NAMESPACE sc-api::
-        DESTINATION lib/cmake/sc-api)
+        DESTINATION ${SC_API_CMAKE_CONFIG_DIR})
 
     configure_package_config_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sc-apiConfig.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
-        INSTALL_DESTINATION lib/cmake/sc-api)
+        INSTALL_DESTINATION ${SC_API_CMAKE_CONFIG_DIR})
 
     write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
@@ -241,7 +327,26 @@ if (SC_API_INSTALL)
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/sc-apiConfigVersion.cmake
-        DESTINATION lib/cmake/sc-api)
+        DESTINATION ${SC_API_CMAKE_CONFIG_DIR})
+
+    # --- pkg-config ---
+    # Only useful for toolchains without automatic library linking, so the
+    # private dependencies match what MinGW and similar toolchains need.
+    set(SC_API_PC_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+    set(SC_API_PC_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
+    if (WIN32)
+        set(SC_API_PC_LIBS_PRIVATE "-lws2_32")
+    else()
+        set(SC_API_PC_LIBS_PRIVATE "-lpthread")
+    endif()
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sc-api.pc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/sc-api.pc
+        @ONLY)
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/sc-api.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
 
@@ -250,9 +355,8 @@ if (SC_API_EXAMPLES)
 endif()
 
 if (SC_API_PYTHON)
-    # Python module build requires position independant code
-    set_target_properties(sc-api PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
+    # Position independent code, which the Python module requires, is already
+    # enabled on the sc-api target.
     add_subdirectory(python)
 endif()
 
