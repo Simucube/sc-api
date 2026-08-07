@@ -1,8 +1,6 @@
 # Integrating Simucube API
 
 This document tells you how to add Simucube API (sc-api) to an application.
-The install tree is made for build systems that are not CMake, but CMake
-consumers get a package config file too.
 
 ## Build and install the SDK
 
@@ -12,9 +10,9 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-With a Visual Studio generator, replace `Release` with the configuration that
-your application uses. To install the debug and the release build into the same
-directory, run the three commands two times, once for each configuration.
+Above steps compile the library with the default settings and release configuration.
+Rerun steps with "Release" replaced with "Debug" config to install also debug libraries
+to the install-dir.
 
 ## Install tree
 
@@ -47,40 +45,9 @@ is in one library: `sc-api`. Cryptography code (libeddsa) and the network code
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- The same compiler and the same C runtime as the sc-api build (see
-  [Compatibility](#compatibility)).
+- The same compiler and the same C runtime as the sc-api build (see [Compatibility](#compatibility)).
 
 ## Integration without CMake
-
-### MSVC (cl.exe)
-
-```
-cl /std:c++17 /EHsc /MD /I<install-dir>\include my_app.cpp /link /LIBPATH:<install-dir>\lib sc-api.lib
-```
-
-`ws2_32.lib` and `mswsock.lib` are linked automatically, because sc-api holds
-`#pragma comment(lib, ...)` directives for them.
-
-For a debug build, use `/MDd` and link `sc-apid.lib`.
-
-### MinGW (g++)
-
-```
-g++ -std=c++17 -I<install-dir>/include my_app.cpp -L<install-dir>/lib -lsc-api -lws2_32 -o my_app.exe
-```
-
-MinGW has no automatic library linking, thus you must add `-lws2_32`.
-
-### pkg-config
-
-```
-g++ -std=c++17 $(pkg-config --cflags sc-api) my_app.cpp $(pkg-config --libs --static sc-api) -o my_app.exe
-```
-
-Set `PKG_CONFIG_PATH` to `<install-dir>/lib/pkgconfig` first. The `.pc` file
-refers to the release library. For a debug build, link `sc-apid` directly.
-
-### Other build systems
 
 Give these three items to the build system:
 
@@ -91,11 +58,35 @@ Give these three items to the build system:
 | Library           | `sc-api` (`sc-apid` for debug)     |
 | Extra system libs | `ws2_32` (MinGW and Clang non-MSVC)|
 
+With MSVC the ws2_32 should be linked automatically.
+
 No preprocessor definitions are necessary. The installed
 `include/sc-api/export.h` records if the library was built as a static or as a
 shared library.
 
 ## Integration with CMake
+
+### FetchContent
+
+FetchContent downloads and builds sc-api as part of your CMake project.
+This is the easiest way to handle dependency as the same compiler and build flags are automatically used and there can't be mismatch.
+Python interpreter is required to generate telemetry and sim data definitions.
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    sc_api
+    GIT_REPOSITORY https://github.com/Simucube/sc-api.git
+)
+
+FetchContent_MakeAvailable(sc_api)
+
+target_link_libraries(my_app PRIVATE sc-api)
+```
+
+### find_package
+
+This requires that sc-api is compiled and installed separately to a directory where CMake can find it.
 
 ```cmake
 find_package(sc-api REQUIRED)
@@ -105,10 +96,6 @@ target_link_libraries(my_app PRIVATE sc-api::sc-api)
 Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
 `<install-dir>/lib/cmake/sc-api`.
 
-To build sc-api as part of your own build instead, use `add_subdirectory()`.
-Set `SC_API_INSTALL`, `SC_API_EXAMPLES` and `SC_API_GENERATE_DOCS` to `OFF` if
-you do not want those targets.
-
 ## Shared library builds
 
 Configure with `-DSC_API_SHARED=ON` to get `bin/sc-api.dll` and the import
@@ -117,8 +104,7 @@ library `lib/sc-api.lib`. Copy the DLL next to the application executable.
 A DLL does not make the library compatible with other compilers. The public
 interface uses standard library types (`std::string`, `std::vector`,
 `std::shared_ptr`), so the same limits as for the static library apply. Use the
-DLL only if your application must load the library at run time or if you want
-to update sc-api without a rebuild of the application.
+DLL only if your application must load the library at run time.
 
 ## Compatibility
 
