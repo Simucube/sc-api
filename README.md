@@ -69,8 +69,8 @@ the compiler compatibility rules.
 
 ## Python bindings
 
-The `simucube_api` package gives the same features to Python 3.11 and newer. Install it from the
-source tree:
+The `simucube_api` package gives the features of the C++ API, except dashboard streaming, to
+Python 3.11 and newer. Install it from the source tree:
 
 ```
 pip install .
@@ -149,7 +149,7 @@ different variables at the same instant, because that keeps the latency at a min
 therefore be up to 2 ms apart. Average latency of variable data is less than 1 ms.
 
 A variable definition holds:
-- **name** — ASCII string, for example `ap.pedal_face_force_N`
+- **name** — ASCII string, for example `ap.force_N`
 - **type** — enum, for example `f32` or `i32`
 - **device session id** — the device that the variable belongs to, or 0 if the variable is global
 

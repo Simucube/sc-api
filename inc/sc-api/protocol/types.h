@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Base type and type variant encoding used on the wire.
+ * @brief Base type and type variant encoding used in the shared memory blocks.
  *
  * These definitions describe the protocol. Application code uses sc_api::Type instead.
  */

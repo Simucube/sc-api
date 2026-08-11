@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Variable flags used on the wire.
+ * @brief Variable flags used in the shared memory blocks.
  *
  * These definitions describe the protocol. Application code uses sc-api/variables.h instead.
  */

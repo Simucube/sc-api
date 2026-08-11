@@ -83,7 +83,7 @@ public:
         return *this;
     }
 
-    /** Encode removal of item with the given numeric id
+    /** Encode removal of item with the given string id
      *
      * @param id String that identifies the item. Should only use characters a-z and _.
      * @returns *this to enable chaining operations

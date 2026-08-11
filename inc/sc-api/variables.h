@@ -41,8 +41,8 @@ struct VariableReferenceBase {
 
 /** Name and value type of a known variable
  *
- * The generated variable_references.h holds the references for the known variables. A typed
- * reference removes the need to give the type at every lookup.
+ * variable_references.h holds the references for the known variables. A typed reference removes
+ * the need to give the type at every lookup.
  */
 template <typename T>
 struct VariableReference : VariableReferenceBase {
@@ -90,7 +90,11 @@ struct RevisionCountedArrayRef {
      */
     uint32_t                 array_size;
 
-    /** Counter that the backend increases around every write to the array */
+    /** Counter that the backend increases before and after every write to the array
+     *
+     * An odd value therefore means that a write is in progress, and an even value means that the
+     * array is idle. atomicCopy uses this to detect a concurrent write.
+     */
     volatile const uint32_t& rev_counter;
 
     /** Direct pointer to the array in shared memory. Prefer atomicCopy over a direct read */
@@ -109,7 +113,7 @@ struct RevisionCountedArrayRef {
 
         do {
             uint32_t start_rev_count = rev_counter;
-            if (start_rev_count & 2) {
+            if (start_rev_count & 1) {
                 // Backend is just modifying this array, spin to wait for it to complete
                 compatibility::spinlockPauseInstr();
                 continue;

@@ -99,8 +99,9 @@ The session reaches `SessionState::connected_control` when the backend accepts t
 Wait for that state before you send commands, telemetry or effects. The `control_flags` field of
 the `SessionStateChanged` event tells which flags the backend granted.
 
-@warning [SecureControlEnabler](#sc_api::SecureControlEnabler) is the production variant. It needs
-a key pair that Simucube issues. Use `NoAuthControlEnabler` for testing only.
+@warning [SecureControlEnabler](#sc_api::SecureControlEnabler) is the encrypted variant. It needs
+a key pair that Simucube issues. It is not complete yet, so do not use it. Use
+`NoAuthControlEnabler` until the secure variant is ready.
 
 ## Read device info
 

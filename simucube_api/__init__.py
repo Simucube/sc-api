@@ -172,8 +172,8 @@ class VariableObject:
     Usage::
 
         ap = VariableObject(session.variables, {
-            "force": "ap.pedal_face_force_N",
-            "position": "ap.pedal_position_mm",
+            "force": "ap.force_N",
+            "position": "ap.pedal_face_pos_mm",
         }, device_id=DeviceSessionId(1))
         print(ap.force)
         print(ap.position)

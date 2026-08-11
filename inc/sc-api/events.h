@@ -6,8 +6,9 @@
  * Api::createEventQueue or ApiCore::createEventQueue.
  *
  * Two ways to read an event are available. The getIf* functions return a typed pointer or
- * nullptr. The has* functions return a bool. Both have an overload that accepts the
- * std::optional that the queue pop functions return.
+ * nullptr. The has* functions return a bool. The getIf* functions also have an overload that
+ * accepts the std::optional that the queue tryPop functions return. The has* functions accept
+ * only a const Event&.
  */
 
 #ifndef SC_API_EVENTS_H_

@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Wire format of the telemetry definitions and update groups.
+ * @brief Shared memory layout of the telemetry definitions.
  *
  * These definitions describe the protocol. Application code uses sc-api/telemetry.h instead.
  */

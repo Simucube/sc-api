@@ -52,6 +52,7 @@ public:
      * @return ResultCode::ok, if initialization and connecting succeeded
      *         ResultCode::error_invalid_session_state, if a session is already open
      *         ResultCode::error_cannot_connect, if the API backend isn't running and no data is available
+     *         ResultCode::error_busy, if the backend changed the session during the attempt. Try again.
      *         ResultCode::error_incompatible, if the backend isn't compatible with this API implementation
      *         ResultCode::error_timeout, if the backend did not give valid session data within 500ms
      *         ResultCode::error_protocol, if the session data from the backend cannot be parsed

@@ -5,8 +5,12 @@
  * Create a queue for the API with Api::createEventQueue or ApiCore::createEventQueue. Every
  * queue gets its own copy of each event, so several threads can each hold one.
  *
- * The pop functions return std::nullopt when no event arrives. tryPop returns at once. The
- * other functions wait for an event, a timeout, or the close of the queue.
+ * The try* functions return std::optional. tryPop returns at once, and tryPopFor and tryPopUntil
+ * wait for an event, a timeout, or the close of the queue. They give std::nullopt when no event
+ * arrives.
+ *
+ * pop returns an event by value. It waits until an event arrives or the queue closes, and it has
+ * no timeout. It gives a default constructed event when the queue is closed and empty.
  */
 
 #ifndef SC_API_UTIL_EVENT_QUEUE_H_
@@ -92,8 +96,9 @@ public:
 
     /** Closes queue from new events
      *
-     * No new events will arrive and pop functions will return std::nullopt when all queued events are
-     * popped and will not block.
+     * No new events will arrive. When all queued events are popped, the pop functions stop
+     * blocking. The try* functions then return std::nullopt, and pop returns a default
+     * constructed EventT.
      *
      * thread-safe
      */
