@@ -33,6 +33,27 @@ Currently support is mostly focused on ActivePedal to allow using full capabilit
 Device information is provided for connected wireless wheels and SC-link Hub handling the connection.
 Limited support for SC2 will arrive later at least to provide consistent device information support, but it is unlikely that effect pipelines will ever be supported by SC2 due to completely different architecture and design.
 
+# Installing and integrating
+
+```
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=<install-dir>
+cmake --build build --config Release
+cmake --install build --config Release
+```
+
+The install tree keeps integration simple for all build systems:
+
+- All headers are below one directory, `<install-dir>/include`.
+- All object code is in one library, `<install-dir>/lib/sc-api`. Cryptography
+  and network code are already inside it.
+- Package config files for CMake (`find_package(sc-api)`) and for pkg-config
+  are installed too, but they are not necessary.
+
+Configure with `-DSC_API_SHARED=ON` to build a DLL instead of a static library.
+
+See [docs/INTEGRATION.md](docs/INTEGRATION.md) for command line examples and for
+the compiler compatibility rules.
+
 # Contributing
 
 This project uses [Github issues](https://github.com/Simucube/sc-api/issues) for managing bug reports. Do note that during this phase, API is only guaranteed to work

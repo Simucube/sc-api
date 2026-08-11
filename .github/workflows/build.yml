@@ -52,6 +52,25 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: ctest --build-config ${{ matrix.build_type }}
 
+    - name: Install SDK
+      run: >
+        cmake --install ${{ steps.strings.outputs.build-output-dir }}
+        --config ${{ matrix.build_type }}
+        --prefix ${{ github.workspace }}/sdk
+
+    # Builds against the install tree with only an include directory and a
+    # library file, like a build system that is not CMake would.
+    - name: Configure install consumer
+      run: >
+        cmake -B ${{ github.workspace }}/consumer-build
+        -S ${{ github.workspace }}/tests/install_consumer
+        -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DSC_API_SDK_DIR=${{ github.workspace }}/sdk
+
+    - name: Build install consumer
+      run: cmake --build ${{ github.workspace }}/consumer-build --config ${{ matrix.build_type }}
+
   python-wheel:
     runs-on: windows-latest
 
