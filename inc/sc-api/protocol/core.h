@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Core shared memory layout and session handshake data.
+ *
+ * These definitions describe the protocol. Application code uses sc-api/api.h and
+ * sc-api/session.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_CORE_H_
 #define SC_API_PROTOCOL_CORE_H_
 

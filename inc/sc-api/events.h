@@ -1,7 +1,13 @@
 /**
  * @file
- * @brief
+ * @brief Event types that the API delivers through an EventQueue.
  *
+ * sc_api::Event is a std::variant of all event types. Create the queue with
+ * Api::createEventQueue or ApiCore::createEventQueue.
+ *
+ * Two ways to read an event are available. The getIf* functions return a typed pointer or
+ * nullptr. The has* functions return a bool. Both have an overload that accepts the
+ * std::optional that the queue pop functions return.
  */
 
 #ifndef SC_API_EVENTS_H_

@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief Thread-safe queue that delivers events.
  *
+ * Create a queue for the API with Api::createEventQueue or ApiCore::createEventQueue. Every
+ * queue gets its own copy of each event, so several threads can each hold one.
+ *
+ * The pop functions return std::nullopt when no event arrives. tryPop returns at once. The
+ * other functions wait for an event, a timeout, or the close of the queue.
  */
 
 #ifndef SC_API_UTIL_EVENT_QUEUE_H_

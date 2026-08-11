@@ -10,7 +10,7 @@
 #include <iostream>
 #include <thread>
 
-// Update groups need an id number to differentiatate them
+// Update groups need an id number to differentiate them
 static constexpr uint16_t k_telemetry_update_group_id = 0;
 
 static void telemetryThread(sc_api::Api* api) {

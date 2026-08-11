@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief Session class, control registration and secure session types.
  *
+ * A Session is one connection to Simucube Tuner. It gives access to device info, variables,
+ * telemetry definitions and sim data. It also carries the command channel.
+ *
+ * A new session starts in SessionState::connected_monitor, which is read-only. Call
+ * Session::registerToControl to get control access.
  */
 
 #ifndef SC_API_SESSION_H_
@@ -127,7 +132,7 @@ struct ApiUserInformation {
     /** Path of the program that uses */
     std::string path;
 
-    /** Who made this soft ware*/
+    /** Who made this software */
     std::string author;
 
     /** Application specific version string that can be shown in UI for debug purposes */
@@ -284,7 +289,7 @@ public:
      */
     bool asyncCommand(CommandRequest&& req, std::function<void(const AsyncCommandResult&)> result_cb);
 
-    /** Executes command and blocks until respon */
+    /** Runs a command and blocks until the reply arrives or the timeout passes */
     CommandResult blockingCommand(CommandRequest&&          req,
                                   std::chrono::milliseconds timeout = std::chrono::milliseconds{1000});
 

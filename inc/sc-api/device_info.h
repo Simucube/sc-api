@@ -1,7 +1,19 @@
 /**
  * @file
- * @brief
+ * @brief Information about the connected devices.
  *
+ * Device info lists the connected devices, how they are connected to each other, their
+ * physical controls, their inputs and their feedbacks. It holds no fast changing values. For
+ * those, @see sc-api/variables.h.
+ *
+ * Session::getDeviceInfo returns the parsed data. Tuner replaces it when a device connects or
+ * disconnects, or when a role, an input mapping or a configuration changes. A DeviceInfoChanged
+ * event signals this.
+ *
+ * Prefer a search by capability over a search by device model. FullInfo::findAllByFilter with
+ * DeviceInfo::hasFeedbackType finds every device that can do what the application needs.
+ *
+ * @see examples/device_info.cpp and examples/pedal_state.cpp for complete programs.
  */
 
 #ifndef SC_API_DEVICE_INFO_H_

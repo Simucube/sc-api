@@ -1,7 +1,6 @@
 /**
  * @file
- * @brief
- *
+ * @brief Small helpers that hide compiler differences.
  */
 
 #ifndef SC_API_COMPATIBILITY_H_

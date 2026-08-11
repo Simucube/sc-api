@@ -1,7 +1,15 @@
 /**
  * @file
- * @brief
+ * @brief Typed references to the known variables.
  *
+ * Each reference holds the name and the value type of one variable. Pass a reference to
+ * VariableDefinitions::findValuePointer or VariableDefinitions::find instead of a name and a
+ * type, and the compiler then gives the correct pointer type.
+ *
+ * A DeviceVariableReference needs a device session id. A GlobalVariableReference does not.
+ *
+ * These references only name the variables. A variable is available only when a device that
+ * supplies it is connected, so a lookup can still fail.
  */
 
 #ifndef SC_API_VARIABLE_REFERENCES_H

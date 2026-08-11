@@ -1,7 +1,9 @@
 /**
  * @file
- * @brief
+ * @brief Wire format and result codes of the TCP command protocol.
  *
+ * These definitions describe the protocol. Application code uses sc-api/command.h and
+ * sc_api::ResultCode instead.
  */
 
 #ifndef SC_API_PROTOCOL_COMMANDS_H_
@@ -34,16 +36,16 @@ typedef enum SC_API_PROTOCOL_ResponseCodes_e {
     /** Command requires control flag that wasn't requested or approved */
     SC_API_PROTOCOL_ERROR_NO_CONTROL          = 6,
 
-    /** Internal communication occured within SC-API implementation
+    /** Internal communication error occurred within the SC-API implementation
      *
-     * Most likely device that should have received the command, disconnected before command was executed.
+     * Most likely the device that should have received the command, disconnected before the command was run.
      */
     SC_API_PROTOCOL_ERROR_INTERNAL_COMM_ERROR = 7,
 
     /** API backend is not compatible with this version of the API */
     SC_API_PROTOCOL_ERROR_INCOMPATIBLE        = 8,
 
-    /** Some unknown error occured within the SC-API implementation.
+    /** Some unknown error occurred within the SC-API implementation.
      *
      * This shouldn't occur and is a bug in the implementation.
      */

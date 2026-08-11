@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief Command requests to Simucube Tuner.
  *
+ * A command is a BSON request that goes over TCP and gets a reply. Commands handle
+ * configuration and other operations that need a result.
+ *
+ * Send a request with Session::asyncCommand, Session::blockingCommand or
+ * Session::blockingSimpleCommand. A command needs a registered session.
  */
 
 #ifndef SC_API_COMMAND_H_
@@ -28,7 +33,11 @@ public:
      * initialize or initializeFrom must be called before starting to construct request body */
     CommandRequest();
 
-    /** */
+    /** Construct a request and begin its body
+     *
+     * @param service Id name of the service that handles this command, such as "core"
+     * @param command Command id within that service
+     */
     CommandRequest(std::string_view service, std::string_view command);
     ~CommandRequest();
 

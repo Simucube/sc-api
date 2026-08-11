@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Variable flags used on the wire.
+ *
+ * These definitions describe the protocol. Application code uses sc-api/variables.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_VARIABLE_TYPES_H
 #define SC_API_PROTOCOL_VARIABLE_TYPES_H
 

@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief Api class that keeps the session open in a background thread.
  *
+ * This is the usual entry point. Api creates one background thread that opens the session
+ * to Simucube Tuner and keeps its state up to date. This file also holds the two control
+ * enablers that register the API user for control access.
+ *
+ * @see ApiCore for the variant without a background thread.
  */
 
 #ifndef SC_API_API_H_
@@ -41,7 +46,7 @@ public:
          *
          * This is only called once and before any sessionStateChanged calls.
          *
-         * @param api Pointer to Api which this listerner was added
+         * @param api Pointer to Api which this listener was added
          * @param active_session Currently active session, may be nullptr if no session is established
          */
         virtual void listenerAdded(Api* api, const std::shared_ptr<Session>& active_session)            = 0;
@@ -52,7 +57,7 @@ public:
          * Can be called without matching listenerAdded if listener is removed before background thread has change to
          * process adding the listener
          *
-         * @param api Pointer to Api which from this listerner was removed
+         * @param api Pointer to Api which from this listener was removed
          */
         virtual void listenerRemoved(Api* api)                                                          = 0;
 
@@ -63,7 +68,10 @@ public:
          */
         virtual void sessionStateChanged(const std::shared_ptr<Session>& session, Session::State state) = 0;
 
-        /** */
+        /** Called from background thread when the granted control flags change
+         *
+         * @param flags Combination of Session::ControlFlag that the backend now allows
+         */
         virtual void controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t flags)       = 0;
     };
 

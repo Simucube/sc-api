@@ -301,7 +301,10 @@ if (SC_API_INSTALL)
 
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt
+        ${CMAKE_CURRENT_SOURCE_DIR}/README.md
         ${CMAKE_CURRENT_SOURCE_DIR}/docs/INTEGRATION.md
+        ${CMAKE_CURRENT_SOURCE_DIR}/docs/GettingStarted.md
+        ${CMAKE_CURRENT_SOURCE_DIR}/docs/Python.md
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/sc-api)
 
     # --- CMake package config ---
@@ -364,8 +367,14 @@ if (SC_API_GENERATE_DOCS)
 
         configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
+        # Doxygen reads the generated reference headers from gen/sc-api, so they
+        # must exist before Doxygen runs.
         add_custom_target(sc-api-generate_docs
                 COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+                DEPENDS
+                    ${TELEMETRY_REFS_OUTPUT}
+                    ${DEVICE_INFO_DEFS_OUTPUT}
+                    ${gen_sim_data_headers}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                 COMMENT "Generating SC-API documentation with Doxygen"
                 VERBATIM)

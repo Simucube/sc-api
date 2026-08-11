@@ -1,7 +1,17 @@
 /**
  * @file
- * @brief
+ * @brief Telemetry values and update groups.
  *
+ * Telemetry carries simulator values, such as engine RPM, to Tuner and to the devices. The
+ * devices use these values to generate their built-in effects.
+ *
+ * A telemetry is identified by its name and type. Collect the values that change together
+ * into one TelemetryUpdateGroup, configure the group once, then send it repeatedly.
+ *
+ * Control access needs Session::ControlFlag::control_telemetry.
+ *
+ * @see sc-api/telemetry_references.h for the generated names of the known telemetry values.
+ * @see examples/overview.cpp for a complete program.
  */
 
 #ifndef SC_API_TELEMETRY_H_

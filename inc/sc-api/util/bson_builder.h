@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Builder for BSON documents.
+ *
+ * CommandRequest and the sim data builders are built on this class. Use those classes when
+ * they cover the task, because they add the correct structure for their message.
+ */
+
 #ifndef SC_API_UTIL_BSON_BUILDER_H
 #define SC_API_UTIL_BSON_BUILDER_H
 #include <cstdint>

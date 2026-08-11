@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Shared memory layout of the dashboard frame stream.
+ *
+ * These definitions describe the protocol. Application code uses sc-api/dash_stream.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_DASH_STREAM_H_
 #define SC_API_PROTOCOL_DASH_STREAM_H_
 

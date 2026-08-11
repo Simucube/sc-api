@@ -1,7 +1,21 @@
 /**
  * @file
- * @brief
+ * @brief Read access to variable values in shared memory.
  *
+ * Variables are the values that change often: device state, such as pedal force and position,
+ * and the active telemetry values. They are read-only for the API user.
+ *
+ * Session::getVariables returns a VariableDefinitions snapshot. Each VariableDefinition holds
+ * a direct pointer into shared memory, so a read costs one dereference and no command.
+ *
+ * The backend writes each variable atomically. It does not sample different variables at the
+ * same instant. Two values can therefore be up to 2 ms apart.
+ *
+ * Variable definitions are session specific. During one session the backend only adds
+ * definitions, and it never changes or removes an existing one.
+ *
+ * @see sc-api/variable_references.h for the names of the known variables.
+ * @see examples/variable_definitions.cpp and examples/pedal_state.cpp for complete programs.
  */
 
 #ifndef SC_API_VARIABLES_H
@@ -20,10 +34,16 @@
 
 namespace sc_api {
 
+/** Name of a known variable, without a value type */
 struct VariableReferenceBase {
     std::string_view name;
 };
 
+/** Name and value type of a known variable
+ *
+ * The generated variable_references.h holds the references for the known variables. A typed
+ * reference removes the need to give the type at every lookup.
+ */
 template <typename T>
 struct VariableReference : VariableReferenceBase {
     using type                       = T;
@@ -52,8 +72,10 @@ struct DeviceArrayVariableReference : VariableReference<T> {};
 
 /** Helper for accessing array variable value
  *
- * Array variable values are have revision counter field at the start of the value pointer
- * that can be used to detect modifications and handle getting value atomically
+ * An array variable value starts with a revision counter field. The counter detects a write by
+ * the backend and therefore makes an atomic read of the whole array possible.
+ *
+ * Use atomicCopy to read the array. A direct read of value_array can catch a partial write.
  */
 template <typename T>
 struct RevisionCountedArrayRef {
@@ -67,9 +89,20 @@ struct RevisionCountedArrayRef {
      * Will stay same for the variable for the whole duration of the session
      */
     uint32_t                 array_size;
-    volatile const uint32_t& rev_counter;
-    const T*                 value_array;
 
+    /** Counter that the backend increases around every write to the array */
+    volatile const uint32_t& rev_counter;
+
+    /** Direct pointer to the array in shared memory. Prefer atomicCopy over a direct read */
+    const T* value_array;
+
+    /** Copy the array into buf without a concurrent write
+     *
+     * Copies the smaller of array_size and buf_size elements.
+     *
+     * @return true, if the copy succeeded
+     *         false, if the backend kept the array busy for the whole retry limit
+     */
     bool atomicCopy(T* buf, std::size_t buf_size) const {
         buf_size            = (std::min)((std::size_t)array_size, buf_size);
         int timeout_counter = 100000;
@@ -93,6 +126,10 @@ struct RevisionCountedArrayRef {
         return false;
     }
 
+    /** Copy the array into a new vector
+     *
+     * @return The array contents, or an empty vector if the copy failed
+     */
     std::vector<T> atomicCopy() const {
         std::vector<T> result(array_size);
         if (atomicCopy(result.data(), result.size())) {
@@ -243,12 +280,13 @@ namespace detail {
 class VariableProvider;
 }
 
-/** Warpper around variable definition data that allows easily getting list of all available variables
+/** Wrapper around variable definition data that allows easily getting list of all available variables
  *
- * Instance won't be updated or invalidated even if VariableProvider::updateDefinitions is called. VariableDefinitions
- * always represents the state as of calling VariableProvider::definitions
+ * An instance is a snapshot. It never changes after Session::getVariables returns it. To see
+ * variables that were added later, call Session::getVariables again.
  *
- * Holds handle to the session so that all variable value pointers will stay valid even if session is lost.
+ * The instance holds a handle to the session. Therefore all variable value pointers stay valid
+ * even after the session is lost. The values then keep their last value.
  */
 class VariableDefinitions {
     friend class detail::VariableProvider;
@@ -318,10 +356,22 @@ public:
 
     VariableDefinition operator[](uint32_t idx) const;
 
+    /** Number of variable definitions in this snapshot */
     uint32_t size() const { return count_; }
 
-    /** Tries to find variable definition by name and device session id */
+    /** Tries to find variable definition by name and device session id
+     *
+     * Omit device to find a variable that does not belong to a device.
+     *
+     * @return The definition. Test it with operator bool, because a definition that is not
+     *         found has a null value_ptr.
+     */
     VariableDefinition find(std::string_view name, DeviceSessionId device = k_invalid_device_session_id) const;
+
+    /** Tries to find variable definition by name, type and device session id
+     *
+     * @return The definition, or a definition with a null value_ptr if there is no match
+     */
     VariableDefinition find(std::string_view name, Type type,
                             DeviceSessionId device = k_invalid_device_session_id) const;
 
@@ -376,6 +426,10 @@ public:
         return reinterpret_cast<const T*>(findValuePointer(ref.type_value, ref.name));
     }
 
+    /** Session that these definitions came from
+     *
+     * The value pointers stay valid as long as this session object exists.
+     */
     std::shared_ptr<Session> getSession() const { return session_; }
 
 private:
