@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Common header of the shared memory blocks that hold one BSON document.
+ *
+ * Device info and sim data both use this block layout. These definitions describe the protocol.
+ * Application code uses sc-api/device_info.h and sc-api/sim_data.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_BSON_SHM_BLOCKS_H_
 #define SC_API_PROTOCOL_BSON_SHM_BLOCKS_H_
 #include "core.h"

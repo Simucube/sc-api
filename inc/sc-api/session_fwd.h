@@ -1,7 +1,8 @@
 /**
  * @file
- * @brief
+ * @brief Session state enum and command result types.
  *
+ * This header holds the small types that other headers need without the full session.h.
  */
 
 #ifndef SC_API_SESSION_FWD_H_
@@ -102,7 +103,13 @@ private:
     std::vector<uint8_t> payload_bson;
 };
 
-/** */
+/** State of the connection between the API user and Simucube Tuner
+ *
+ * A session begins in connected_monitor. To reach connected_control, call
+ * Session::registerToControl, or let NoAuthControlEnabler or SecureControlEnabler do it.
+ *
+ * A session never returns from session_lost to a connected state. Open a new session instead.
+ */
 enum class SessionState : uint8_t {
     /** Session isn't currently connected to the backend */
     invalid,

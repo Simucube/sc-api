@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Reader for BSON documents.
+ *
+ * The API needs this reader for the payload of a command result. The parsed types, such as
+ * device info and sim data, are available through their own classes, so most applications do
+ * not read their BSON directly.
+ */
+
 #ifndef SC_API_UTIL_BSON_READER_H
 #define SC_API_UTIL_BSON_READER_H
 #include <cstddef>

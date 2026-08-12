@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Shared memory layout of the telemetry definitions.
+ *
+ * These definitions describe the protocol. Application code uses sc-api/telemetry.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_TELEMETRY_H
 #define SC_API_PROTOCOL_TELEMETRY_H
 

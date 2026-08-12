@@ -51,7 +51,6 @@ struct RgbColor {
  *     // Step 2: Set colors for the controlled LEDs
  *     RgbColor colors[] = {{255, 0, 0}, {0, 0, 255}};
  *     led_control.setColors(colors, 2);
- * }
  * @endcode
  */
 class LedControl {

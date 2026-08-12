@@ -1,7 +1,11 @@
 /**
  * @file
- * @brief
+ * @brief Typed references to sim data properties.
  *
+ * A property reference carries the property name, its value type, and the section it belongs
+ * to. The section stops mistakes such as a track property in a vehicle update.
+ *
+ * The generated headers under sc-api/sim_data/ hold the references themselves.
  */
 
 #ifndef SC_API_PROPERTY_DEFINITION_H_

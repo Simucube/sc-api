@@ -1,7 +1,11 @@
 /**
  * @file
- * @brief
+ * @brief Type of a variable or a telemetry value.
  *
+ * A Type holds a base type and a variant. The variant is a plain value, a single bit, or an
+ * array. Variant specific data gives the bit index or the array size.
+ *
+ * The get_base_type template maps a C++ type to its Type::BaseType.
  */
 
 #ifndef SC_API_TYPE_H_

@@ -1,7 +1,16 @@
 /**
  * @file
- * @brief
+ * @brief Force feedback effect pipelines.
  *
+ * A pipeline sends timestamped offset samples to one device. The device interpolates between
+ * the samples and adds the result to the offsets from the built-in effects.
+ *
+ * Each device has four pipeline slots. Every slot can use a different offset type and filter.
+ *
+ * Control access needs Session::ControlFlag::control_ffb_effects.
+ *
+ * @see FfbPipeline
+ * @see examples/effect_pipelines.cpp for a complete program.
  */
 
 #ifndef SC_API_FFB_H_

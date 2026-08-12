@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Shared memory layout of the variable definitions and values.
+ *
+ * These definitions describe the protocol. Application code uses sc-api/variables.h instead.
+ */
+
 #ifndef SC_API_PROTOCOL_VARIABLES_H_
 #define SC_API_PROTOCOL_VARIABLES_H_
 

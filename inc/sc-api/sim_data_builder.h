@@ -1,3 +1,20 @@
+/**
+ * @file
+ * @brief Builders that create sim data updates.
+ *
+ * These builders encode the BSON document that Session::blockingReplaceSimData and the
+ * related functions send to Tuner. One builder type exists for each section, such as
+ * VehicleBuilder for a vehicle and SimBuilder for the simulator itself.
+ *
+ * A builder only accepts property references of its own section. Therefore a track property
+ * cannot reach a vehicle update.
+ *
+ * Control access needs Session::ControlFlag::control_sim_data.
+ *
+ * @see sc-api/sim_data.h to read the data back.
+ * @see examples/overview.cpp for a complete program.
+ */
+
 #ifndef SC_API_SIM_DATA_BUILDER_H_
 #define SC_API_SIM_DATA_BUILDER_H_
 #include <cassert>
@@ -66,7 +83,7 @@ public:
         return *this;
     }
 
-    /** Encode removal of item with the given numberic id
+    /** Encode removal of item with the given string id
      *
      * @param id String that identifies the item. Should only use characters a-z and _.
      * @returns *this to enable chaining operations
@@ -96,7 +113,7 @@ public:
         return *this;
     }
 
-    /** Encode removal of item with the given numberic id
+    /** Encode removal of item with the given numeric id
      *
      * @param id Number that identifies the item
      *           Must be between 1 and 0xfffe (inclusive). 0 and 0xffff are reserved.

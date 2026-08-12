@@ -32,6 +32,9 @@ to the install-dir.
         sc-api.dll                  shared builds only
     share/sc-api/
         INTEGRATION.md
+        GettingStarted.md
+        Python.md
+        README.md
         LICENSE.txt
 ```
 

@@ -1,7 +1,9 @@
 /**
  * @file
- * @brief
+ * @brief Session specific device identifier.
  *
+ * A DeviceSessionId names a device inside one session. Use a device UID instead to identify a
+ * physical device across sessions. @see device_info::DeviceInfo::getUid
  */
 
 #ifndef SC_API_DEVICE_H_

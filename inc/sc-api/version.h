@@ -1,7 +1,13 @@
 /**
  * @file
- * @brief
+ * @brief Version of the API implementation.
  *
+ * These macros give the version of the API implementation itself. The API sends this
+ * version to Simucube Tuner when it registers a session. Tuner uses it to find
+ * incompatibilities between the API and the backend.
+ *
+ * This version is not the version of the sc-api package. The package version comes from
+ * the CMake project and Doxygen shows it as the project number.
  */
 
 #ifndef SC_API_VERSION_H_

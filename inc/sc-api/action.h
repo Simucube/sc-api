@@ -1,7 +1,9 @@
 /**
  * @file
- * @brief
+ * @brief Actions for fast one-way data to the API backend.
  *
+ * Actions are binary messages that go over UDP and get no reply. The API uses them for
+ * telemetry and effect pipeline data, where low latency matters more than delivery.
  */
 
 #ifndef SC_API_ACTION_H_
@@ -17,7 +19,7 @@ namespace sc_api {
 class Session;
 
 enum class ActionResult {
-    /** Asynchronous operaton started */
+    /** Asynchronous operation started */
     inprogress,
 
     /** Operation is complete and succeeded */

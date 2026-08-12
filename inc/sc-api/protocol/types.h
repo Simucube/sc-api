@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Base type and type variant encoding used in the shared memory blocks.
+ *
+ * These definitions describe the protocol. Application code uses sc_api::Type instead.
+ */
+
 #ifndef SC_API_PROTOCOL_TYPES_H
 #define SC_API_PROTOCOL_TYPES_H
 

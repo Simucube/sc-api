@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief Clock that gives the timestamps for the API.
  *
+ * Some API operations start an effect at an exact time. All connected devices use the same
+ * clock. Therefore a timestamp from this clock means the same instant on every device.
+ *
+ * Use sc_api::Clock for application code. The clock_source namespace holds the low level
+ * functions that Clock is built on.
  */
 
 #ifndef SC_API_TIME_H_
@@ -9,11 +14,6 @@
 #include <chrono>
 #include <cstdint>
 
-/** API functions for measuring and calculating timestamps for commands requiring them
- *
- * Simucube API has commands that cause effects at specific precise timepoint. All devices are synchronized to same
- * clock which allows specifying timestamps that all connected devices can use.
- */
 namespace sc_api {
 
 /** Low level API that is used to fetch timestamp from the clock that SC-API uses */

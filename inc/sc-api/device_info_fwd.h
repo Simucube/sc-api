@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief Forward declarations and shared pointer types for device info.
+ *
+ * Include this header instead of device_info.h when only the pointer types are needed.
+ */
+
 #ifndef SC_API_DEVICE_INFO_FWD_H
 #define SC_API_DEVICE_INFO_FWD_H
 

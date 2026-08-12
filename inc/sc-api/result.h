@@ -1,7 +1,6 @@
 /**
  * @file
- * @brief
- *
+ * @brief Result codes that API functions and commands return.
  */
 
 #ifndef SC_API_RESULT_H_
@@ -41,16 +40,16 @@ enum class ResultCode : int32_t {
     /** Command requires control flag that wasn't requested or approved */
     error_no_control          = SC_API_PROTOCOL_ERROR_NO_CONTROL,
 
-    /** */
+    /** The backend version is not compatible with this API version */
     error_incompatible        = SC_API_PROTOCOL_ERROR_INCOMPATIBLE,
 
-    /** Internal communication occured within SC-API implementation
+    /** Internal communication error occurred within the SC-API implementation
      *
-     * Most likely device that should have received the command, disconnected before command was executed.
+     * Most likely the device that should have received the command, disconnected before the command was run.
      */
     error_internal_comm_error = SC_API_PROTOCOL_ERROR_INTERNAL_COMM_ERROR,
 
-    /** Some unknown error occured within the SC-API implementation.
+    /** Some unknown error occurred within the SC-API implementation.
      *
      * This shouldn't occur and is a bug in the implementation.
      */
@@ -63,11 +62,11 @@ enum class ResultCode : int32_t {
 
     /** Function failed because it requires some other session state
      *
-     * Eg. trying to interract with session after it has been closed or controlling without attempting to register first
+     * For example, use of a session after it is closed, or control of a device without registration first.
      */
     error_invalid_session_state,
 
-    /** */
+    /** Another operation of the same type is already in progress */
     error_busy,
 
     /** Operation timed-out */

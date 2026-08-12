@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Security methods that the session handshake can negotiate.
+ *
+ * These definitions describe the protocol. Application code uses sc_api::SecureControlEnabler
+ * or sc_api::NoAuthControlEnabler instead.
+ */
+
 #ifndef SC_API_PROTOCOL_SECURITY_H_
 #define SC_API_PROTOCOL_SECURITY_H_
 
@@ -7,7 +15,7 @@
 extern "C" {
 #endif
 
-/** Different types*/
+/** Key exchange method for a secure session */
 typedef enum SC_API_PROTOCOL_SecurityMethod_e {
     /** No public key available */
     SC_API_PROTOCOL_SECURITY_METHOD_NONE              = 0,

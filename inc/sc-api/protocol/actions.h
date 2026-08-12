@@ -1,7 +1,8 @@
 /**
- * file
- * brief
+ * @file
+ * @brief Wire format of the UDP action messages.
  *
+ * These definitions describe the protocol. Application code uses sc-api/action.h instead.
  */
 
 #ifndef SC_API_PROTOCOL_ACTIONS_H_

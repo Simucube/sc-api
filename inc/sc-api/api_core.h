@@ -1,7 +1,12 @@
 /**
  * @file
- * @brief
+ * @brief ApiCore class that opens sessions without a background thread.
  *
+ * Use this class when the application must control when session state changes and when
+ * communication runs. The caller is responsible for the Session::runUntilStateChanges or
+ * Session::poll calls.
+ *
+ * @see Api for the variant that does this in a background thread.
  */
 
 #ifndef SC_API_APICORE_H_
@@ -20,8 +25,8 @@ namespace sc_api {
  * Can be used to attempt opening a session.
  *
  * Usually it is better to use Api class instead as that handles creation of the session and updating its state in
- * background thread. If ApiRaw is used to open Session, it is the caller responsibility to call Session::run() or
- * other updated functions that handle communications.
+ * background thread. If ApiCore is used to open Session, it is the caller responsibility to call
+ * Session::runUntilStateChanges or Session::poll to handle communications.
  */
 class ApiCore {
     friend class Session;
@@ -44,12 +49,13 @@ public:
      *
      * @param session_handle_out Handle to the opened session
      *
-     * @return Result::ok, if initialization and connecting succeeded
-     *         Result::error_argument, if id_name is more than 16 characters or display_name_utf8 is more than 64 bytes
-     *                                 characters.
-     *         Result::error_state, if called when session state isn't State::disconnected
-     *         Result::error_not_available, if API backend isn't running and no data is available
-     *         Result::error_incompatible, if the backend isn't compatible with this API implementation
+     * @return ResultCode::ok, if initialization and connecting succeeded
+     *         ResultCode::error_invalid_session_state, if a session is already open
+     *         ResultCode::error_cannot_connect, if the API backend isn't running and no data is available
+     *         ResultCode::error_busy, if the backend changed the session during the attempt. Try again.
+     *         ResultCode::error_incompatible, if the backend isn't compatible with this API implementation
+     *         ResultCode::error_timeout, if the backend did not give valid session data within 500ms
+     *         ResultCode::error_protocol, if the session data from the backend cannot be parsed
      */
     ResultCode openSession(std::shared_ptr<Session>& session_handle_out);
 
@@ -57,7 +63,12 @@ public:
      *  @return Currently active session, returns nullptr if there isn't open session active */
     std::shared_ptr<Session> getOpenSession() const;
 
-    /** */
+    /** Create an EventQueue that receives session and data events
+     *
+     * Every queue receives its own copy of each event.
+     *
+     * @return Unique pointer to the created EventQueue
+     */
     std::unique_ptr<EventQueue> createEventQueue();
 
 private:
