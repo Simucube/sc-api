@@ -19,7 +19,7 @@
 namespace sc_api {
 
 /**
- * @brief Outcome of a single @ref DashStreamer::streamFrame call.
+ * @brief Outcome of a single @ref sc_api::DashStreamer::streamFrame "DashStreamer::streamFrame" call.
  */
 enum class FrameResult {
     /** Frame was written to shared memory and published for the backend to poll. */
@@ -57,9 +57,16 @@ struct StreamFeedback {
  * @note Not thread-safe. Serialize calls to @ref streamFrame externally when
  *       sharing a single instance across threads.
  *
+ * @note Streaming needs control access: register through @ref NoAuthControlEnabler before
+ *       streaming. Any control flag is enough. No dedicated streaming flag exists.
+ *
  * The streamer connects lazily: the buffer is requested from the backend on the first
  * @ref streamFrame (and retried with backoff while the backend is unavailable). Call @ref open
  * up front only if you want to detect a connection failure before the first frame.
+ *
+ * Find stream-capable devices and their frame size and pixel format through
+ * @ref sc_api::device_info::ScreenFeedback "device_info::ScreenFeedback"
+ * (feedback type `screen` in device info).
  *
  * Example usage:
  * @code

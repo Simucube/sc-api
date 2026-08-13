@@ -375,14 +375,34 @@ See `examples/led_control.cpp` for a complete program.
 ## Stream dashboard frames
 
 [DashStreamer](#sc_api::DashStreamer) sends dashboard frames to a wheel display through shared
-memory. The pixel format is RGB565.
+memory.
+
+Streaming needs control access. Register with
+[NoAuthControlEnabler](#sc_api::NoAuthControlEnabler) first (see Enable control above). No
+dedicated streaming flag exists. Any control registration is enough.
+
+Find the target display through device info. A device that can show streamed frames has a
+feedback of type `screen`. [ScreenFeedback](#sc_api::device_info::ScreenFeedback) gives the frame
+size and the pixel format. Do not hardcode these values.
 
 ```cpp
 #include <sc-api/dash_stream.h>
+#include <sc-api/device_info.h>
 
-sc_api::DashStreamer streamer(session, device_session_id.id);
+auto wheel = device_info->findFirstByFilter([](const sc_api::device_info::DeviceInfo& device) {
+    return device.hasFeedbackType(sc_api::device_info::FeedbackType::screen);
+});
+if (!wheel) {
+    return;  // No stream-capable display is connected.
+}
 
-sc_api::FrameResult result = streamer.streamFrame(800, 480, rgb565_pixels);
+sc_api::device_info::ScreenFeedback screen = wheel->getScreens().front();
+
+sc_api::DashStreamer streamer(session, wheel->getSessionId().id);
+
+// Render screen.width * screen.height pixels in screen.pixel_format.
+// The only current format is rgb565: one uint16_t for each pixel.
+sc_api::FrameResult result = streamer.streamFrame(screen.width, screen.height, rgb565_pixels);
 if (result == sc_api::FrameResult::dropped) {
     // The backend has not consumed the previous frame yet. This is normal when you submit
     // faster than the device displays: the frame is skipped and the next one replaces it.
@@ -391,9 +411,18 @@ if (result == sc_api::FrameResult::dropped) {
 streamer.stop();  // Before the streamer is destroyed.
 ```
 
-The first streamer that delivers a frame owns the device. Other senders' frames are dropped until
-that owner stops. [DashStreamer::getStreamFeedback](#sc_api::DashStreamer::getStreamFeedback)
-reports ownership and how many frames the device showed.
+The first streamer that delivers a frame owns the device. The backend drops the frames from the
+other senders until the owner stops.
+[DashStreamer::getStreamFeedback](#sc_api::DashStreamer::getStreamFeedback) reports ownership and
+how many frames the device showed. Poll the feedback about once per second. Adjust the frame rate
+from it. Do not poll it for every frame.
+
+The streamer connects to the backend on the first `streamFrame` call, and that call can block.
+To detect a connection failure before the first frame, call
+[DashStreamer::open](#sc_api::DashStreamer::open) first.
+
+A session loss invalidates the streamer. Create a new `DashStreamer` for the new session. Find
+the device again, because the device session id can change.
 
 See `examples/dash_stream.cpp` for a complete program.
 

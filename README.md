@@ -202,5 +202,10 @@ lights it controls, and then sets their colors. A higher priority controller can
 
 ## Dashboard streaming
 
-Dashboard streaming sends frames to a wheel display through shared memory. The only currently supported
-pixel format is RGB565. The first sender that delivers a frame owns the device until it stops.
+Dashboard streaming sends frames to a wheel display through shared memory. A stream-capable
+display appears in device info as a `screen` feedback. The feedback gives the frame size and the
+pixel format. The only currently supported pixel format is RGB565.
+
+The first sender that delivers a frame owns the device until that sender stops. The backend
+reports ownership and display progress back to every sender. Streaming needs control access. No
+dedicated streaming flag exists.
