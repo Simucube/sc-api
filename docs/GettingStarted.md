@@ -384,7 +384,8 @@ sc_api::DashStreamer streamer(session, device_session_id.id);
 
 sc_api::FrameResult result = streamer.streamFrame(800, 480, rgb565_pixels);
 if (result == sc_api::FrameResult::dropped) {
-    // The backend has not consumed the previous frame yet. Slow down.
+    // The backend has not consumed the previous frame yet. This is normal when you submit
+    // faster than the device displays: the frame is skipped and the next one replaces it.
 }
 
 streamer.stop();  // Before the streamer is destroyed.
@@ -393,6 +394,8 @@ streamer.stop();  // Before the streamer is destroyed.
 The first streamer that delivers a frame owns the device. Other senders' frames are dropped until
 that owner stops. [DashStreamer::getStreamFeedback](#sc_api::DashStreamer::getStreamFeedback)
 reports ownership and how many frames the device showed.
+
+See `examples/dash_stream.cpp` for a complete program.
 
 ## Where to go next
 
