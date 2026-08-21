@@ -411,10 +411,11 @@ void bind_api(nb::module_& m) {
     nb::class_<EventIterator>(m, "_EventIterator")
         .def(
             "__iter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
-        .def("close", [](EventIterator& self) { self.queue->close(); },
-             "Close the underlying queue, ending the iteration.\n\n"
-             "Releases any thread waiting in the iterator. Call this, and join the thread, before "
-             "the interpreter shuts down.")
+        .def(
+            "close", [](EventIterator& self) { self.queue->close(); },
+            "Close the underlying queue, ending the iteration.\n\n"
+            "Releases any thread waiting in the iterator. Call this, and join the thread, before "
+            "the interpreter shuts down.")
         .def(
             "__enter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
         .def("__exit__",
