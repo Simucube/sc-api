@@ -11,6 +11,12 @@ static PyObject* BusyError_type               = nullptr;
 static PyObject* InternalError_type           = nullptr;
 static PyObject* SimucubeConnectionError_type = nullptr;
 
+/** Create an exception type, add it to the module and keep an owning reference to it.
+ *
+ * throw_on_error needs these types after the module dictionary has been cleared, so the extra
+ * reference is deliberate and never released. The types are not nanobind instances, so they do not
+ * appear in a nanobind leak report.
+ */
 static PyObject* create_exception(nb::module_& m, const char* name, PyObject* base1, PyObject* base2 = nullptr) {
     PyObject* bases = nullptr;
     if (base2) {
