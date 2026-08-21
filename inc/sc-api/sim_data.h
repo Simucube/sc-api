@@ -183,7 +183,7 @@ using VehiclePtr = std::shared_ptr<Vehicle>;
  * All returned pointers and references point into this instance. They stay valid only as long
  * as the shared pointer to this SimData exists.
  */
-class SimData : std::enable_shared_from_this<SimData> {
+class SimData : public std::enable_shared_from_this<SimData> {
     friend class SimDataSubSection;
 
 public:
