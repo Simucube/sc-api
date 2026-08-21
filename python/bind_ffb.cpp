@@ -96,7 +96,7 @@ void bind_ffb(nb::module_& m) {
         .def(
             "generate_effect",
             [](FfbPipeline& self, int64_t start_ns, int64_t sample_duration_ns,
-               const nb::ndarray<float, nb::ndim<1>>& samples) {
+               const nb::ndarray<const float, nb::ndim<1>, nb::c_contig>& samples) {
                 auto start       = Clock::time_point(Clock::duration(start_ns));
                 auto sample_time = Clock::duration(sample_duration_ns);
                 return self.generateEffect(start, sample_time, samples.data(), static_cast<unsigned>(samples.shape(0)));
@@ -105,7 +105,10 @@ void bind_ffb(nb::module_& m) {
             "Schedule effect playback from a float32 sample array.\n\n"
             ":param start_ns: Absolute start time in nanoseconds (use Clock.now_ns() for immediate playback).\n"
             ":param sample_duration_ns: Duration of each sample in nanoseconds (e.g. 50000 for 20 kHz).\n"
-            ":param samples: 1D numpy float32 array of output values in the pipeline's offset_type units.\n"
+            ":param samples: Contiguous 1D numpy float32 array of output values in the\n"
+            "    pipeline's offset_type units. A strided array, such as a slice\n"
+            "    with a step or a column of a 2D array, is rejected. Copy it first\n"
+            "    with numpy.ascontiguousarray.\n"
             ":returns: ActionResult. configure() must have been called first.")
         .def("stop", &FfbPipeline::stop,
              "Stop the current effect immediately. The pipeline remains configured and can play a new effect.")
