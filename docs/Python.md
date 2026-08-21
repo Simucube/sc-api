@@ -84,6 +84,38 @@ empty, and `pop` waits. Use a queue when the loop must not block on the events.
 These event types are available: `SessionStateChanged`, `DeviceInfoChanged`,
 `VariableDefinitionsChanged`, `TelemetryDefinitionsChanged` and `SimDataChanged`.
 
+### Stop an event consumer
+
+A blocking call releases the interpreter lock. A thread that waits in one when Python shuts down
+never returns. The thread then keeps its Python objects alive, and nanobind prints
+`leaked N instances` at exit.
+
+Close the queue or the iterator, then join the thread. Do this before your program ends.
+
+```python
+import threading
+
+with simucube_api.Api() as api:
+    events = api.events()
+
+    def consume():
+        for event in events:
+            print(event)
+
+    thread = threading.Thread(target=consume)
+    thread.start()
+
+    # ... do work here ...
+
+    events.close()  # Ends the iteration.
+    thread.join()
+```
+
+`events.close()` and `queue.close()` release a thread that waits for an event. The iterator is also
+a context manager, so a `with` block closes it.
+
+Do not make the consumer a daemon thread. Python does not join daemon threads at exit.
+
 ## Read device info
 
 `session.device_info` returns the current snapshot, or `None` when no data has arrived yet.
