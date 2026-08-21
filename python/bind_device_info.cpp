@@ -256,7 +256,8 @@ void bind_device_info(nb::module_& m) {
     };
 
     nb::class_<FullInfoIterator>(m, "FullInfoIterator")
-        .def("__iter__", [](FullInfoIterator& self) -> FullInfoIterator& { return self; })
+        .def(
+            "__iter__", [](FullInfoIterator& self) -> FullInfoIterator& { return self; }, nb::rv_policy::none)
         .def("__next__", &FullInfoIterator::next);
 
     // --- FullInfo (held via shared_ptr<FullInfo>) ---
