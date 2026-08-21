@@ -406,6 +406,16 @@ void bind_api(nb::module_& m) {
     nb::class_<EventIterator>(m, "_EventIterator")
         .def(
             "__iter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
+        .def("close", [](EventIterator& self) { self.queue->close(); },
+             "Close the underlying queue, ending the iteration.\n\n"
+             "Releases any thread waiting in the iterator. Call this, and join the thread, before "
+             "the interpreter shuts down.")
+        .def(
+            "__enter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
+        .def("__exit__",
+             [](EventIterator& self, nb::args /*unused*/) {  // NOLINT(performance-unnecessary-value-param)
+                 self.queue->close();
+             })
         .def("__next__", [](EventIterator& self) -> nb::object {
             auto event = waitForEvent(*self.queue, toDeadline(self.timeout));
             if (!event) {
@@ -489,6 +499,8 @@ void bind_api(nb::module_& m) {
             "``StopIteration`` when the queue closes. With a timeout, each iteration "
             "waits at most ``timeout`` seconds; if no event arrives, ``None`` is "
             "yielded and iteration continues (the queue is still open).\n\n"
+            "The iterator owns its queue. Call ``close()`` on it, or use it as a "
+            "context manager, to end the iteration from another thread.\n\n"
             ":param timeout: Per-item wait limit in seconds. ``None`` waits forever.\n\n"
             ":returns: An iterator of event objects or ``None`` (on per-item timeout).")
         .def("close", &PyApi::close,
