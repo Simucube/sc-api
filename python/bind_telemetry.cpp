@@ -189,7 +189,7 @@ void bind_telemetry(nb::module_& m) {
             nb::keep_alive<0, 1>())
         .def(
             "__getitem__",
-            [](const TelemetryDefinitions& self, int index) -> const TelemetryDefinition& {
+            [](const TelemetryDefinitions& self, int index) -> TelemetryDefinition {
                 int size = static_cast<int>(self.size());
                 if (index < 0) index += size;
                 if (index < 0 || index >= size) {
@@ -197,15 +197,15 @@ void bind_telemetry(nb::module_& m) {
                 }
                 return *(self.begin() + index);
             },
-            nb::arg("index"), nb::rv_policy::reference_internal)
+            nb::arg("index"))
         .def(
             "find",
             [](const TelemetryDefinitions& self, const std::string& name, std::optional<Type> type) -> nb::object {
                 const TelemetryDefinition* def = type ? self.find(name, *type) : self.find(name);
                 if (!def) return nb::none();
-                return nb::cast(def, nb::rv_policy::reference_internal);
+                return nb::cast(*def);
             },
-            nb::arg("name"), nb::arg("type") = nb::none(), nb::keep_alive<0, 1>(),
+            nb::arg("name"), nb::arg("type") = nb::none(),
             "Find a channel by name, optionally matching type. Returns None if not found.")
         .def_prop_ro(
             "names",
