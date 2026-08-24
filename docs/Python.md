@@ -259,20 +259,19 @@ with simucube_api.LedControl(session, device_with_leds.session_id) as led:
 
 ## Stream dashboard frames
 
-`DashStreamer` sends dashboard frames to a device screen through shared memory. It needs a session
-with control access. The pixel format is RGB565. The streamer is a context manager, and the `with`
-block stops the stream.
+`DashStreamer` sends dashboard frames to a device screen through shared memory. It needs the
+`control_telemetry` flag. The pixel format is RGB565. The streamer is a context manager, and the
+`with` block stops the stream.
 
 ```python
 import time
 
 import numpy as np
 
-device_with_screen = full_info.find_first(
-    lambda d: any(fb.type == simucube_api.FeedbackType.screen for fb in d.feedbacks)
-)
+device_with_screen = full_info.find_first(lambda d: len(d.screens) > 0)
 
-width, height = 800, 480  # The frame must have the size of the device screen.
+screen = device_with_screen.screens[0]
+width, height = screen.width, screen.height
 dropped = 0
 
 with simucube_api.DashStreamer(session, device_with_screen.session_id) as dash:
@@ -312,6 +311,8 @@ inactivity timeout of approximately 3 seconds. This is only a latency optimizati
 never depends on it. The `with` block calls `stop()` at its end.
 
 A `DashStreamer` is not thread-safe. Call `stream_frame` from one thread only.
+
+`examples/python/dash_stream.py` is a complete example that captures a window and streams it.
 
 ## Errors
 
