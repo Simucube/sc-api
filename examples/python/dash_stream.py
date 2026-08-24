@@ -1,13 +1,11 @@
 """Stream the contents of a window to a Simucube device screen.
 
 Grabs the client area of a window with dxcam, scales it to the screen of the
-device and sends it as RGB565 frames with DashStreamer.
+device and sends it as RGB565 frames with DashStreamer. The window may be on any
+monitor, and it may be moved between monitors while streaming.
 
     pip install numpy opencv-python "dxcam>=0.3" pywin32
     python dash_stream.py --window "Assetto Corsa" --fps 30
-
-Only the primary monitor is captured. The capture region is clamped to it, so a
-window on a second monitor gives a cut or empty image.
 """
 
 from __future__ import annotations
@@ -19,6 +17,7 @@ import time
 import cv2
 import dxcam
 import win32api
+import win32con
 import win32gui
 
 import simucube_api
@@ -54,27 +53,48 @@ def find_window(title_substring: str) -> tuple[int, str] | None:
     return hwnd, title
 
 
-def client_region(hwnd: int) -> tuple[int, int, int, int] | None:
-    """Return the client area of the window as a dxcam region, or None if it is unusable."""
+def find_output(display: str) -> tuple[int, int] | None:
+    """Return the (device_idx, output_idx) that dxcam uses for a display device name."""
+    # dxcam has no public lookup for this, but the outputs of its module level
+    # factory carry the same `\\.\DISPLAYn` names that win32api reports.
+    factory = getattr(dxcam, "__factory", None)
+    if factory is None:
+        return None
+    for device_idx, outputs in enumerate(factory.outputs):
+        for output_idx, output in enumerate(outputs):
+            if output.devicename == display:
+                return device_idx, output_idx
+    return None
+
+
+def client_region(hwnd: int) -> tuple[str, tuple[int, int, int, int] | None] | None:
+    """Return the display the window is on and its client area in that display.
+
+    Returns None if the window is gone. The region is None while the client area is
+    fully off screen, which is not an error.
+    """
     try:
         left, top, right, bottom = win32gui.GetClientRect(hwnd)
         left, top = win32gui.ClientToScreen(hwnd, (left, top))
         right, bottom = win32gui.ClientToScreen(hwnd, (right, bottom))
+        monitor = win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST)
+        info = win32api.GetMonitorInfo(monitor)
     except win32gui.error:
         return None  # The window is gone.
 
-    # dxcam raises for a region that reaches outside the primary display.
-    screen_w = win32api.GetSystemMetrics(0)
-    screen_h = win32api.GetSystemMetrics(1)
-    left, right = max(0, min(left, screen_w)), max(0, min(right, screen_w))
-    top, bottom = max(0, min(top, screen_h)), max(0, min(bottom, screen_h))
+    # A dxcam region is local to its output, and dxcam raises if it reaches outside.
+    origin_x, origin_y, far_x, far_y = info["Monitor"]
+    width, height = far_x - origin_x, far_y - origin_y
+    left, right = max(0, min(left - origin_x, width)), max(0, min(right - origin_x, width))
+    top, bottom = max(0, min(top - origin_y, height)), max(0, min(bottom - origin_y, height))
     if right - left < 1 or bottom - top < 1:
-        return None
-    return left, top, right, bottom
+        return info["Device"], None
+    return info["Device"], (left, top, right, bottom)
 
 
 def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
-    camera = dxcam.create(output_color="BGR")
+    camera = None
+    camera_display = None
     frame_period_s = 1.0 / fps
     t0_ns = time.perf_counter_ns()
     frames = 0
@@ -93,12 +113,25 @@ def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
                     time.sleep(min(target_s - now_s, frame_period_s))
                     continue
 
-                region = client_region(hwnd)
-                if region is None:
-                    print("Window closed or has no visible client area")
+                located = client_region(hwnd)
+                if located is None:
+                    print("Window closed")
                     break
+                display, region = located
 
-                frame = None if win32gui.IsIconic(hwnd) else camera.grab(region)
+                if display != camera_display:
+                    output = find_output(display)
+                    if output is None:
+                        print(f"dxcam has no capture output for display {display}")
+                        break
+                    # dxcam misbehaves with two cameras on one output, so release first.
+                    if camera is not None:
+                        camera.release()
+                    camera = dxcam.create(*output, output_color="BGR")
+                    camera_display = display
+
+                grabbed = region is not None and not win32gui.IsIconic(hwnd)
+                frame = camera.grab(region) if grabbed else None
                 if frame is not None:
                     resized = cv2.resize(frame, (screen.width, screen.height), interpolation=cv2.INTER_AREA)
                     # C-contiguous uint8 of shape (height, width, 2): packed RGB565.
@@ -106,9 +139,9 @@ def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
                 elif last_frame is None:
                     time.sleep(0.001)  # Nothing captured yet.
                     continue
-                # grab() returns None while the screen is unchanged, and a minimized
-                # window is not grabbed at all. Re-send the last frame in both cases:
-                # the device leaves streaming after about 3 s without a frame.
+                # grab() returns None while the screen is unchanged, and a minimized or
+                # fully off screen window is not grabbed at all. Re-send the last frame
+                # in all cases: the device leaves streaming after about 3 s without one.
 
                 result = dash.stream_frame(last_frame)
                 frames += 1
@@ -126,7 +159,8 @@ def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
         except KeyboardInterrupt:
             print("\nStopping")
         finally:
-            del camera
+            if camera is not None:
+                camera.release()
         feedback = dash.get_stream_feedback()
 
     print(f"Sent {frames} frames, {dropped} dropped by the backend")
