@@ -68,8 +68,7 @@ the compiler compatibility rules.
 
 ## Python bindings
 
-The `simucube_api` package gives the features of the C++ API, except dashboard streaming, to
-Python 3.11 and newer. Install it from the source tree:
+The `simucube_api` package gives the features of the C++ API to Python 3.11 and newer. Install it from the source tree:
 
 ```
 pip install .

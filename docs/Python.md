@@ -21,8 +21,8 @@ Requirements:
 The build needs a C++ compiler, CMake and nanobind. `pip` gets nanobind through
 scikit-build-core.
 
-@note Effect pipelines need NumPy arrays of `float32`. The other parts of the package do not
-need NumPy.
+@note Effect pipelines need NumPy arrays of `float32`. Dashboard frames take NumPy arrays or
+`bytes`. The other parts of the package do not need NumPy.
 
 ## Open a session
 
@@ -257,6 +257,62 @@ with simucube_api.LedControl(session, device_with_leds.session_id) as led:
     led.clear()
 ```
 
+## Stream dashboard frames
+
+`DashStreamer` sends dashboard frames to a device screen through shared memory. It needs a session
+with control access. The pixel format is RGB565. The streamer is a context manager, and the `with`
+block stops the stream.
+
+```python
+import time
+
+import numpy as np
+
+device_with_screen = full_info.find_first(
+    lambda d: any(fb.type == simucube_api.FeedbackType.screen for fb in d.feedbacks)
+)
+
+width, height = 800, 480  # The frame must have the size of the device screen.
+dropped = 0
+
+with simucube_api.DashStreamer(session, device_with_screen.session_id) as dash:
+    for step in range(600):
+        # One frame of packed RGB565 pixels: a blue bar that moves to the right.
+        frame = np.zeros((height, width), dtype=np.uint16)
+        frame[:, step % width] = 0x001F
+
+        result = dash.stream_frame(frame)
+        if result == simucube_api.FrameResult.dropped:
+            # The backend still holds the previous frame. Skip this one and render the next.
+            dropped += 1
+
+        time.sleep(1.0 / 60.0)
+```
+
+The array must be `uint16`, of shape `(height, width)` and C-contiguous. `stream_frame` reads it
+without a copy. An array of `uint8` and shape `(height, width, 2)` also works, because
+`cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2BGR565)` gives that form. `stream_frame(width, height,
+data)` takes raw `bytes` of `width * height * 2` little-endian RGB565 pixels. Use it with PIL or
+with any other source.
+
+The streamer connects when it sends the first frame, and retries with a backoff. Until it connects,
+`stream_frame` returns `FrameResult.failed`. Call `open()` only to detect a connection failure
+before the first frame.
+
+The first streamer that delivers a frame owns the device. Frames of other senders are dropped until
+that owner stops. `dash.is_owner` reports ownership.
+
+`dash.get_stream_feedback()` gives `is_owner`, `device_frame_counter`, `dropped_count` and
+`last_ack_time_ns`. The lag is the number of sent frames minus `device_frame_counter`. Use it to
+pace the loop. The counters come at telemetry rate, so they are good for pacing but not for a
+per-frame sync.
+
+`stop()` makes the device leave streaming immediately. Without it, the device waits out its
+inactivity timeout of approximately 3 seconds. This is only a latency optimization, and correctness
+never depends on it. The `with` block calls `stop()` at its end.
+
+A `DashStreamer` is not thread-safe. Call `stream_frame` from one thread only.
+
 ## Errors
 
 The bindings raise Python exceptions instead of returning result codes.
@@ -265,7 +321,7 @@ The bindings raise Python exceptions instead of returning result codes.
 
 ## Differences from the C++ API
 
-- Dashboard streaming (`DashStreamer`) is not available in Python.
+- Dashboard frames are given as NumPy arrays or `bytes`, not as raw pointers.
 - Values are read through `VariableObject` attributes, not through raw pointers.
 - Sim data is given as dictionaries, not through builder classes.
 - Timestamps are integer nanoseconds, not `std::chrono` types.
