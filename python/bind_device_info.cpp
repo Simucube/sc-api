@@ -14,6 +14,7 @@ namespace nb = nanobind;
 
 using sc_api::DeviceSessionId;
 using sc_api::device_info::Control;
+using sc_api::device_info::DashPixelFormat;
 using sc_api::device_info::DeviceInfo;
 using sc_api::device_info::DeviceInfoPtr;
 using sc_api::device_info::Feedback;
@@ -23,6 +24,7 @@ using sc_api::device_info::HidButtonInput;
 using sc_api::device_info::Input;
 using sc_api::device_info::InputMapping;
 using sc_api::device_info::RgbLightFeedback;
+using sc_api::device_info::ScreenFeedback;
 using sc_api::device_info::UsbDeviceInfo;
 using sc_api::device_info::VariableRef;
 
@@ -137,6 +139,43 @@ void bind_device_info(nb::module_& m) {
             return "<RgbLightFeedback id='" + std::string(self.id) + "' index=" + std::to_string(self.index) + ">";
         });
 
+    // --- DashPixelFormat ---
+
+    nb::enum_<DashPixelFormat>(m, "DashPixelFormat", "Pixel format of a streamable device screen.")
+        .value("rgb565", DashPixelFormat::rgb565, "16-bit RGB (5-6-5 layout), 2 bytes per pixel.");
+
+    // --- ScreenFeedback ---
+
+    nb::class_<ScreenFeedback>(m, "ScreenFeedback",
+                               "Describes a streamable screen on a device.\n\n"
+                               "The object is invalid (``width`` is 0) when the screen parameters are\n"
+                               "missing or malformed. ``width`` and ``height`` give the frame size that\n"
+                               "``DashStreamer.stream_frame`` expects.")
+        .def_prop_ro(
+            "id", [](const ScreenFeedback& self) { return std::string(self.id); },
+            "Unique identifier for this screen feedback.")
+        .def_prop_ro(
+            "control", [](const ScreenFeedback& self) { return std::string(self.control); },
+            "Identifier of the parent control that owns this screen.")
+        .def_prop_ro(
+            "width", [](const ScreenFeedback& self) { return self.width; }, "Screen width in pixels.")
+        .def_prop_ro(
+            "height", [](const ScreenFeedback& self) { return self.height; }, "Screen height in pixels.")
+        .def_prop_ro(
+            "pixel_format", [](const ScreenFeedback& self) { return self.pixel_format; },
+            "Pixel format that the screen expects.")
+        .def_prop_ro(
+            "is_valid", [](const ScreenFeedback& self) { return self.isValid(); },
+            "True if this object was successfully constructed from a compatible Feedback.")
+        .def_static("from_feedback", &ScreenFeedback::fromFeedback, nb::arg("feedback"),
+                    "Construct a ScreenFeedback from a generic Feedback.\n\n"
+                    "Always check ``is_valid`` on the returned object; it will be False if\n"
+                    "the given feedback is not a screen feedback.")
+        .def("__repr__", [](const ScreenFeedback& self) {
+            return "<ScreenFeedback id='" + std::string(self.id) + "' width=" + std::to_string(self.width) +
+                   " height=" + std::to_string(self.height) + ">";
+        });
+
     // --- UsbDeviceInfo ---
 
     nb::class_<UsbDeviceInfo>(m, "UsbDeviceInfo", "USB HID information for a connected device.")
@@ -235,6 +274,10 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "rgb_lights", [](const DeviceInfo& self) { return self.getRgbLights(); },
             "List of RGB LED feedback descriptors on this device.")
+        .def_prop_ro(
+            "screens", [](const DeviceInfo& self) { return self.getScreens(); },
+            "List of streamable screen descriptors on this device. Only screens that parsed\n"
+            "successfully are returned.")
         .def_prop_ro(
             "hid_axes", [](const DeviceInfo& self) { return self.getHidAxisInput(); },
             "List of HID axis mappings exposed by this device.")
