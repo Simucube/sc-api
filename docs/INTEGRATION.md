@@ -69,11 +69,27 @@ shared library.
 
 ## Integration with CMake
 
+### find_package
+
+This uses an installed SDK: either an SDK package that you received, or your own install from
+[Build and install the SDK](#build-and-install-the-sdk).
+
+```cmake
+find_package(sc-api REQUIRED)
+target_link_libraries(my_app PRIVATE sc-api::sc-api)
+```
+
+Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
+`<install-dir>/lib/cmake/sc-api`.
+
 ### FetchContent
 
-FetchContent downloads and builds sc-api as part of your CMake project.
-This is the easiest way to handle dependency as the same compiler and build flags are automatically used and there can't be mismatch.
-Python interpreter is required to generate telemetry and sim data definitions.
+FetchContent downloads sc-api from GitHub and builds it as part of your CMake project. Your
+compiler and your build flags are used automatically, so the builds cannot mismatch. A Python
+interpreter is necessary to generate the telemetry and sim data definitions.
+
+**Note:** The GitHub repository can be behind the newest SDK package. If a feature is missing
+from GitHub, use find_package with an SDK package instead.
 
 ```cmake
 include(FetchContent)
@@ -86,18 +102,6 @@ FetchContent_MakeAvailable(sc_api)
 
 target_link_libraries(my_app PRIVATE sc-api)
 ```
-
-### find_package
-
-This requires that sc-api is compiled and installed separately to a directory where CMake can find it.
-
-```cmake
-find_package(sc-api REQUIRED)
-target_link_libraries(my_app PRIVATE sc-api::sc-api)
-```
-
-Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
-`<install-dir>/lib/cmake/sc-api`.
 
 ## Shared library builds
 

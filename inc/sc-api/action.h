@@ -89,8 +89,6 @@ public:
      *
      * Resets builder back to the empty state.
      *
-     * @param[in]  data Pointer to the data buffer that should be sent.
-     * @param[in]  length length of the data buffer to be sent
      * @returns ActionResult::complete, if operation completed successfully
      *          ActionResult::failed, if operation failed
      */

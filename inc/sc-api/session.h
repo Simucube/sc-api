@@ -194,10 +194,12 @@ public:
      *
      * Will block until backend responds to the request, or timeout after 200ms.
      *
-     * @param control_flags Combination of ControlFlags which specified which parts of the API
-     * @param id_name Identifying name of this application. Shouldn't not change to allow reusing
+     * @param control_flags Combination of ControlFlag values that selects which parts of the API this user controls
+     * @param id_name Identifying name of this application. Should not change to allow reusing
      *                data and keeping state consistent. Max 16 characters + null-termination.
      * @param user_info Metadata about this application/plugin that interfaces with the API
+     * @param secure_session Optional secure session implementation used to authenticate this
+     *                       controller. nullptr registers without authentication.
      * @return ResultCode::ok, if registering was sent successfully
      *         ResultCode::error_invalid_argument, if arguments don't fill requirements
      *         ResultCode::error_busy, if there is already one registration in progress
@@ -272,9 +274,14 @@ public:
     /** Get parsed sim data from the most recent refreshSimData call */
     std::shared_ptr<sim_data::SimData> getSimData();
 
+    /** Get the device info of the connected devices */
     std::shared_ptr<device_info::FullInfo> getDeviceInfo();
-    VariableDefinitions                    getVariables();
-    TelemetryDefinitions                   getTelemetries();
+
+    /** Get a snapshot of the variable definitions of this session */
+    VariableDefinitions getVariables();
+
+    /** Get a snapshot of the telemetry definitions of this session */
+    TelemetryDefinitions getTelemetries();
 
     /** Tries to send command to the backend and calls callback asynchronously when result is received
      *
