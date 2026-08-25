@@ -22,10 +22,9 @@ It is mostly focused on the needs of simulator developers and of tools that inte
 devices directly. It has no way to edit or switch the device profiles of Tuner. That feature
 arrives later, possibly with different communication methods that make external tools simpler.
 
-Currently we attempt to keep backwards compatibility with future Tuner versions, but we don't
-guarantee it yet. Usually newer Tuner versions should support older API version.
-Older Tuner versions don't necessarily support newer API versions or feature set might
-be limited.
+Currently we attempt to keep backwards compatibility with future Tuner versions, but we do not
+guarantee it yet. A newer Tuner version usually supports an older API version. An older Tuner
+version does not necessarily support a newer API version, and its feature set can be limited.
 
 Version 1.0 will be the first stable version. From that version onwards, the ABI between the API
 and Simucube Tuner stays stable. An application that is released against a stable version keeps
@@ -34,8 +33,8 @@ features stay backwards compatible.
 
 Currently supported Tuner version: [Simucube Tuner 3.1.4](https://downloads.simucube.com/SimucubeTunerSetup-3.1.4.exe)
 
-[Simucube API tools](https://downloads.simucube.com/sc-api-tools-2025-12-19.7z) allow viewing available variable data, device and sim data information.
-They also allow creating simple effect pipelines to test functionality. These use the API to fetch all information and just display it.
+With the [Simucube API tools](https://downloads.simucube.com/sc-api-tools-2025-12-19.7z) you can view the available variable data, the device information and the sim data.
+You can also create simple effect pipelines to test the features. The tools read all information through the API and display it.
 
 ## Device support
 
@@ -94,11 +93,11 @@ holds complete programs that match the C++ examples. Every class and method carr
 
 # Contributing
 
-This project uses [Github issues](https://github.com/Simucube/sc-api/issues) for managing bug reports. Do note that during this phase, API is only guaranteed to work
-with the "Currently supported Tuner version" listed above.
-Try searching if there is already existing issue regarding the problem and only report issues that occur when using matching Tuner and API versions. 
+This project uses [Github issues](https://github.com/Simucube/sc-api/issues) to manage bug reports. During this phase, the API is only guaranteed to work
+with the "Currently supported Tuner version" above.
+Search for an existing issue about the problem first. Report only problems that occur with matching Tuner and API versions.
 
-Feature requests and questions can also be asked through issues. Remember to tag the issue correctly.
+You can also send feature requests and questions through issues. Remember to tag the issue correctly.
 
 Pull requests are welcome.
 

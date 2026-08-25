@@ -4,6 +4,8 @@
  *
  * Provides a simple interface for streaming dashboard frames to devices using
  * shared memory for efficient large frame transfers.
+ *
+ * @see examples/dash_stream.cpp for a complete program.
  */
 
 #ifndef SC_API_DASH_STREAM_H_
@@ -35,7 +37,8 @@ enum class FrameResult {
  *
  * A snapshot of the most recent values the backend published into shared memory (see
  * @ref DashStreamer::getStreamFeedback). The counters are telemetry-rate — the device link adds
- * latency, especially over WirQr — so they are good for pacing decisions, not a hard per-frame sync.
+ * latency, especially with a wirelessly connected wheel — so they are good for pacing decisions,
+ * not a hard per-frame sync.
  */
 struct StreamFeedback {
     /** True if this streamer currently owns the device (its frames are being forwarded). */

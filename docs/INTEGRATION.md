@@ -10,9 +10,8 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-Above steps compile the library with the default settings and release configuration.
-Rerun steps with "Release" replaced with "Debug" config to install also debug libraries
-to the install-dir.
+The steps above compile the library with the default settings in the release configuration.
+To also install the debug libraries, do the steps again with "Release" replaced by "Debug".
 
 ## Install tree
 
@@ -61,7 +60,7 @@ Give these three items to the build system:
 | Library           | `sc-api` (`sc-apid` for debug)     |
 | Extra system libs | `ws2_32` (MinGW and Clang non-MSVC)|
 
-With MSVC the ws2_32 should be linked automatically.
+MSVC links `ws2_32` automatically.
 
 No preprocessor definitions are necessary. The installed
 `include/sc-api/export.h` records if the library was built as a static or as a
@@ -84,9 +83,9 @@ Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
 
 ### FetchContent
 
-FetchContent downloads sc-api from GitHub and builds it as part of your CMake project. Your
-compiler and your build flags are used automatically, so the builds cannot mismatch. A Python
-interpreter is necessary to generate the telemetry and sim data definitions.
+FetchContent downloads sc-api from GitHub and builds it as part of your CMake project. The build
+uses your compiler and your build flags, so the libraries always match. A Python interpreter is
+necessary to generate the telemetry and sim data definitions.
 
 **Note:** The GitHub repository can be behind the newest SDK package. If a feature is missing
 from GitHub, use find_package with an SDK package instead.

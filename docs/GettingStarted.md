@@ -125,7 +125,7 @@ Search by capability, not by device model. Then the code also works with devices
 later.
 
 ```cpp
-// Find every ActivePedal. A search for the brake role would also find passive pedals.
+// Find every ActivePedal. A search for the brake role also finds passive pedals.
 auto pedals = device_info->findAllByFilter([](const sc_api::device_info::DeviceInfo& device) {
     return device.hasFeedbackType(sc_api::device_info::FeedbackType::active_pedal);
 });
@@ -279,7 +279,7 @@ arrives after the start time.
 
 Do not call `Clock::now()` for every set in production code. Keep the previous end time and
 increase it at a fixed rate instead. PC side scheduling jitter then cannot reach the effect.
-Compare that time against the real time from time to time, because a long run makes the two
+Compare that time against the real time at regular intervals, because a long run makes the two
 drift apart. Samples then arrive too early or too late.
 
 See `examples/effect_pipelines.cpp` for a complete program.
@@ -430,5 +430,6 @@ See `examples/dash_stream.cpp` for a complete program.
 
 - [INTEGRATION.md](INTEGRATION.md) — build, link and compiler compatibility.
 - [Python.md](Python.md) — the same topics for the Python bindings.
+- `examples/game_loop.cpp` — device info, variables, telemetry and effects together in one game loop.
 - The `examples/` directory of the source tree — complete C++ and Python programs.
 - The class list of this reference — every public type.
