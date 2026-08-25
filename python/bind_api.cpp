@@ -16,6 +16,7 @@
 #include <sc-api/variables.h>
 
 #include <chrono>
+#include <cmath>
 #include <variant>
 
 #include "bind_exceptions.h"
@@ -100,11 +101,43 @@ static std::optional<Event> waitForEvent(EventQueueT&                           
     }
 }
 
-/** Convert a timeout in seconds to an absolute deadline. std::nullopt means "wait forever". */
+/** Largest timeout in seconds that toDeadline can convert.
+ *
+ * Half of the clock's own range, which leaves room for the addition to the current time.
+ */
+constexpr double max_timeout_seconds =
+    std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::duration::max()).count() / 2.0;
+
+/** Reject a timeout that toDeadline cannot convert.
+ *
+ * The conversion casts to the integer representation of the clock, which is undefined for a value
+ * out of range, and for infinity and NaN.
+ *
+ * @throws nb::python_error If the timeout is NaN (ValueError) or too large (OverflowError).
+ */
+static void checkTimeout(std::optional<double> timeout) {
+    if (!timeout) return;
+    if (std::isnan(*timeout)) {
+        PyErr_SetString(PyExc_ValueError, "timeout must be a number, not NaN");
+        throw nb::python_error();
+    }
+    if (!(*timeout < max_timeout_seconds)) {  // Also catches positive infinity.
+        PyErr_SetString(PyExc_OverflowError, "timeout is too large; pass None to wait without a limit");
+        throw nb::python_error();
+    }
+}
+
+/** Convert a timeout in seconds to an absolute deadline. std::nullopt means "wait forever".
+ *
+ * A negative timeout gives a deadline that has already passed.
+ *
+ * @throws nb::python_error If the timeout is NaN (ValueError) or too large (OverflowError).
+ */
 static std::optional<std::chrono::steady_clock::time_point> toDeadline(std::optional<double> timeout) {
+    checkTimeout(timeout);
     if (!timeout) return std::nullopt;
-    return std::chrono::steady_clock::now() +
-           std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(*timeout));
+    auto seconds = std::chrono::duration<double>(*timeout > 0.0 ? *timeout : 0.0);
+    return std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(seconds);
 }
 
 // --- PyApi wrapper (stores NoAuthControlEnabler alongside Api) ---
@@ -393,7 +426,8 @@ void bind_api(nb::module_& m) {
             "With a timeout, returns ``None`` if the deadline expires before "
             "an event arrives (the queue remains open).\n\n"
             ":param timeout: Maximum seconds to wait. ``None`` (default) waits forever.\n\n"
-            ":returns: An event object, or ``None`` on timeout or queue closure.")
+            ":returns: An event object, or ``None`` on timeout or queue closure.\n\n"
+            ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def(
             "try_pop",
             [](EventQueueT& self) -> nb::object {
@@ -469,14 +503,18 @@ void bind_api(nb::module_& m) {
             ":returns: A new ``EventQueue`` instance. Each queue is independent.")
         .def(
             "wait_for_session",
-            [](PyApi& self, double timeout) -> std::shared_ptr<Session> {
-                auto queue    = self.api().createEventQueue();
+            [](PyApi& self, std::optional<double> timeout) -> std::shared_ptr<Session> {
                 auto deadline = toDeadline(timeout);
+                auto queue    = self.api().createEventQueue();
 
                 while (true) {
                     auto event = waitForEvent(*queue, deadline);
                     if (!event) {
-                        PyErr_SetString(PyExc_TimeoutError, "Timed out waiting for session");
+                        if (queue->isOpen()) {
+                            PyErr_SetString(PyExc_TimeoutError, "Timed out waiting for session");
+                        } else {
+                            PyErr_SetString(PyExc_RuntimeError, "Api was closed while waiting for a session");
+                        }
                         throw nb::python_error();
                     }
 
@@ -486,16 +524,20 @@ void bind_api(nb::module_& m) {
                     }
                 }
             },
-            nb::arg("timeout"),
+            nb::arg("timeout") = nb::none(),
             "Block until a session is established with Tuner, then return it.\n\n"
             "Internally creates a temporary event queue and waits for a "
             "``SessionStateChanged`` event carrying a live session.\n\n"
-            ":param timeout: Maximum seconds to wait.\n\n"
+            ":param timeout: Maximum seconds to wait. ``None`` (default) waits forever.\n\n"
             ":returns: The connected ``Session`` object.\n\n"
-            ":raises TimeoutError: If no session is established within ``timeout`` seconds.")
+            ":raises TimeoutError: If no session is established within ``timeout`` seconds.\n"
+            ":raises RuntimeError: If another thread closes the Api while this call waits.\n"
+            ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def(
             "events",
             [](PyApi& self, std::optional<double> timeout) -> EventIterator {
+                // Report an unusable timeout here rather than on the first iteration.
+                checkTimeout(timeout);
                 auto queue = self.api().createEventQueue();
                 return EventIterator{std::move(queue), timeout};
             },
@@ -508,7 +550,8 @@ void bind_api(nb::module_& m) {
             "The iterator owns its queue. Call ``close()`` on it, or use it as a "
             "context manager, to end the iteration from another thread.\n\n"
             ":param timeout: Per-item wait limit in seconds. ``None`` waits forever.\n\n"
-            ":returns: An iterator of event objects or ``None`` (on per-item timeout).")
+            ":returns: An iterator of event objects or ``None`` (on per-item timeout).\n\n"
+            ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def("close", &PyApi::close,
              "Shut down the background thread and release all resources.\n\n"
              "Safe to call multiple times. Also called automatically by the context manager.")
