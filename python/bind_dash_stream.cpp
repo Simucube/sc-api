@@ -141,15 +141,15 @@ void bind_dash_stream(nb::module_& m) {
 
                 return streamRaw(self, static_cast<uint16_t>(width), static_cast<uint16_t>(height), frame.data());
             },
-            nb::arg("frame"),
+            nb::arg("frame").noconvert(),
             "Stream one dashboard frame from a numpy array.\n\n"
             ":param frame: A C-contiguous uint16 array of shape (height, width) holding packed RGB565\n"
             "    pixels, or a C-contiguous uint8 array of shape (height, width, 2) as produced by\n"
             "    cv2.cvtColor(img, cv2.COLOR_BGR2BGR565). The array is read without a copy unless its\n"
-            "    data is not 2-byte aligned. A strided array is rejected; copy it first with\n"
-            "    numpy.ascontiguousarray.\n"
-            ":returns: FrameResult. Raises TypeError for any other array shape or dtype, and\n"
-            "    ValueError if the width or height does not fit in 16 bits.")
+            "    data is not 2-byte aligned. A strided array is rejected, not copied; run\n"
+            "    numpy.ascontiguousarray on it first.\n"
+            ":returns: FrameResult. Raises TypeError for any other array shape, dtype or memory\n"
+            "    layout, and ValueError if the width or height does not fit in 16 bits.")
         .def(
             "stream_frame",
             [](DashStreamer& self, uint16_t width, uint16_t height, const nb::bytes& data) {

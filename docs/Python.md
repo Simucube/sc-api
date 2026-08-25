@@ -118,7 +118,9 @@ Do not make the consumer a daemon thread. Python does not join daemon threads at
 
 ## Read device info
 
-`session.device_info` returns the current snapshot, or `None` when no data has arrived yet.
+`session.device_info` returns the current snapshot, or `None` when no data has arrived yet. A
+`DeviceInfoChanged` event tells you when it changes. A new event queue does not replay the
+events that came before it, so read the snapshot first and use the event for later changes.
 
 ```python
 full_info = session.device_info
@@ -289,7 +291,8 @@ with simucube_api.DashStreamer(session, device_with_screen.session_id) as dash:
 ```
 
 The array must be `uint16`, of shape `(height, width)` and C-contiguous. `stream_frame` reads it
-without a copy. An array of `uint8` and shape `(height, width, 2)` also works, because
+without a copy. A strided array raises `TypeError`; run `numpy.ascontiguousarray` on it
+first. An array of `uint8` and shape `(height, width, 2)` also works, because
 `cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2BGR565)` gives that form. `stream_frame(width, height,
 data)` takes raw `bytes` of `width * height * 2` little-endian RGB565 pixels. Use it with PIL or
 with any other source.

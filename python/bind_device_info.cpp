@@ -4,11 +4,9 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
 #include <sc-api/device_info.h>
 
 #include <string>
-#include <vector>
 
 namespace nb = nanobind;
 
@@ -35,6 +33,28 @@ static_assert(nb::detail::has_shared_from_this_v<const DeviceInfo>,
               "DeviceInfo must keep the const weak_from_this() public");
 static_assert(nb::detail::has_shared_from_this_v<FullInfo>,
               "FullInfo must inherit std::enable_shared_from_this publicly");
+
+namespace {
+
+/// Hand copies of BSON-backed structs to Python so that each one keeps `owner` alive.
+///
+/// Control, Input, Feedback, the typed feedback views and the reference structs hold
+/// std::string_view and raw BSON pointers into the buffer that FullInfo owns. nanobind copies
+/// each of them into an independent Python object, so without this the views outlive the buffer
+/// as soon as the last reference to the owning DeviceInfo is dropped. The reference goes on every
+/// element, not on the list, because an element can be kept after the list itself is gone.
+template <typename Container>
+nb::typed<nb::list, typename Container::value_type> castViews(const Container& items, nb::handle owner) {
+    nb::list result;
+    for (const auto& item : items) {
+        nb::object obj = nb::cast(item);
+        nb::detail::keep_alive(obj.ptr(), owner.ptr());
+        result.append(obj);
+    }
+    return result;
+}
+
+}  // namespace
 
 void bind_device_info(nb::module_& m) {
     // --- VariableRef ---
@@ -94,7 +114,7 @@ void bind_device_info(nb::module_& m) {
             "role", [](const Input& self) { return self.role; },
             "Functional role of this input (e.g. throttle, brake).")
         .def_prop_ro(
-            "variable", [](const Input& self) { return self.variable; },
+            "variable", [](const Input& self) { return self.variable; }, nb::keep_alive<0, 1>(),
             "Reference to the variable that carries this input's real-time value.")
         .def_prop_ro(
             "range_begin", [](const Input& self) { return self.range_begin; },
@@ -131,7 +151,7 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "is_valid", [](const RgbLightFeedback& self) { return self.isValid(); },
             "True if this object was successfully constructed from a compatible Feedback.")
-        .def_static("from_feedback", &RgbLightFeedback::fromFeedback, nb::arg("feedback"),
+        .def_static("from_feedback", &RgbLightFeedback::fromFeedback, nb::arg("feedback"), nb::keep_alive<0, 1>(),
                     "Construct an RgbLightFeedback from a generic Feedback.\n\n"
                     "Always check ``is_valid`` on the returned object; it will be False if\n"
                     "the given feedback is not an RGB light feedback.")
@@ -167,7 +187,7 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "is_valid", [](const ScreenFeedback& self) { return self.isValid(); },
             "True if this object was successfully constructed from a compatible Feedback.")
-        .def_static("from_feedback", &ScreenFeedback::fromFeedback, nb::arg("feedback"),
+        .def_static("from_feedback", &ScreenFeedback::fromFeedback, nb::arg("feedback"), nb::keep_alive<0, 1>(),
                     "Construct a ScreenFeedback from a generic Feedback.\n\n"
                     "Always check ``is_valid`` on the returned object; it will be False if\n"
                     "the given feedback is not a screen feedback.")
@@ -201,7 +221,7 @@ void bind_device_info(nb::module_& m) {
             "range_high", [](const HidAxisInput& self) { return self.range_high; },
             "Maximum raw HID value of this axis.")
         .def_prop_ro(
-            "mappings", [](const HidAxisInput& self) { return self.mappings; },
+            "mappings", [](nb::handle self) { return castViews(nb::cast<const HidAxisInput&>(self).mappings, self); },
             "List of InputMapping entries that feed into this HID axis.")
         .def("__repr__", [](const HidAxisInput& self) {
             return "<HidAxisInput mappings=" + std::to_string(self.mappings.size()) + ">";
@@ -214,7 +234,7 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "role", [](const HidButtonInput& self) { return self.role; }, "Functional role of this HID button.")
         .def_prop_ro(
-            "mappings", [](const HidButtonInput& self) { return self.mappings; },
+            "mappings", [](nb::handle self) { return castViews(nb::cast<const HidButtonInput&>(self).mappings, self); },
             "List of InputMapping entries that feed into this HID button.")
         .def("__repr__", [](const HidButtonInput& self) {
             return "<HidButtonInput mappings=" + std::to_string(self.mappings.size()) + ">";
@@ -257,32 +277,30 @@ void bind_device_info(nb::module_& m) {
             "True if this device info was successfully parsed and represents a live device.")
         .def_prop_ro(
             "controls",
-            [](const DeviceInfo& self) {
-                return std::vector<Control>(self.getControls().begin(), self.getControls().end());
-            },
+            [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getControls(), self); },
             "List of all physical controls on this device.")
         .def_prop_ro(
-            "inputs",
-            [](const DeviceInfo& self) { return std::vector<Input>(self.getInputs().begin(), self.getInputs().end()); },
+            "inputs", [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getInputs(), self); },
             "List of all input channels on this device.")
         .def_prop_ro(
             "feedbacks",
-            [](const DeviceInfo& self) {
-                return std::vector<Feedback>(self.getFeedbacks().begin(), self.getFeedbacks().end());
-            },
+            [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getFeedbacks(), self); },
             "List of all feedback/output channels on this device.")
         .def_prop_ro(
-            "rgb_lights", [](const DeviceInfo& self) { return self.getRgbLights(); },
+            "rgb_lights",
+            [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getRgbLights(), self); },
             "List of RGB LED feedback descriptors on this device.")
         .def_prop_ro(
-            "screens", [](const DeviceInfo& self) { return self.getScreens(); },
+            "screens", [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getScreens(), self); },
             "List of streamable screen descriptors on this device. Only screens that parsed\n"
             "successfully are returned.")
         .def_prop_ro(
-            "hid_axes", [](const DeviceInfo& self) { return self.getHidAxisInput(); },
+            "hid_axes",
+            [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getHidAxisInput(), self); },
             "List of HID axis mappings exposed by this device.")
         .def_prop_ro(
-            "hid_buttons", [](const DeviceInfo& self) { return self.getHidButtonInput(); },
+            "hid_buttons",
+            [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getHidButtonInput(), self); },
             "List of HID button mappings exposed by this device.")
         .def_prop_ro(
             "usb_info", [](const DeviceInfo& self) { return self.getUsbInfo(); },

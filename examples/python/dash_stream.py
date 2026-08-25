@@ -92,6 +92,13 @@ def client_region(hwnd: int) -> tuple[str, tuple[int, int, int, int] | None] | N
     return info["Device"], (left, top, right, bottom)
 
 
+def find_screen_device(full_info: simucube_api.FullInfo | None) -> simucube_api.DeviceInfo | None:
+    """Return the first device that has a streamable screen, or None."""
+    if full_info is None:
+        return None
+    return full_info.find_first(lambda d: len(d.screens) > 0)
+
+
 def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
     camera = None
     camera_display = None
@@ -190,18 +197,21 @@ with simucube_api.Api(
 ) as api:
     session = api.wait_for_session(timeout=10.0)
 
-    # Wait for a device that has a screen
-    device_with_screen = None
-    for event in api.events(timeout=5.0):
-        if event is None:
-            break
-        match event:
-            case simucube_api.DeviceInfoChanged(session=s):
-                device_with_screen = s.device_info.find_first(lambda d: len(d.screens) > 0)
-                if device_with_screen:
-                    break
+    # The device list is usually ready as soon as the session opens, and its
+    # DeviceInfoChanged event is often delivered before this point. Read the current list
+    # first and use the events only to wait for a device that is not there yet. The queue
+    # exists before the list is read, so no update is lost in between.
+    with api.events(timeout=5.0) as events:
+        device_with_screen = find_screen_device(session.device_info)
+        while device_with_screen is None:
+            event = next(events, None)
+            if event is None:
+                break  # No update within the timeout, or the queue closed.
+            match event:
+                case simucube_api.DeviceInfoChanged(session=s):
+                    device_with_screen = find_screen_device(s.device_info)
 
-    if not device_with_screen:
+    if device_with_screen is None:
         print("No device with a screen found")
         raise SystemExit(1)
 
