@@ -392,23 +392,22 @@ size and the pixel format. Do not hardcode these values.
 auto wheel = device_info->findFirstByFilter([](const sc_api::device_info::DeviceInfo& device) {
     return device.hasFeedbackType(sc_api::device_info::FeedbackType::screen);
 });
-if (!wheel) {
-    return;  // No stream-capable display is connected.
+
+if (wheel) {
+    sc_api::device_info::ScreenFeedback screen = wheel->getScreens().front();
+
+    sc_api::DashStreamer streamer(session, wheel->getSessionId().id);
+
+    // Render screen.width * screen.height pixels in screen.pixel_format.
+    // The only current format is rgb565: one uint16_t for each pixel.
+    sc_api::FrameResult result = streamer.streamFrame(screen.width, screen.height, rgb565_pixels);
+    if (result == sc_api::FrameResult::dropped) {
+        // The backend has not consumed the previous frame yet. This is normal when you submit
+        // faster than the device displays: the frame is skipped and the next one replaces it.
+    }
+
+    streamer.stop();  // Before the streamer is destroyed.
 }
-
-sc_api::device_info::ScreenFeedback screen = wheel->getScreens().front();
-
-sc_api::DashStreamer streamer(session, wheel->getSessionId().id);
-
-// Render screen.width * screen.height pixels in screen.pixel_format.
-// The only current format is rgb565: one uint16_t for each pixel.
-sc_api::FrameResult result = streamer.streamFrame(screen.width, screen.height, rgb565_pixels);
-if (result == sc_api::FrameResult::dropped) {
-    // The backend has not consumed the previous frame yet. This is normal when you submit
-    // faster than the device displays: the frame is skipped and the next one replaces it.
-}
-
-streamer.stop();  // Before the streamer is destroyed.
 ```
 
 The first streamer that delivers a frame owns the device. The backend drops the frames from the
