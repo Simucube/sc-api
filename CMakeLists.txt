@@ -6,7 +6,7 @@ if (POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
 endif()
 
-project(SimucubeAPI VERSION 0.0.1)
+project(SimucubeAPI VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)

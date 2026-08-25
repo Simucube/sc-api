@@ -10,9 +10,8 @@ cmake --build build --config Release
 cmake --install build --config Release
 ```
 
-Above steps compile the library with the default settings and release configuration.
-Rerun steps with "Release" replaced with "Debug" config to install also debug libraries
-to the install-dir.
+The steps above compile the library with the default settings in the release configuration.
+To also install the debug libraries, do the steps again with "Release" replaced by "Debug".
 
 ## Install tree
 
@@ -48,7 +47,7 @@ is in one library: `sc-api`. Cryptography code (libeddsa) and the network code
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- The same compiler and the same C runtime as the sc-api build (see [Compatibility](#compatibility)).
+- The same compiler and the same C runtime as the sc-api build (see [Compatibility](@ref compatibility)).
 
 ## Integration without CMake
 
@@ -61,7 +60,7 @@ Give these three items to the build system:
 | Library           | `sc-api` (`sc-apid` for debug)     |
 | Extra system libs | `ws2_32` (MinGW and Clang non-MSVC)|
 
-With MSVC the ws2_32 should be linked automatically.
+MSVC links `ws2_32` automatically.
 
 No preprocessor definitions are necessary. The installed
 `include/sc-api/export.h` records if the library was built as a static or as a
@@ -69,11 +68,27 @@ shared library.
 
 ## Integration with CMake
 
+### find_package
+
+This uses an installed SDK: either an SDK package that you received, or your own install from
+[Build and install the SDK](@ref build-and-install-the-sdk).
+
+```cmake
+find_package(sc-api REQUIRED)
+target_link_libraries(my_app PRIVATE sc-api::sc-api)
+```
+
+Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
+`<install-dir>/lib/cmake/sc-api`.
+
 ### FetchContent
 
-FetchContent downloads and builds sc-api as part of your CMake project.
-This is the easiest way to handle dependency as the same compiler and build flags are automatically used and there can't be mismatch.
-Python interpreter is required to generate telemetry and sim data definitions.
+FetchContent downloads sc-api from GitHub and builds it as part of your CMake project. The build
+uses your compiler and your build flags, so the libraries always match. A Python interpreter is
+necessary to generate the telemetry and sim data definitions.
+
+**Note:** The GitHub repository can be behind the newest SDK package. If a feature is missing
+from GitHub, use find_package with an SDK package instead.
 
 ```cmake
 include(FetchContent)
@@ -86,18 +101,6 @@ FetchContent_MakeAvailable(sc_api)
 
 target_link_libraries(my_app PRIVATE sc-api)
 ```
-
-### find_package
-
-This requires that sc-api is compiled and installed separately to a directory where CMake can find it.
-
-```cmake
-find_package(sc-api REQUIRED)
-target_link_libraries(my_app PRIVATE sc-api::sc-api)
-```
-
-Set `CMAKE_PREFIX_PATH` to `<install-dir>` or `sc-api_DIR` to
-`<install-dir>/lib/cmake/sc-api`.
 
 ## Shared library builds
 

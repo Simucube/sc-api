@@ -2,7 +2,7 @@
 
 This guide shows how to open a session to Simucube Tuner and how to use each part of the API.
 
-For the feature overview, see [Features](#Features). For build and link instructions, see
+For the feature overview, see [Features](@ref Features). For build and link instructions, see
 [INTEGRATION.md](INTEGRATION.md).
 
 ## Before you start
@@ -16,16 +16,16 @@ For the feature overview, see [Features](#Features). For build and link instruct
 
 A session is one connection to Tuner. Almost every other function needs a session.
 
-Two entry points are available. [Api](#sc_api::Api) starts a background thread that opens the
-session and keeps its state up to date. [ApiCore](#sc_api::ApiCore) does the same work without a
-thread, and then the application must call [Session::poll](#sc_api::Session::poll) or
-[Session::runUntilStateChanges](#sc_api::Session::runUntilStateChanges) itself. Use `Api` unless
+Two entry points are available. [Api](@ref sc_api::Api) starts a background thread that opens the
+session and keeps its state up to date. [ApiCore](@ref sc_api::ApiCore) does the same work without a
+thread, and then the application must call [Session::poll](@ref sc_api::Session::poll) or
+[Session::runUntilStateChanges](@ref sc_api::Session::runUntilStateChanges) itself. Use `Api` unless
 the application needs that control.
 
 A new session starts in `SessionState::connected_monitor`. This state is read-only. It gives
 device info, variables and sim data.
 
-Create an [EventQueue](#sc_api::util::EventQueue) to learn when the state changes.
+Create an [EventQueue](@ref sc_api::util::EventQueue) to learn when the state changes.
 
 ```cpp
 #include <sc-api/api.h>
@@ -66,7 +66,7 @@ configuration file. Store the device UID instead.
 
 Force feedback, telemetry and sim data need control access. Register the API user to get it.
 
-[NoAuthControlEnabler](#sc_api::NoAuthControlEnabler) registers the user without encryption. It
+[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) registers the user without encryption. It
 registers again automatically after a reconnect. Keep the object alive for as long as control is
 needed.
 
@@ -99,7 +99,7 @@ The session reaches `SessionState::connected_control` when the backend accepts t
 Wait for that state before you send commands, telemetry or effects. The `control_flags` field of
 the `SessionStateChanged` event tells which flags the backend granted.
 
-@warning [SecureControlEnabler](#sc_api::SecureControlEnabler) is the encrypted variant. It needs
+@warning [SecureControlEnabler](@ref sc_api::SecureControlEnabler) is the encrypted variant. It needs
 a key pair that Simucube issues. It is not complete yet, so do not use it. Use
 `NoAuthControlEnabler` until the secure variant is ready.
 
@@ -125,7 +125,7 @@ Search by capability, not by device model. Then the code also works with devices
 later.
 
 ```cpp
-// Find every ActivePedal. A search for the brake role would also find passive pedals.
+// Find every ActivePedal. A search for the brake role also finds passive pedals.
 auto pedals = device_info->findAllByFilter([](const sc_api::device_info::DeviceInfo& device) {
     return device.hasFeedbackType(sc_api::device_info::FeedbackType::active_pedal);
 });
@@ -142,7 +142,7 @@ See `examples/device_info.cpp` for a complete program.
 Variables are the values that change often: pedal force, pedal position and the active telemetry
 values. They are read-only.
 
-[Session::getVariables](#sc_api::Session::getVariables) returns a snapshot of the definitions.
+[Session::getVariables](@ref sc_api::Session::getVariables) returns a snapshot of the definitions.
 Each definition holds a direct pointer into shared memory, so a read costs one dereference.
 
 ```cpp
@@ -169,7 +169,7 @@ holds a handle to the session, so the pointers above stay valid at least as long
 Pass the session shared pointer together with the value pointers in more complex code.
 
 To list every variable without knowledge of its type, use
-[invokeWithValueType](#sc_api::invokeWithValueType):
+[invokeWithValueType](@ref sc_api::invokeWithValueType):
 
 ```cpp
 for (const sc_api::VariableDefinition& def : variables) {
@@ -199,7 +199,7 @@ Telemetry carries simulator values to Tuner and to the devices. The devices use 
 their built-in effects.
 
 Group the values that change together into one
-[TelemetryUpdateGroup](#sc_api::TelemetryUpdateGroup). Configure the group once, then send it
+[TelemetryUpdateGroup](@ref sc_api::TelemetryUpdateGroup). Configure the group once, then send it
 repeatedly. Put rarely changing values in a separate group, because a group always sends every
 value in it.
 
@@ -279,7 +279,7 @@ arrives after the start time.
 
 Do not call `Clock::now()` for every set in production code. Keep the previous end time and
 increase it at a fixed rate instead. PC side scheduling jitter then cannot reach the effect.
-Compare that time against the real time from time to time, because a long run makes the two
+Compare that time against the real time at regular intervals, because a long run makes the two
 drift apart. Samples then arrive too early or too late.
 
 See `examples/effect_pipelines.cpp` for a complete program.
@@ -289,7 +289,7 @@ See `examples/effect_pipelines.cpp` for a complete program.
 Sim data describes the running game and the current play session. Tuner uses it to recognize the
 game and the vehicle.
 
-Build an update with [SimDataUpdateBuilder](#sc_api::sim_data::SimDataUpdateBuilder). One builder
+Build an update with [SimDataUpdateBuilder](@ref sc_api::sim_data::SimDataUpdateBuilder). One builder
 type exists for each section. A builder only accepts the properties of its own section.
 
 ```cpp
@@ -315,10 +315,10 @@ session->blockingReplaceSimData(update);
 ```
 
 `blockingReplaceSimData` replaces the whole document.
-[Session::blockingUpdateSimData](#sc_api::Session::blockingUpdateSimData) replaces only the
+[Session::blockingUpdateSimData](@ref sc_api::Session::blockingUpdateSimData) replaces only the
 values that the builder names and keeps the rest. Both have an `async` variant.
 
-To read sim data, call [Session::getSimData](#sc_api::Session::getSimData). Every getter returns
+To read sim data, call [Session::getSimData](@ref sc_api::Session::getSimData). Every getter returns
 `std::nullopt` or `nullptr` when the simulator does not supply that property.
 
 ```cpp
@@ -339,7 +339,7 @@ See `examples/overview.cpp` for a complete program.
 
 ## Control LEDs
 
-[LedControl](#sc_api::LedControl) sets the RGB lights of one device. It needs the
+[LedControl](@ref sc_api::LedControl) sets the RGB lights of one device. It needs the
 `control_ffb_effects` flag.
 
 First declare which lights this application controls. Then set their colors. The color order
@@ -374,26 +374,54 @@ See `examples/led_control.cpp` for a complete program.
 
 ## Stream dashboard frames
 
-[DashStreamer](#sc_api::DashStreamer) sends dashboard frames to a wheel display through shared
-memory. The pixel format is RGB565.
+[DashStreamer](@ref sc_api::DashStreamer) sends dashboard frames to a wheel display through shared
+memory.
+
+Streaming needs control access. Register with
+[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) first (see Enable control above). No
+dedicated streaming flag exists. Any control registration is enough.
+
+Find the target display through device info. A device that can show streamed frames has a
+feedback of type `screen`. [ScreenFeedback](@ref sc_api::device_info::ScreenFeedback) gives the frame
+size and the pixel format. Do not hardcode these values.
 
 ```cpp
 #include <sc-api/dash_stream.h>
+#include <sc-api/device_info.h>
 
-sc_api::DashStreamer streamer(session, device_session_id.id);
+auto wheel = device_info->findFirstByFilter([](const sc_api::device_info::DeviceInfo& device) {
+    return device.hasFeedbackType(sc_api::device_info::FeedbackType::screen);
+});
 
-sc_api::FrameResult result = streamer.streamFrame(800, 480, rgb565_pixels);
-if (result == sc_api::FrameResult::dropped) {
-    // The backend has not consumed the previous frame yet. This is normal when you submit
-    // faster than the device displays: the frame is skipped and the next one replaces it.
+if (wheel) {
+    sc_api::device_info::ScreenFeedback screen = wheel->getScreens().front();
+
+    sc_api::DashStreamer streamer(session, wheel->getSessionId().id);
+
+    // Render screen.width * screen.height pixels in screen.pixel_format.
+    // The only current format is rgb565: one uint16_t for each pixel.
+    sc_api::FrameResult result = streamer.streamFrame(screen.width, screen.height, rgb565_pixels);
+    if (result == sc_api::FrameResult::dropped) {
+        // The backend has not consumed the previous frame yet. This is normal when you submit
+        // faster than the device displays: the frame is skipped and the next one replaces it.
+    }
+
+    streamer.stop();  // Before the streamer is destroyed.
 }
-
-streamer.stop();  // Before the streamer is destroyed.
 ```
 
-The first streamer that delivers a frame owns the device. Other senders' frames are dropped until
-that owner stops. [DashStreamer::getStreamFeedback](#sc_api::DashStreamer::getStreamFeedback)
-reports ownership and how many frames the device showed.
+The first streamer that delivers a frame owns the device. The backend drops the frames from the
+other senders until the owner stops.
+[DashStreamer::getStreamFeedback](@ref sc_api::DashStreamer::getStreamFeedback) reports ownership and
+how many frames the device showed. Poll the feedback about once per second. Adjust the frame rate
+from it. Do not poll it for every frame.
+
+The streamer connects to the backend on the first `streamFrame` call, and that call can block.
+To detect a connection failure before the first frame, call
+[DashStreamer::open](@ref sc_api::DashStreamer::open) first.
+
+A session loss invalidates the streamer. Create a new `DashStreamer` for the new session. Find
+the device again, because the device session id can change.
 
 See `examples/dash_stream.cpp` for a complete program.
 
@@ -401,5 +429,6 @@ See `examples/dash_stream.cpp` for a complete program.
 
 - [INTEGRATION.md](INTEGRATION.md) — build, link and compiler compatibility.
 - [Python.md](Python.md) — the same topics for the Python bindings.
+- `examples/game_loop.cpp` — device info, variables, telemetry and effects together in one game loop.
 - The `examples/` directory of the source tree — complete C++ and Python programs.
 - The class list of this reference — every public type.

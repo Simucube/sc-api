@@ -70,6 +70,7 @@ public:
 
         /** Called from background thread when the granted control flags change
          *
+         * @param session Session whose control flags changed
          * @param flags Combination of Session::ControlFlag that the backend now allows
          */
         virtual void controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t flags)       = 0;

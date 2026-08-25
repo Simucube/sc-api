@@ -183,7 +183,6 @@ public:
 
     /** Configure this group to contain previously given telemetries that are resolved using provided definitions
      *
-     *  @param group_id Id of this update group. Used to identify this particular group during the session
      *  @param definitions Telemetry definitions that are used to resolve telemetry handles
      */
     bool configure(const TelemetryDefinitions& definitions);
