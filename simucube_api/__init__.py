@@ -42,6 +42,8 @@ from simucube_api._native import (  # noqa: E402
     Input,
     Feedback,
     RgbLightFeedback,
+    ScreenFeedback,
+    DashPixelFormat,
     UsbDeviceInfo,
     VariableRef,
     InputMapping,
@@ -64,6 +66,10 @@ from simucube_api._native import (  # noqa: E402
     FilterType,
     # LED control
     LedControl,
+    # Dash streaming
+    DashStreamer,
+    FrameResult,
+    StreamFeedback,
     # SimData types
     SimData,
     Vehicle,
@@ -264,6 +270,8 @@ __all__ = [
     "Input",
     "Feedback",
     "RgbLightFeedback",
+    "ScreenFeedback",
+    "DashPixelFormat",
     "UsbDeviceInfo",
     "VariableRef",
     "InputMapping",
@@ -286,6 +294,10 @@ __all__ = [
     "FilterType",
     # LED control
     "LedControl",
+    # Dash streaming
+    "DashStreamer",
+    "FrameResult",
+    "StreamFeedback",
     # SimData types
     "SimData",
     "Vehicle",

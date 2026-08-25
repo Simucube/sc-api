@@ -12,6 +12,7 @@ void bind_variables(nb::module_& m);
 void bind_telemetry(nb::module_& m);
 void bind_ffb(nb::module_& m);
 void bind_led_control(nb::module_& m);
+void bind_dash_stream(nb::module_& m);
 
 NB_MODULE(_native, m) {
     m.doc()               = "Simucube API native bindings";
@@ -27,4 +28,5 @@ NB_MODULE(_native, m) {
     bind_telemetry(m);
     bind_ffb(m);
     bind_led_control(m);
+    bind_dash_stream(m);
 }

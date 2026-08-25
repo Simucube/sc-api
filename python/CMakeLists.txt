@@ -32,6 +32,7 @@ nanobind_add_module(sc-api-python
     bind_telemetry.cpp
     bind_ffb.cpp
     bind_led_control.cpp
+    bind_dash_stream.cpp
 )
 set_target_properties(sc-api-python PROPERTIES OUTPUT_NAME _native)
 target_link_libraries(sc-api-python PRIVATE sc-api)

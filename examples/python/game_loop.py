@@ -8,7 +8,9 @@ import simucube_api
 
 
 def find_brake_pedal(full_info):
-    """Find first ActivePedal brake device."""
+    """Find first ActivePedal brake device, or None if the list is not ready yet."""
+    if full_info is None:
+        return None
     return full_info.find_first(
         lambda d: (
             d.role == simucube_api.DeviceRole.brake_pedal

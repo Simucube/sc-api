@@ -4,6 +4,16 @@ import time
 
 import simucube_api
 
+
+def find_led_device(full_info):
+    """Return the first device that has RGB lights, or None."""
+    if full_info is None:
+        return None
+    return full_info.find_first(
+        lambda d: any(fb.type == simucube_api.FeedbackType.rgb_light for fb in d.feedbacks)
+    )
+
+
 with simucube_api.Api(
     control_flags=simucube_api.ControlFlag.control_ffb_effects,
     id_name="python_led_example",
@@ -13,23 +23,20 @@ with simucube_api.Api(
 ) as api:
     session = api.wait_for_session(timeout=10.0)
 
-    # Wait for a device with RGB lights
-    device_with_leds = None
-    for event in api.events(timeout=5.0):
-        if event is None:
-            break
-        match event:
-            case simucube_api.DeviceInfoChanged(session=s):
-                full_info = s.device_info
-                device_with_leds = full_info.find_first(
-                    lambda d: any(
-                        fb.type == simucube_api.FeedbackType.rgb_light for fb in d.feedbacks
-                    )
-                )
-                if device_with_leds:
-                    break
+    # The device list is usually ready when the session opens, so its DeviceInfoChanged
+    # event may already be delivered. A new queue gets no replay: create it first, then
+    # read the list, and use the events only to wait for a device that is not there yet.
+    with api.events(timeout=5.0) as events:
+        device_with_leds = find_led_device(session.device_info)
+        while device_with_leds is None:
+            event = next(events, None)
+            if event is None:
+                break  # No update within the timeout, or the queue closed.
+            match event:
+                case simucube_api.DeviceInfoChanged(session=s):
+                    device_with_leds = find_led_device(s.device_info)
 
-    if not device_with_leds:
+    if device_with_leds is None:
         print("No device with RGB lights found")
         raise SystemExit(1)
 
