@@ -105,10 +105,10 @@ void bind_ffb(nb::module_& m) {
             "Schedule effect playback from a float32 sample array.\n\n"
             ":param start_ns: Absolute start time in nanoseconds (use Clock.now_ns() for immediate playback).\n"
             ":param sample_duration_ns: Duration of each sample in nanoseconds (e.g. 50000 for 20 kHz).\n"
-            ":param samples: Contiguous 1D numpy float32 array of output values in the\n"
-            "    pipeline's offset_type units. A strided array, such as a slice\n"
-            "    with a step or a column of a 2D array, is rejected. Copy it first\n"
-            "    with numpy.ascontiguousarray.\n"
+            ":param samples: 1D numpy array of output values in the pipeline's offset_type\n"
+            "    units. An array that is not C-contiguous float32, such as a float64\n"
+            "    array or a slice with a step, is converted to a temporary contiguous\n"
+            "    float32 copy. Pass a C-contiguous float32 array to avoid the copy.\n"
             ":returns: ActionResult. configure() must have been called first.")
         .def("stop", &FfbPipeline::stop,
              "Stop the current effect immediately. The pipeline remains configured and can play a new effect.")
