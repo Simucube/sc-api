@@ -74,7 +74,8 @@ public:
         return e;
     }
 
-    /** Block until event arrives or queue is closed. Returns default constructed EventT if queue is closed */
+    /** Block until event arrives or queue is closed. Returns default constructed EventT when the queue is closed
+     * and empty */
     EventT pop() {
         std::unique_lock lock(m_);
         if (queue_.empty()) {

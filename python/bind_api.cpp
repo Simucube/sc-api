@@ -95,7 +95,8 @@ static std::optional<Event> waitForEvent(EventQueueT&                           
         }
 
         if (event) return event;
-        if (!queue.isOpen()) return std::nullopt;
+        // Closed: no further push can happen, but one may have landed just before the close.
+        if (!queue.isOpen()) return queue.tryPop();
         if (PyErr_CheckSignals() != 0) throw nb::python_error();
         if (last) return std::nullopt;
     }
@@ -427,6 +428,7 @@ void bind_api(nb::module_& m) {
             "an event arrives (the queue remains open).\n\n"
             ":param timeout: Maximum seconds to wait. ``None`` (default) waits forever.\n\n"
             ":returns: An event object, or ``None`` on timeout or queue closure.\n\n"
+            ":raises ValueError: If ``timeout`` is NaN.\n"
             ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def(
             "try_pop",
@@ -458,11 +460,13 @@ void bind_api(nb::module_& m) {
              })
         .def("__next__", [](EventIterator& self) -> nb::object {
             auto event = waitForEvent(*self.queue, toDeadline(self.timeout));
-            if (!event) {
-                // No event within the per-item timeout. A closed queue ends the iteration instead.
-                if (!self.queue->isOpen()) throw nb::stop_iteration();
-                return nb::none();
+            if (!event && !self.queue->isOpen()) {
+                // Closed: drain an event that a push landed just before the close.
+                event = self.queue->tryPop();
+                if (!event) throw nb::stop_iteration();
             }
+            // No event within the per-item timeout. The queue is still open.
+            if (!event) return nb::none();
             if (std::holds_alternative<NoEvent>(*event)) throw nb::stop_iteration();
             return unwrap_event(*event);
         });
@@ -532,6 +536,7 @@ void bind_api(nb::module_& m) {
             ":returns: The connected ``Session`` object.\n\n"
             ":raises TimeoutError: If no session is established within ``timeout`` seconds.\n"
             ":raises RuntimeError: If another thread closes the Api while this call waits.\n"
+            ":raises ValueError: If ``timeout`` is NaN.\n"
             ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def(
             "events",
@@ -551,6 +556,7 @@ void bind_api(nb::module_& m) {
             "context manager, to end the iteration from another thread.\n\n"
             ":param timeout: Per-item wait limit in seconds. ``None`` waits forever.\n\n"
             ":returns: An iterator of event objects or ``None`` (on per-item timeout).\n\n"
+            ":raises ValueError: If ``timeout`` is NaN.\n"
             ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
         .def("close", &PyApi::close,
              "Shut down the background thread and release all resources.\n\n"
