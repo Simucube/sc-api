@@ -51,11 +51,9 @@ public:
     std::optional<EventT> tryPopFor(std::chrono::duration<Rep, Period> duration) {
         std::unique_lock lock(m_);
         if (queue_.empty()) {
-            if (!cv_.wait_for(lock, duration, [&]() { return !queue_.empty() || !open_; })) {
-                return std::nullopt;
-            }
-
-            if (!open_) return std::nullopt;
+            cv_.wait_for(lock, duration, [&]() { return !queue_.empty() || !open_; });
+            // Empty here means the duration passed, or the queue closed with nothing left in it.
+            if (queue_.empty()) return std::nullopt;
         }
         std::optional<EventT> e = std::move(queue_.front());
         queue_.pop();
@@ -67,8 +65,9 @@ public:
     std::optional<EventT> tryPopUntil(std::chrono::time_point<Clock, Duration> time_point) {
         std::unique_lock lock(m_);
         if (queue_.empty()) {
-            bool not_timeout = cv_.wait_until(lock, time_point, [&]() { return !queue_.empty() || !open_; });
-            if (!not_timeout || !open_) return std::nullopt;
+            cv_.wait_until(lock, time_point, [&]() { return !queue_.empty() || !open_; });
+            // Empty here means the time point passed, or the queue closed with nothing left in it.
+            if (queue_.empty()) return std::nullopt;
         }
         std::optional<EventT> e = std::move(queue_.front());
         queue_.pop();
@@ -80,8 +79,8 @@ public:
         std::unique_lock lock(m_);
         if (queue_.empty()) {
             cv_.wait(lock, [&]() { return !queue_.empty() || !open_; });
-
-            if (!open_) return {};
+            // Empty here means the queue closed with nothing left in it.
+            if (queue_.empty()) return {};
         }
         EventT e = std::move(queue_.front());
         queue_.pop();
@@ -96,9 +95,9 @@ public:
 
     /** Closes queue from new events
      *
-     * No new events will arrive. When all queued events are popped, the pop functions stop
-     * blocking. The try* functions then return std::nullopt, and pop returns a default
-     * constructed EventT.
+     * No new events will arrive, but the events that are already in the queue are still
+     * delivered. When all queued events are popped, the pop functions stop blocking. The try*
+     * functions then return std::nullopt, and pop returns a default constructed EventT.
      *
      * thread-safe
      */
