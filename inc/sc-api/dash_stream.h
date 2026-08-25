@@ -75,8 +75,9 @@ struct StreamFeedback {
  * @code
  * DashStreamer streamer(session, device_session_id);
  *
+ * // screen is the device_info::ScreenFeedback of the target display.
  * uint16_t* rgb565_pixels = ...;
- * if (streamer.streamFrame(800, 480, rgb565_pixels) == FrameResult::failed) {
+ * if (streamer.streamFrame(screen.width, screen.height, rgb565_pixels) == FrameResult::failed) {
  *     // Not connected yet (retrying) or the frame was rejected.
  * }
  * @endcode

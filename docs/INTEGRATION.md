@@ -47,7 +47,7 @@ is in one library: `sc-api`. Cryptography code (libeddsa) and the network code
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- The same compiler and the same C runtime as the sc-api build (see [Compatibility](#compatibility)).
+- The same compiler and the same C runtime as the sc-api build (see [Compatibility](@ref compatibility)).
 
 ## Integration without CMake
 
@@ -71,7 +71,7 @@ shared library.
 ### find_package
 
 This uses an installed SDK: either an SDK package that you received, or your own install from
-[Build and install the SDK](#build-and-install-the-sdk).
+[Build and install the SDK](@ref build-and-install-the-sdk).
 
 ```cmake
 find_package(sc-api REQUIRED)
