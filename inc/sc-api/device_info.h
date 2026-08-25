@@ -309,6 +309,15 @@ public:
     std::shared_ptr<const DeviceInfo> shared_from_this() const;
     std::shared_ptr<DeviceInfo>       shared_from_this();
 
+    /** Weak form of shared_from_this. Gives an empty pointer if the owning FullInfo is gone.
+     *
+     * Keep this public. nanobind detects the enable_shared_from_this pattern by probing
+     * weak_from_this(). Without it, a shared_ptr<DeviceInfo> that comes from Python gets a second,
+     * independent control block over an object that FullInfo already owns.
+     */
+    std::weak_ptr<const DeviceInfo> weak_from_this() const noexcept;
+    std::weak_ptr<DeviceInfo>       weak_from_this() noexcept;
+
 private:
     DeviceInfo();
     void construct(Data&& data, FullInfo* info);
@@ -438,6 +447,21 @@ private:
     uint32_t                         rev_;
     std::shared_ptr<const uint8_t[]> raw_bson_;
 };
+
+// Defined here because they need the complete FullInfo type.
+inline std::weak_ptr<DeviceInfo> DeviceInfo::weak_from_this() noexcept {
+    if (!full_info_) return {};
+    std::shared_ptr<FullInfo> info = full_info_->weak_from_this().lock();
+    if (!info) return {};
+    return std::weak_ptr<DeviceInfo>(std::shared_ptr<DeviceInfo>(std::move(info), this));
+}
+
+inline std::weak_ptr<const DeviceInfo> DeviceInfo::weak_from_this() const noexcept {
+    if (!full_info_) return {};
+    std::shared_ptr<FullInfo> info = full_info_->weak_from_this().lock();
+    if (!info) return {};
+    return std::weak_ptr<const DeviceInfo>(std::shared_ptr<const DeviceInfo>(std::move(info), this));
+}
 
 }  // namespace device_info
 

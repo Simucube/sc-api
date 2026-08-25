@@ -57,6 +57,56 @@ static nb::object unwrap_event(const Event& event) {
         event);
 }
 
+// --- Interruptible waiting ---
+
+/** Longest single wait with the GIL released.
+ *
+ * Short enough that Ctrl-C and interpreter shutdown are handled promptly, long enough that the
+ * wakeup cost stays negligible.
+ */
+constexpr auto poll_interval = std::chrono::milliseconds(50);
+
+/** Wait for an event, releasing the GIL only in short slices.
+ *
+ * A single unbounded wait with the GIL released cannot be interrupted: signals are never handled,
+ * and a thread parked in one when the interpreter shuts down never unwinds its frame, which
+ * strands every Python object the frame holds.
+ *
+ * @param deadline Absolute time to give up at, or std::nullopt to wait until an event arrives or
+ *                 the queue closes.
+ * @return The event, or std::nullopt if the deadline passed or the queue closed and drained.
+ * @throws nb::python_error If a signal handler raised, for example on Ctrl-C.
+ */
+static std::optional<Event> waitForEvent(EventQueueT&                                         queue,
+                                         std::optional<std::chrono::steady_clock::time_point> deadline) {
+    while (true) {
+        auto slice_end = std::chrono::steady_clock::now() + poll_interval;
+        bool last      = false;
+        if (deadline && *deadline <= slice_end) {
+            slice_end = *deadline;
+            last      = true;
+        }
+
+        std::optional<Event> event;
+        {
+            nb::gil_scoped_release release;
+            event = queue.tryPopUntil(slice_end);
+        }
+
+        if (event) return event;
+        if (!queue.isOpen()) return std::nullopt;
+        if (PyErr_CheckSignals() != 0) throw nb::python_error();
+        if (last) return std::nullopt;
+    }
+}
+
+/** Convert a timeout in seconds to an absolute deadline. std::nullopt means "wait forever". */
+static std::optional<std::chrono::steady_clock::time_point> toDeadline(std::optional<double> timeout) {
+    if (!timeout) return std::nullopt;
+    return std::chrono::steady_clock::now() +
+           std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(*timeout));
+}
+
 // --- PyApi wrapper (stores NoAuthControlEnabler alongside Api) ---
 
 struct PyApi {
@@ -101,6 +151,11 @@ struct EventIterator {
     std::unique_ptr<EventQueueT> queue;
     std::optional<double>        timeout;
 };
+
+// FfbPipeline and LedControl store a shared_ptr<Session> that came from Python. nanobind must
+// resolve it to the control block the session manager already owns, not build a second one.
+static_assert(nb::detail::has_shared_from_this_v<Session>,
+              "Session must inherit std::enable_shared_from_this publicly");
 
 void bind_api(nb::module_& m) {
     // --- Value types (bound first so they can be used in constructor signatures) ---
@@ -327,23 +382,9 @@ void bind_api(nb::module_& m) {
         .def(
             "pop",
             [](EventQueueT& self, std::optional<double> timeout) -> nb::object {
-                if (timeout) {
-                    auto                 dur = std::chrono::duration<double>(*timeout);
-                    std::optional<Event> event;
-                    {
-                        nb::gil_scoped_release release;
-                        event = self.tryPopFor(dur);
-                    }
-                    if (!event) return nb::none();
-                    return unwrap_event(*event);
-                } else {
-                    Event event;
-                    {
-                        nb::gil_scoped_release release;
-                        event = self.pop();
-                    }
-                    return unwrap_event(event);
-                }
+                auto event = waitForEvent(self, toDeadline(timeout));
+                if (!event) return nb::none();
+                return unwrap_event(*event);
             },
             nb::arg("timeout") = nb::none(),
             "Remove and return the next event, optionally waiting up to ``timeout`` seconds.\n\n"
@@ -370,28 +411,26 @@ void bind_api(nb::module_& m) {
     nb::class_<EventIterator>(m, "_EventIterator")
         .def(
             "__iter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
+        .def(
+            "close", [](EventIterator& self) { self.queue->close(); },
+            "Close the underlying queue, ending the iteration.\n\n"
+            "Releases any thread waiting in the iterator. Call this, and join the thread, before "
+            "the interpreter shuts down.")
+        .def(
+            "__enter__", [](EventIterator& self) -> EventIterator& { return self; }, nb::rv_policy::none)
+        .def("__exit__",
+             [](EventIterator& self, nb::args /*unused*/) {  // NOLINT(performance-unnecessary-value-param)
+                 self.queue->close();
+             })
         .def("__next__", [](EventIterator& self) -> nb::object {
-            if (self.timeout) {
-                auto                 dur = std::chrono::duration<double>(*self.timeout);
-                std::optional<Event> event;
-                {
-                    nb::gil_scoped_release release;
-                    event = self.queue->tryPopFor(dur);
-                }
-                if (event) return unwrap_event(*event);
+            auto event = waitForEvent(*self.queue, toDeadline(self.timeout));
+            if (!event) {
+                // No event within the per-item timeout. A closed queue ends the iteration instead.
                 if (!self.queue->isOpen()) throw nb::stop_iteration();
                 return nb::none();
-            } else {
-                Event event;
-                {
-                    nb::gil_scoped_release release;
-                    event = self.queue->pop();
-                }
-                if (std::holds_alternative<NoEvent>(event)) {
-                    throw nb::stop_iteration();
-                }
-                return unwrap_event(event);
             }
+            if (std::holds_alternative<NoEvent>(*event)) throw nb::stop_iteration();
+            return unwrap_event(*event);
         });
 
     // --- Api ---
@@ -432,21 +471,10 @@ void bind_api(nb::module_& m) {
             "wait_for_session",
             [](PyApi& self, double timeout) -> std::shared_ptr<Session> {
                 auto queue    = self.api().createEventQueue();
-                auto deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(timeout);
+                auto deadline = toDeadline(timeout);
 
                 while (true) {
-                    auto remaining = deadline - std::chrono::steady_clock::now();
-                    if (remaining <= std::chrono::steady_clock::duration::zero()) {
-                        PyErr_SetString(PyExc_TimeoutError, "Timed out waiting for session");
-                        throw nb::python_error();
-                    }
-
-                    std::optional<Event> event;
-                    {
-                        nb::gil_scoped_release release;
-                        event = queue->tryPopUntil(deadline);
-                    }
-
+                    auto event = waitForEvent(*queue, deadline);
                     if (!event) {
                         PyErr_SetString(PyExc_TimeoutError, "Timed out waiting for session");
                         throw nb::python_error();
@@ -477,6 +505,8 @@ void bind_api(nb::module_& m) {
             "``StopIteration`` when the queue closes. With a timeout, each iteration "
             "waits at most ``timeout`` seconds; if no event arrives, ``None`` is "
             "yielded and iteration continues (the queue is still open).\n\n"
+            "The iterator owns its queue. Call ``close()`` on it, or use it as a "
+            "context manager, to end the iteration from another thread.\n\n"
             ":param timeout: Per-item wait limit in seconds. ``None`` waits forever.\n\n"
             ":returns: An iterator of event objects or ``None`` (on per-item timeout).")
         .def("close", &PyApi::close,

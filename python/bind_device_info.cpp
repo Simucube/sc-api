@@ -26,6 +26,14 @@ using sc_api::device_info::RgbLightFeedback;
 using sc_api::device_info::UsbDeviceInfo;
 using sc_api::device_info::VariableRef;
 
+// See the note on DeviceInfo::weak_from_this. Losing the detection gives a shared_ptr from Python a
+// second control block over a device that FullInfo owns.
+static_assert(nb::detail::has_shared_from_this_v<DeviceInfo>, "DeviceInfo must keep weak_from_this() public");
+static_assert(nb::detail::has_shared_from_this_v<const DeviceInfo>,
+              "DeviceInfo must keep the const weak_from_this() public");
+static_assert(nb::detail::has_shared_from_this_v<FullInfo>,
+              "FullInfo must inherit std::enable_shared_from_this publicly");
+
 void bind_device_info(nb::module_& m) {
     // --- VariableRef ---
 
@@ -256,7 +264,8 @@ void bind_device_info(nb::module_& m) {
     };
 
     nb::class_<FullInfoIterator>(m, "FullInfoIterator")
-        .def("__iter__", [](FullInfoIterator& self) -> FullInfoIterator& { return self; })
+        .def(
+            "__iter__", [](FullInfoIterator& self) -> FullInfoIterator& { return self; }, nb::rv_policy::none)
         .def("__next__", &FullInfoIterator::next);
 
     // --- FullInfo (held via shared_ptr<FullInfo>) ---
