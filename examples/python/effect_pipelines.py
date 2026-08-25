@@ -11,6 +11,22 @@ FREQ_HZ = 20.0
 SAMPLE_TIME_OFFSET_NS = 5_000_000  # 5ms
 SAMPLE_LENGTH_NS = 10_000_000  # 10ms
 
+
+def find_pedals(full_info):
+    """Return the (brake, throttle) session IDs of the connected ActivePedals."""
+    brake_id = None
+    throttle_id = None
+    if full_info is None:
+        return brake_id, throttle_id
+    for device in full_info:
+        if any(fb.type == simucube_api.FeedbackType.active_pedal for fb in device.feedbacks):
+            if device.role == simucube_api.DeviceRole.brake_pedal:
+                brake_id = device.session_id
+            elif device.role == simucube_api.DeviceRole.throttle_pedal:
+                throttle_id = device.session_id
+    return brake_id, throttle_id
+
+
 with simucube_api.Api(
     control_flags=simucube_api.ControlFlag.control_ffb_effects,
     id_name="python_ffb_example",
@@ -21,24 +37,18 @@ with simucube_api.Api(
     session = api.wait_for_session(timeout=10.0)
     print("Session connected, waiting for devices...")
 
-    # Wait for devices with active_pedal feedback
-    brake_id = None
-    throttle_id = None
-    for event in api.events(timeout=5.0):
-        if event is None:
-            break
-        match event:
-            case simucube_api.DeviceInfoChanged(session=s):
-                full_info = s.device_info
-                for device in full_info:
-                    if any(
-                        fb.type == simucube_api.FeedbackType.active_pedal
-                        for fb in device.feedbacks
-                    ):
-                        if device.role == simucube_api.DeviceRole.brake_pedal:
-                            brake_id = device.session_id
-                        elif device.role == simucube_api.DeviceRole.throttle_pedal:
-                            throttle_id = device.session_id
+    # The device list is usually ready when the session opens, so its DeviceInfoChanged
+    # event may already be delivered. A new queue gets no replay: create it first, then
+    # read the list, and use the events only to wait for a device that is not there yet.
+    with api.events(timeout=5.0) as events:
+        brake_id, throttle_id = find_pedals(session.device_info)
+        while not brake_id and not throttle_id:
+            event = next(events, None)
+            if event is None:
+                break  # No update within the timeout, or the queue closed.
+            match event:
+                case simucube_api.DeviceInfoChanged(session=s):
+                    brake_id, throttle_id = find_pedals(s.device_info)
 
     if not brake_id and not throttle_id:
         print("No ActivePedals found within timeout")

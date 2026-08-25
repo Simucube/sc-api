@@ -197,10 +197,9 @@ with simucube_api.Api(
 ) as api:
     session = api.wait_for_session(timeout=10.0)
 
-    # The device list is usually ready as soon as the session opens, and its
-    # DeviceInfoChanged event is often delivered before this point. Read the current list
-    # first and use the events only to wait for a device that is not there yet. The queue
-    # exists before the list is read, so no update is lost in between.
+    # The device list is usually ready when the session opens, so its DeviceInfoChanged
+    # event may already be delivered. A new queue gets no replay: create it first, then
+    # read the list, and use the events only to wait for a device that is not there yet.
     with api.events(timeout=5.0) as events:
         device_with_screen = find_screen_device(session.device_info)
         while device_with_screen is None:
