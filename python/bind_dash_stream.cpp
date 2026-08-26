@@ -118,7 +118,7 @@ void bind_dash_stream(nb::module_& m) {
                 size_t       height = 0;
                 size_t       width  = 0;
 
-                if (ndim == 2 && frame.dtype() == nb::dtype<uint16_t>()) {
+                if (ndim == 2 && frame.dtype() == nb::dtype<uint16_t>()) {  // NOLINT(bugprone-branch-clone)
                     height = frame.shape(0);
                     width  = frame.shape(1);
                 } else if (ndim == 3 && frame.dtype() == nb::dtype<uint8_t>() && frame.shape(2) == 2) {
