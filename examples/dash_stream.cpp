@@ -275,9 +275,10 @@ int main() {
     }
 
     if (streamer) {
-        // stop() tells the device to exit streaming now, without its ~3 s frame timeout.
+        // stop() falls back to another live source if one exists; otherwise it tells the device
+        // to exit streaming now, without its ~3 s frame timeout.
         streamer->stop();
-        // Destruction releases the buffer, and with it device ownership.
+        // Destruction releases the buffer, and with it this streamer's claim on the device.
         streamer.reset();
         // The Api thread sends both commands in the background. Give them time to reach the
         // wire before Api is destroyed.

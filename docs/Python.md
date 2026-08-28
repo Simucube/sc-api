@@ -301,8 +301,12 @@ The streamer connects when it sends the first frame, and retries with a backoff.
 `stream_frame` returns `FrameResult.failed`. Call `open()` only to detect a connection failure
 before the first frame.
 
-The first streamer that delivers a frame owns the device. Frames of other senders are dropped until
-that owner stops. `dash.is_owner` reports ownership.
+Ownership is newest-wins: a streamer that resumes sending frames after being idle preempts the
+current owner. When the owner stops, the display falls back to the most recently active remaining
+streamer instead of leaving streaming mode. A demoted streamer keeps its place in that fallback
+order only by continuing to send frames — pausing while demoted drops it out, so it preempts again
+on resume. `dash.is_owner` reports ownership; frames from non-owners are still delivered and
+acknowledged.
 
 `dash.get_stream_feedback()` gives `is_owner`, `device_frame_counter`, `dropped_count` and
 `last_ack_time_ns`. The lag is the number of sent frames minus `device_frame_counter`. Use it to

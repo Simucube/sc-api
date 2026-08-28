@@ -137,7 +137,9 @@ public:
      * @param width Frame width in pixels
      * @param height Frame height in pixels
      * @param rgb565_data Pointer to RGB565 pixel data (width * height * 2 bytes)
-     * @return @ref FrameResult::delivered on success,
+     * @return @ref FrameResult::delivered on success, whether or not this streamer owns the
+     *         device — non-owner frames are consumed too, so @ref isOwner, not this return
+     *         value, is the way to check ownership.
      *         @ref FrameResult::dropped if the previous frame has not yet been
      *         consumed by the backend,
      *         @ref FrameResult::failed on transport/state error or if the
@@ -146,9 +148,10 @@ public:
     FrameResult streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data);
 
     /**
-     * @brief Signal a controlled stop to the device
+     * @brief Stop this streamer
      *
-     * Fire-and-forget `dash_stream:stop_stream` service command. The backend emits an explicit
+     * If another source is still streaming, the display falls back to it. Otherwise, this sends a
+     * fire-and-forget `dash_stream:stop_stream` service command: the backend emits an explicit
      * dash-stream stop packet so the wheel leaves streaming immediately instead of waiting out its
      * inter-frame fallback timeout (~3 s). Purely a latency optimisation: if it is lost or never
      * sent, the firmware's autonomous timeout still falls back, so correctness never depends on it.
@@ -159,9 +162,12 @@ public:
     /**
      * @brief Whether this streamer currently owns its target device.
      *
-     * Ownership is first-writer-wins: the first streamer to deliver a frame to a device owns it,
-     * and other senders' frames are dropped until ownership is released (explicit stop/teardown or
-     * an inactivity timeout). Polled from shared memory.
+     * Ownership is newest-wins: a streamer that resumes sending frames after a period of not
+     * streaming preempts the current owner immediately. When the owner stops (explicit stop,
+     * disconnect, or ~2.5 s without a frame), the display falls back to the most recently active
+     * remaining streamer instead of leaving streaming mode. A demoted streamer that keeps sending
+     * frames keeps its place in that fallback order and does not re-preempt; pausing while demoted
+     * drops it out of the order, so it preempts again on resume. Polled from shared memory.
      *
      * @return true if this streamer's frames are being forwarded to the device.
      */
