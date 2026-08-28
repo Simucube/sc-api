@@ -410,8 +410,12 @@ if (wheel) {
 }
 ```
 
-The first streamer that delivers a frame owns the device. The backend drops the frames from the
-other senders until the owner stops.
+Ownership is newest-wins: a streamer that resumes sending frames after being idle preempts the
+current owner. When the owner stops, the display falls back to the most recently active remaining
+streamer instead of leaving streaming mode. A demoted streamer keeps its place in that fallback
+order only by continuing to send frames — pausing while demoted drops it out, so it preempts again
+on resume. Non-owner frames are still consumed and acknowledged; check ownership with `isOwner()`,
+not the `streamFrame` return value.
 [DashStreamer::getStreamFeedback](@ref sc_api::DashStreamer::getStreamFeedback) reports ownership and
 how many frames the device showed. Poll the feedback about once per second. Adjust the frame rate
 from it. Do not poll it for every frame.

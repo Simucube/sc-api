@@ -170,9 +170,10 @@ void bind_dash_stream(nb::module_& m) {
             ":param data: Packed RGB565 pixels, width * height * 2 bytes, row-major.\n"
             ":returns: FrameResult. Raises ValueError if the buffer size does not match the frame size.")
         .def("stop", &DashStreamer::stop,
-             "Signal a controlled stop to the device so it leaves streaming immediately "
-             "instead of waiting out its inter-frame timeout. Call it after the last frame. "
-             "Fire-and-forget: correctness never depends on it.")
+             "Stop this streamer. If another source is still streaming, the display falls back "
+             "to it. Otherwise the device leaves streaming immediately instead of waiting out "
+             "its inter-frame timeout. Call it after the last frame. Fire-and-forget: "
+             "correctness never depends on it.")
         .def("get_stream_feedback", &DashStreamer::getStreamFeedback,
              "Read the latest backend feedback for this stream.\n\n"
              ":returns: A StreamFeedback snapshot. Default values (is_owner False, counters 0) "
@@ -182,7 +183,10 @@ void bind_dash_stream(nb::module_& m) {
                      "False until open() or the first stream_frame() has opened it.")
         .def_prop_ro("is_owner", &DashStreamer::isOwner,
                      "True if this streamer's frames are being forwarded to the device. "
-                     "Ownership is first-writer-wins and is released on stop, teardown or inactivity.")
+                     "Ownership is newest-wins: a streamer that resumes after being idle preempts "
+                     "the current owner. When the owner stops, the display falls back to the most "
+                     "recently active remaining streamer. A demoted streamer keeps its place in "
+                     "that order only by continuing to send frames.")
         .def_prop_ro(
             "device_session_id",
             [](const DashStreamer& self) -> std::optional<DeviceSessionId> {
