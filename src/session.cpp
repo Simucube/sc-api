@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -208,7 +209,14 @@ bool Session::asyncUpdateSimData(sim_data::SimDataUpdateBuilder&                
 std::shared_ptr<device_info::FullInfo> Session::getDeviceInfo() {
     if (!p_) return nullptr;
 
-    p_->dev_info_provider_.update();
+    // A publication in progress fails the seqlock read. Retry so an event of a device that the
+    // backend just listed can resolve. Yield instead of sleep: a short sleep rounds up to the
+    // Windows timer resolution.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    while (p_->dev_info_provider_.update() == detail::DeviceInfoProvider::UpdateResult::failed &&
+           std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
     return p_->dev_info_provider_.parseDeviceInfo();
 }
 

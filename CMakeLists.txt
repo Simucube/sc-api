@@ -117,6 +117,9 @@ add_library(sc-api ${SC_API_LIBRARY_TYPE}
     src/led_control.cpp
     inc/sc-api/dash_stream.h
     src/dash_stream.cpp
+    inc/sc-api/protocol/input_events.h
+    inc/sc-api/input_events.h
+    src/input_events.cpp
     inc/sc-api/time.h
     src/time.cpp
     inc/sc-api/compatibility.h

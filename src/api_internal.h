@@ -30,6 +30,7 @@ struct Session::Internal {
     detail::ShmBlock     variable_data;
     detail::ShmBlock     telemetry_defs;
     detail::ShmBlock     sim_data;
+    detail::ShmBlock     input_events;
 
     unsigned udp_max_encrypted_payload = 0;
     unsigned udp_max_plaintext_payload = 0;

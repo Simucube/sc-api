@@ -9,7 +9,8 @@ For the feature overview, see [Features](@ref Features). For build and link inst
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- Simucube Tuner must run on the same PC. Tuner is the backend of this API.
+- Simucube Tuner must run on the same PC. Tuner is the backend of this API. A Tuner that is too old
+  for the API version gives no session.
 - A Simucube device must be connected for the device parts of this guide.
 
 ## Open a session
@@ -192,6 +193,81 @@ During one session the backend only adds definitions. It never changes or remove
 `VariableDefinitionsChanged` event signals that new variables are available.
 
 See `examples/variable_definitions.cpp` and `examples/pedal_state.cpp` for complete programs.
+
+## Read input events
+
+Variables give the last value of an input. A press and a release between two reads are lost.
+[InputEventReader](@ref sc_api::InputEventReader) reports each button transition instead. The
+stream needs no control access.
+
+The reader delivers no history. `open()` starts at the newest event. This version of the API
+needs a backend that supplies the event ring, so a backend without the ring gives no session at
+all. `open()` fails only when the ring header does not pass its checks, or when the session is
+already lost.
+
+```cpp
+#include <sc-api/input_events.h>
+
+#include <chrono>
+#include <thread>
+
+sc_api::InputEventReader reader(session);
+if (!reader.open()) {
+    return;  // The ring header is not valid, or the session is already lost.
+}
+
+sc_api::InputEvent events[64];
+
+while (reader.isValid()) {
+    sc_api::InputEventReader::ReadResult result = reader.read(events, 64);
+
+    if (result.lost != 0) {
+        // This call returned no events. Read the baseline of every device here. The next call
+        // gives the events after the resync point; the baseline can already contain some of them.
+    }
+
+    for (uint32_t i = 0; i < result.count; ++i) {
+        const sc_api::InputEvent& event = events[i];
+        const bool pressed = event.type == sc_api::InputEventType::button_pressed;
+        std::cout << "device " << event.device_session_id << " input " << event.input_id
+                  << (pressed ? " pressed" : " released") << '\n';
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+}
+```
+
+`read` does not block. It gives the events in the order that the backend wrote them, oldest
+first. Read `lost` before `count`, because a call that reports a loss always returns no events.
+Each returned event is newer than each lost record. The lost count is the records that the
+reader skipped because it fell a full ring behind, of every type, also of a type that your version
+of the API does not know. A record that `read` drops because it does not know the type is not
+counted. The lost count stops at its maximum value, so use it as an indication, not as an exact
+number.
+
+An event gives an id, not a name. The input is the input of `device_session_id` whose
+[event_id](@ref sc_api::device_info::Input::event_id) is `input_id`. The stream reports all 128
+button bits of a wheel, so an id can match no input. If more than one input uses one bit, only one
+of them has an `event_id`, and which one is not defined. A wheel that supplies no input variables
+has no `event_id` at all. Ignore its events.
+
+An event gives a transition. The four variables `digital_inputs0` to `digital_inputs3` of the device
+give the state (`ww.digital_inputs0` to `ww.digital_inputs3` for a wireless wheel). Bit `N % 32` of
+word `N / 32` is the input whose `event_id` is N. For a wheel behind a wireless hub, these variables
+belong to the hub. [Input::variable](@ref sc_api::device_info::Input::variable) gives the device
+that holds them.
+
+The [InputEventReader](@ref sc_api::InputEventReader) documentation lists the rules that keep your
+own state correct: resolve the events of a read call against a device info snapshot that you take
+after that call, read the four variables after `open()`, when a device appears, and after a loss,
+start a release action only for an input whose press action you started, and release the inputs
+of a device that leaves.
+
+A session loss invalidates the reader, and
+[isValid](@ref sc_api::InputEventReader::isValid) returns false. Create a new reader on the new
+session.
+
+See `examples/input_events.cpp` for a complete program.
 
 ## Send telemetry
 

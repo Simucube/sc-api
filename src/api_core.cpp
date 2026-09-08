@@ -14,6 +14,7 @@
 #include "sc-api/protocol/actions.h"
 #include "sc-api/protocol/bson_shm_blocks.h"
 #include "sc-api/protocol/core.h"
+#include "sc-api/protocol/input_events.h"
 #include "sc-api/protocol/telemetry.h"
 #include "sc-api/protocol/variables.h"
 #include "sim_data_internal.h"
@@ -215,7 +216,8 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
         {SC_API_PROTOCOL_VARIABLE_HEADER_SHM_ID, SC_API_PROTOCOL_VARIABLE_HEADER_SHM_VERSION},
         {SC_API_PROTOCOL_VARIABLE_DATA_SHM_ID, SC_API_PROTOCOL_VARIABLE_DATA_SHM_VERSION},
         {SC_API_PROTOCOL_TELEMETRY_DEFINITION_SHM_ID, SC_API_PROTOCOL_TELEMETRY_DEFINITION_SHM_VERSION},
-        {SC_API_PROTOCOL_SIM_DATA_SHM_ID, SC_API_PROTOCOL_SIM_DATA_SHM_VERSION}};
+        {SC_API_PROTOCOL_SIM_DATA_SHM_ID, SC_API_PROTOCOL_SIM_DATA_SHM_VERSION},
+        {SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_ID, SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_VERSION}};
 
     std::vector<const SC_API_PROTOCOL_ShmBlockReference_t*> selected_shm_table;
     for (std::size_t req_i = 0; req_i < required_shm_refs.size(); ++req_i) {
@@ -258,7 +260,8 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
         {SC_API_PROTOCOL_VARIABLE_HEADER_SHM_ID, &shm_handles->variable_header},
         {SC_API_PROTOCOL_VARIABLE_DATA_SHM_ID, &shm_handles->variable_data},
         {SC_API_PROTOCOL_TELEMETRY_DEFINITION_SHM_ID, &shm_handles->telemetry_defs},
-        {SC_API_PROTOCOL_SIM_DATA_SHM_ID, &shm_handles->sim_data}};
+        {SC_API_PROTOCOL_SIM_DATA_SHM_ID, &shm_handles->sim_data},
+        {SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_ID, &shm_handles->input_events}};
 
     bool all_opened = true;
     for (const SC_API_PROTOCOL_ShmBlockReference_t* ref : selected_shm_table) {

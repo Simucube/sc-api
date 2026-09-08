@@ -274,7 +274,11 @@ public:
     /** Get parsed sim data from the most recent refreshSimData call */
     std::shared_ptr<sim_data::SimData> getSimData();
 
-    /** Get the device info of the connected devices */
+    /** Get the device info of the connected devices.
+     *
+     *  The call reads the current publication of the backend. A publication in progress fails the
+     *  read. The call then retries for up to about one millisecond, and returns the previous
+     *  snapshot if no retry succeeds. */
     std::shared_ptr<device_info::FullInfo> getDeviceInfo();
 
     /** Get a snapshot of the variable definitions of this session */

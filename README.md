@@ -10,7 +10,8 @@ With this API you can:
 - send telemetry to Tuner and to the devices,
 - give and read simulator state data,
 - control the RGB lights of a device,
-- stream dashboard frames to a wheel display.
+- stream dashboard frames to a wheel display,
+- read every button press and release of a device as an event stream.
 
 The implementation uses C++17 and supports only Windows. Python bindings are available.
 
@@ -24,7 +25,8 @@ arrives later, possibly with different communication methods that make external 
 
 Currently we attempt to keep backwards compatibility with future Tuner versions, but we do not
 guarantee it yet. A newer Tuner version usually supports an older API version. An older Tuner
-version does not necessarily support a newer API version, and its feature set can be limited.
+version does not necessarily support a newer API version, and its feature set can be limited. A
+Tuner that is too old for the API version gives no session at all.
 
 Version 1.0 will be the first stable version. From that version onwards, the ABI between the API
 and Simucube Tuner stays stable. An application that is released against a stable version keeps
@@ -87,8 +89,8 @@ with simucube_api.Api() as api:
 ```
 
 See [docs/Python.md](docs/Python.md) for the full Python guide. The `examples/python/` directory
-holds complete programs that match the C++ examples. Every class and method carries a docstring, so
-`help(simucube_api.Api)` works.
+holds a Python version of every C++ example except `input_events`. Every class and method carries a
+docstring, so `help(simucube_api.Api)` works.
 
 # Contributing
 
@@ -150,6 +152,37 @@ A variable definition holds:
 - **name** — ASCII string, for example `ap.force_N`
 - **type** — enum, for example `f32` or `i32`
 - **device session id** — the device that the variable belongs to, or 0 if the variable is global
+
+## Input events
+
+The input event stream reports each button transition that the backend finds. Variables give only
+the last value, so a press and a release between two reads are lost. The event stream keeps them.
+The stream is C++ only. Python gets `Input.event_id` but no reader.
+
+The backend writes the events into one ring buffer in shared memory. Each reader has its own
+position in the ring, and no reader delays the backend. A reader that stops reading for a long
+time falls behind the ring. The next read call then reports how many records the reader
+skipped, and that call returns no events.
+
+This version of the API needs a backend that supplies the event ring. A backend without the ring
+gives no session at all.
+
+An event holds:
+- **timestamp** — `sc_api::Clock` nanoseconds, sampled once for the packet that carried the
+  transition. The events of one packet have the same timestamp.
+- **device session id** — the device that owns the input. For a wheel behind a wireless hub, this
+  is the wheel.
+- **type** — `button_pressed` or `button_released`. Later versions add more types.
+- **input id** — the `event_id` of an input of that device in device info.
+
+An event gives a transition. The four variables `digital_inputs0` to `digital_inputs3` of the device
+give the state (`ww.digital_inputs0` to `ww.digital_inputs3` for a wheel behind a wireless hub). Bit
+`N % 32` of word `N / 32` is the input whose `event_id` is N.
+
+The `InputEventReader` documentation in `inc/sc-api/input_events.h` lists the rules that keep your
+own state correct: when to read these variables, how to resolve an event, and when to release the
+inputs of a device. [docs/GettingStarted.md](docs/GettingStarted.md) shows the read loop, and
+`examples/input_events.cpp` is a complete program.
 
 ## Telemetry data
 
