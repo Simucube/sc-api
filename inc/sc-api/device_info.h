@@ -92,10 +92,21 @@ struct Input {
      */
     InputRole role = InputRole::unknown;
 
+    /** Variable that holds the value of this input. For a wheel behind a wireless hub, the hub holds it. */
     VariableRef variable;
 
     /** Variable value range, if relevant */
     float range_begin = 0.0f, range_end = 0.0f;
+
+    /** Matches InputEvent::input_id for events of this device
+     *
+     * Present only for inputs that the input event stream reports. For a digital input with
+     * event_id N, the state is bit N % 32 of word N / 32 of the `digital_inputs0` to
+     * `digital_inputs3` variables (`ww.digital_inputs0` to `ww.digital_inputs3` for a wireless
+     * wheel) of the device that `variable` names.
+     * @see sc-api/input_events.h
+     */
+    std::optional<uint16_t> event_id;
 
     explicit operator bool() const { return !id.empty(); }
 };

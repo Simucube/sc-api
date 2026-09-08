@@ -21,6 +21,17 @@ void printDeviceInfo(const std::shared_ptr<sc_api::device_info::FullInfo> info) 
             std::cout << "\tParent: " << info->getBySessionId(device.getParentSessionId())->getUid() << "\n";
         }
 
+        if (!device.getInputs().empty()) {
+            std::cout << "\tInputs:\n";
+            for (const auto& input : device.getInputs()) {
+                std::cout << "\t\t" << input.id << " type: " << toString(input.type);
+                if (input.event_id) {
+                    std::cout << " event_id: " << *input.event_id;
+                }
+                std::cout << "\n";
+            }
+        }
+
         if (!device.getFeedbacks().empty()) {
             std::cout << "\tFeedback types:\n";
             for (const auto& ffb : device.getFeedbacks()) {

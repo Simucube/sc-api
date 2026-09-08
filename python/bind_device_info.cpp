@@ -124,6 +124,10 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "range_end", [](const Input& self) { return self.range_end; },
             "End of the raw value range reported by this input.")
+        .def_prop_ro(
+            "event_id", [](const Input& self) { return self.event_id; },
+            "Id of this input in the C++ input event stream (sc_api::InputEvent::input_id), or None if the stream "
+            "does not report it. The stream has no Python binding.")
         .def("__repr__", [](const Input& self) { return "<Input id='" + std::string(self.id) + "'>"; });
 
     // --- Feedback ---
