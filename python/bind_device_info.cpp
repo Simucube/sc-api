@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include "bind_util.h"
+
 namespace nb = nanobind;
 
 using sc_api::DeviceSessionId;
@@ -28,10 +30,10 @@ using sc_api::device_info::VariableRef;
 
 // See the note on DeviceInfo::weak_from_this. Losing the detection gives a shared_ptr from Python a
 // second control block over a device that FullInfo owns.
-static_assert(nb::detail::has_shared_from_this_v<DeviceInfo>, "DeviceInfo must keep weak_from_this() public");
-static_assert(nb::detail::has_shared_from_this_v<const DeviceInfo>,
+static_assert(bind_util::has_shared_from_this_v<DeviceInfo>, "DeviceInfo must keep weak_from_this() public");
+static_assert(bind_util::has_shared_from_this_v<const DeviceInfo>,
               "DeviceInfo must keep the const weak_from_this() public");
-static_assert(nb::detail::has_shared_from_this_v<FullInfo>,
+static_assert(bind_util::has_shared_from_this_v<FullInfo>,
               "FullInfo must inherit std::enable_shared_from_this publicly");
 
 namespace {
@@ -48,7 +50,7 @@ nb::typed<nb::list, typename Container::value_type> castViews(const Container& i
     nb::list result;
     for (const auto& item : items) {
         nb::object obj = nb::cast(item);
-        nb::detail::keep_alive(obj.ptr(), owner.ptr());
+        bind_util::keepAlive(obj, owner);
         result.append(obj);
     }
     return result;

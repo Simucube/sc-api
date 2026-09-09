@@ -1,4 +1,10 @@
-find_package(Python 3.11 COMPONENTS Interpreter Development.Module REQUIRED)
+# Split mode builds a Py_LIMITED_API extension. That needs the stable ABI
+# import library, which FindPython exposes as Development.SABIModule.
+set(_sc_py_components Interpreter Development.Module)
+if (SC_API_PYTHON_SPLIT_MODE)
+    list(APPEND _sc_py_components Development.SABIModule)
+endif()
+find_package(Python 3.11 COMPONENTS ${_sc_py_components} REQUIRED)
 
 # If nanobind isn't found via CMAKE_PREFIX_PATH, ask Python for its location.
 # This handles the common case where nanobind was installed via pip.
@@ -20,7 +26,16 @@ if (NOT nanobind_FOUND)
     endif()
 endif()
 
+if (SC_API_PYTHON_SPLIT_MODE)
+    # In split mode libnanobind is not linked in. It is imported at runtime
+    # from the nanobind_backend module (PyPI package nanobind-backend).
+    set(_sc_py_nb_args BACKEND_MODULE nanobind_backend)
+else()
+    set(_sc_py_nb_args)
+endif()
+
 nanobind_add_module(sc-api-python
+    ${_sc_py_nb_args}
     module.cpp
     bind_enums.cpp
     bind_exceptions.cpp

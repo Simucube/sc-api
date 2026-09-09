@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "bind_util.h"
+
 namespace nb = nanobind;
 
 using namespace sc_api::sim_data;
@@ -29,8 +31,7 @@ using namespace sc_api::sim_data;
 // PySubSection stores a shared_ptr<SimData> taken from Python. nanobind must resolve it to the
 // control block that already owns the SimData. Without the detection it builds a second control
 // block whose deleter holds a Python reference that the garbage collector cannot see.
-static_assert(nb::detail::has_shared_from_this_v<SimData>,
-              "SimData must inherit std::enable_shared_from_this publicly");
+static_assert(bind_util::has_shared_from_this_v<SimData>, "SimData must inherit std::enable_shared_from_this publicly");
 
 template <typename T>
 struct PySubSection {
