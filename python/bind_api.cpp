@@ -188,8 +188,7 @@ struct EventIterator {
 
 // FfbPipeline and LedControl store a shared_ptr<Session> that came from Python. nanobind must
 // resolve it to the control block the session manager already owns, not build a second one.
-static_assert(nb::detail::has_shared_from_this_v<Session>,
-              "Session must inherit std::enable_shared_from_this publicly");
+static_assert(bind_util::has_shared_from_this_v<Session>, "Session must inherit std::enable_shared_from_this publicly");
 
 void bind_api(nb::module_& m) {
     // --- Value types (bound first so they can be used in constructor signatures) ---

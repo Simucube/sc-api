@@ -1,8 +1,18 @@
-find_package(Python 3.11 COMPONENTS Interpreter Development.Module REQUIRED)
+# Split mode builds a Py_LIMITED_API extension. That needs the stable ABI
+# import library, which FindPython exposes as Development.SABIModule.
+set(_sc_py_components Interpreter Development.Module)
+if (SC_API_PYTHON_SPLIT_MODE)
+    # FindPython learned the Development.SABIModule component in CMake 3.26.
+    if (CMAKE_VERSION VERSION_LESS 3.26)
+        message(FATAL_ERROR "SC_API_PYTHON_SPLIT_MODE needs CMake 3.26 or newer")
+    endif()
+    list(APPEND _sc_py_components Development.SABIModule)
+endif()
+find_package(Python 3.11 COMPONENTS ${_sc_py_components} REQUIRED)
 
 # If nanobind isn't found via CMAKE_PREFIX_PATH, ask Python for its location.
 # This handles the common case where nanobind was installed via pip.
-find_package(nanobind CONFIG QUIET)
+find_package(nanobind 3.0.1 CONFIG QUIET)
 if (NOT nanobind_FOUND)
     execute_process(
         COMMAND "${Python_EXECUTABLE}" -X utf8 -m nanobind --cmake_dir
@@ -13,14 +23,23 @@ if (NOT nanobind_FOUND)
     )
     if (_nanobind_result EQUAL 0 AND _nanobind_cmake_dir)
         file(TO_CMAKE_PATH "${_nanobind_cmake_dir}" _nanobind_cmake_dir)
-        find_package(nanobind CONFIG REQUIRED PATHS "${_nanobind_cmake_dir}")
+        find_package(nanobind 3.0.1 CONFIG REQUIRED PATHS "${_nanobind_cmake_dir}")
     else()
         message(FATAL_ERROR
             "nanobind not found. Install it with: pip install nanobind")
     endif()
 endif()
 
+if (SC_API_PYTHON_SPLIT_MODE)
+    # In split mode libnanobind is not linked in. It is imported at runtime
+    # from the nanobind_backend module (PyPI package nanobind-backend).
+    set(_sc_py_nb_args BACKEND_MODULE nanobind_backend)
+else()
+    set(_sc_py_nb_args)
+endif()
+
 nanobind_add_module(sc-api-python
+    ${_sc_py_nb_args}
     module.cpp
     bind_enums.cpp
     bind_exceptions.cpp

@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 option(SC_API_PYTHON "Enable building Python bindings (Python and nanobind required)" OFF)
+option(SC_API_PYTHON_SPLIT_MODE "Build the Python bindings in nanobind split mode, against the stable ABI and against the nanobind-backend package" OFF)
 option(SC_API_EXAMPLES "Enable building example applications" ${SimucubeAPI_IS_TOP_LEVEL})
 option(SC_API_GENERATE_DOCS "Enable generating Doxygen HTML documentation by building target sc-api-generate_docs" ${SimucubeAPI_IS_TOP_LEVEL})
 option(SC_API_SHARED "Build sc-api as a shared library (DLL) instead of a static library" ${BUILD_SHARED_LIBS})

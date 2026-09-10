@@ -18,8 +18,13 @@ Requirements:
 - Python 3.11 or newer.
 - NumPy. `pip` installs it as a dependency.
 
-The build needs a C++ compiler, CMake and nanobind. `pip` gets nanobind through
+The build needs a C++ compiler, CMake and nanobind 3.0.1 or newer. `pip` gets nanobind through
 scikit-build-core.
+
+The CMake option `SC_API_PYTHON_SPLIT_MODE` builds the module in nanobind split mode. The module
+then targets the stable ABI, so one binary serves every supported Python version. It imports the
+nanobind backend from the `nanobind-backend` package, so install that package first. The option is
+off by default and the published wheels do not use it.
 
 @note Effect pipelines need NumPy arrays of `float32`. Dashboard frames take NumPy arrays or
 `bytes`. The other parts of the package do not need NumPy.
