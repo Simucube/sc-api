@@ -460,6 +460,14 @@ const Input& DeviceInfo::getInput(std::string_view id) const {
     return k_default;
 }
 
+const Input& DeviceInfo::getInputByEventId(uint16_t event_id) const {
+    static constexpr Input k_default = {};
+    for (const auto& input : d_.inputs_) {
+        if (input.event_id == event_id) return input;
+    }
+    return k_default;
+}
+
 const Feedback& DeviceInfo::getFeedback(std::string_view id) const {
     static constexpr Feedback k_default = {};
     for (const auto& feedback : d_.feedbacks_) {

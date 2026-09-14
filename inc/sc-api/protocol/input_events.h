@@ -64,12 +64,12 @@ constexpr bool isKnownInputEventType(InputEventType type) {
 
 /** One event record. Events carry absolute state, never a toggle. */
 struct InputEvent {
-    /** sc_api::Clock nanoseconds, sampled once per source packet. Events of one packet share it.
-     *  0 is not a valid timestamp. */
+    /** PC-side time of the event in sc_api::Clock nanoseconds. Events processed together can share
+     *  a timestamp. 0 is not a valid timestamp. */
     std::int64_t timestamp;
 
-    /** Device that owns the input in device_info. For a hub connected wireless wheel this is the
-     *  wheel, not the hub. */
+    /** Device that owns the input in device_info. For a wireless wheel this is the wheel, not the
+     *  SC-link Hub. */
     std::uint16_t device_session_id;
 
     /** InputEventType. Values outside the enum are reachable and must be ignored. */
@@ -82,14 +82,13 @@ struct InputEvent {
     /** Write zero. */
     std::uint16_t reserved_;
 
-    /** Payload of `type`. Empty for the button types. */
+    /** Payload of `type`. */
     std::uint8_t payload[16];
 };
 
 static_assert(sizeof(InputEvent) == 32, "InputEvent must be exactly 32 bytes");
 static_assert(alignof(InputEvent) == 8, "InputEvent must be 8-byte aligned so its slot words are aligned atomics");
-// Field offsets are part of the cross-process ABI: pin them so a reorder that keeps sizeof at 32
-// cannot silently corrupt reads on the other separately compiled binary.
+// Field offsets are part of the ABI.
 static_assert(offsetof(InputEvent, timestamp) == 0, "timestamp must be the first field");
 static_assert(offsetof(InputEvent, device_session_id) == 8, "device_session_id offset is pinned");
 static_assert(offsetof(InputEvent, type) == 10, "type offset is pinned");
@@ -98,10 +97,13 @@ static_assert(offsetof(InputEvent, reserved_) == 14, "reserved_ offset is pinned
 static_assert(offsetof(InputEvent, payload) == 16, "payload offset is pinned");
 
 /** Size of the record this build reads and writes. The stride in the block can differ. */
-inline constexpr std::uint32_t k_input_event_size       = static_cast<std::uint32_t>(sizeof(InputEvent));
+inline constexpr std::uint32_t k_input_event_size           = static_cast<std::uint32_t>(sizeof(InputEvent));
 
-/** Number of 64-bit words in an InputEvent. Tracks sizeof(InputEvent), never the block stride. */
-inline constexpr std::uint32_t k_input_event_word_count = k_input_event_size / 8u;
+/** Slots are read and written as arrays of 64-bit words. */
+inline constexpr std::uint32_t k_input_event_slot_word_size = static_cast<std::uint32_t>(sizeof(std::uint64_t));
+
+/** Number of words in an InputEvent. Tracks sizeof(InputEvent), never the block stride. */
+inline constexpr std::uint32_t k_input_event_word_count     = k_input_event_size / k_input_event_slot_word_size;
 
 /** Header of the input event ring block. The slots follow at k_input_event_ring_slot_offset.
  *  Event e lives in slot e & (capacity - 1). */
@@ -356,8 +358,8 @@ inline void inputEventRingWrite(const InputEventRingWriteView& ring, const Input
     std::memcpy(words, &event, sizeof(event));
 
     const std::uint32_t copy_words =
-        (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / 8u;
-    const std::uint32_t stride_words = ring.record_size / 8u;
+        (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / k_input_event_slot_word_size;
+    const std::uint32_t stride_words = ring.record_size / k_input_event_slot_word_size;
 
     std::atomic_thread_fence(std::memory_order_release);
     for (std::uint32_t i = 0; i < copy_words; ++i) {
@@ -408,8 +410,7 @@ inline InputEventReadResult inputEventRingRead(const InputEventRingReadView& rin
         return result;
     }
 
-    const std::uint64_t capacity = ring.capacity;
-    if (w1 - cursor >= capacity) {
+    if (w1 - cursor >= ring.capacity) {
         const std::uint64_t lost = w1 - cursor;
         result.lost              = lost > UINT32_MAX ? UINT32_MAX : static_cast<std::uint32_t>(lost);
         cursor                   = w1;
@@ -419,7 +420,7 @@ inline InputEventReadResult inputEventRingRead(const InputEventRingReadView& rin
     // A stride narrower than the record leaves the tail of the copy zero, because zero is the absent
     // value of every field that the block does not carry.
     const std::uint32_t copy_words =
-        (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / 8u;
+        (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / k_input_event_slot_word_size;
 
     while (result.count < max_events && cursor != w1) {
         const std::atomic<std::uint64_t>* slot =
@@ -432,7 +433,7 @@ inline InputEventReadResult inputEventRingRead(const InputEventRingReadView& rin
 
         std::atomic_thread_fence(std::memory_order_acquire);
         const std::uint64_t w2 = ring.write_seq->load(std::memory_order_relaxed);
-        if (w2 - cursor >= capacity) {
+        if (w2 - cursor >= ring.capacity) {
             // The writer reached this slot during the copy. Drop it and do not advance, so the overrun
             // check of the next call reports the loss.
             break;

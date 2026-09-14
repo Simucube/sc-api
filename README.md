@@ -88,9 +88,8 @@ with simucube_api.Api() as api:
             print(f"{device.uid}  {device.session_id}  {device.role}")
 ```
 
-See [docs/Python.md](docs/Python.md) for the full Python guide. The `examples/python/` directory
-holds a Python version of every C++ example except `input_events`. Every class and method carries a
-docstring, so `help(simucube_api.Api)` works.
+See [docs/Python.md](docs/Python.md) for the full Python guide and `examples/python/` for usage
+examples. Every class and method carries a docstring, so `help(simucube_api.Api)` works.
 
 # Contributing
 
@@ -157,32 +156,23 @@ A variable definition holds:
 
 The input event stream reports each button transition that the backend finds. Variables give only
 the last value, so a press and a release between two reads are lost. The event stream keeps them.
-The stream is C++ only. Python gets `Input.event_id` but no reader.
+The stream is C++ only.
 
-The backend writes the events into one ring buffer in shared memory. Each reader has its own
-position in the ring, and no reader delays the backend. A reader that stops reading for a long
-time falls behind the ring. The next read call then reports how many records the reader
-skipped, and that call returns no events.
-
-This version of the API needs a backend that supplies the event ring. A backend without the ring
-gives no session at all.
+A reader that stops reading for a long time loses events. The next read call reports how many, and
+returns no events.
 
 An event holds:
-- **timestamp** — `sc_api::Clock` nanoseconds, sampled once for the packet that carried the
-  transition. The events of one packet have the same timestamp.
-- **device session id** — the device that owns the input. For a wheel behind a wireless hub, this
-  is the wheel.
-- **type** — `button_pressed` or `button_released`. Later versions add more types.
-- **input id** — the `event_id` of an input of that device in device info.
+- **timestamp** — PC-side time of the event in `sc_api::Clock` nanoseconds. Events processed
+  together can share a timestamp.
+- **device session id** — the device that owns the input, normally the physical device that holds
+  the control. `FullInfo::getBySessionId` finds it in [device info](#device-info), which tells what
+  the inputs of the device do. A button on a wheel reports the session id of that wheel.
+- **type** — currently `button_pressed` or `button_released`.
+- **input id** — the `event_id` of an input of that device. `DeviceInfo::getInputByEventId` finds
+  the input.
 
-An event gives a transition. The four variables `digital_inputs0` to `digital_inputs3` of the device
-give the state (`ww.digital_inputs0` to `ww.digital_inputs3` for a wheel behind a wireless hub). Bit
-`N % 32` of word `N / 32` is the input whose `event_id` is N.
-
-The `InputEventReader` documentation in `inc/sc-api/input_events.h` lists the rules that keep your
-own state correct: when to read these variables, how to resolve an event, and when to release the
-inputs of a device. [docs/GettingStarted.md](docs/GettingStarted.md) shows the read loop, and
-`examples/input_events.cpp` is a complete program.
+See [examples/input_events.cpp](examples/input_events.cpp) and the
+[InputEventReader documentation](inc/sc-api/input_events.h) for more information.
 
 ## Telemetry data
 

@@ -1,5 +1,6 @@
 #include "sc-api/input_events.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "api_internal.h"
@@ -75,14 +76,9 @@ InputEventReader::ReadResult InputEventReader::read(InputEvent* out, uint32_t ma
         const InputEventReadResult batch = inputEventRingRead(impl_->ring, impl_->cursor, out, max_events);
         result.lost                      = batch.lost;
 
-        for (std::uint32_t i = 0; i < batch.count; ++i) {
-            if (isKnownInputEventType(out[i].type)) {
-                if (i != result.count) {
-                    out[result.count] = out[i];
-                }
-                ++result.count;
-            }
-        }
+        InputEvent* known_end            = std::remove_if(
+            out, out + batch.count, [](const InputEvent& event) { return !isKnownInputEventType(event.type); });
+        result.count = static_cast<std::uint32_t>(known_end - out);
 
         scanned += batch.count;
         // The capacity bound caps the work of one call when the ring holds only unknown types. The
