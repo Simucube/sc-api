@@ -766,5 +766,464 @@
             "dash"
         ],
         "default": 0
+    },
+    "engine_oil_temperature": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Engine oil temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "engine_water_temperature": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Engine water temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "laps_completed": {
+        "type": "i16",
+        "prio": "env",
+        "desc": "Number of laps completed within the current session",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "fuel_capacity": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "env",
+        "desc": "Fuel tank capacity in litres",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "unit": "l",
+        "default": 0
+    },
+    "fuel_capacity_kilos": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "env",
+        "desc": "Fuel tank capacity in kilos",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "unit": "kg",
+        "default": 0
+    },
+    "fuel_available": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Current fuel level in litres",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "unit": "l",
+        "default": 0
+    },
+    "fuel_available_kilos": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Current fuel level in kilos",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "unit": "kg",
+        "default": 0
+    },
+    "fuel_density": {
+        "type": "f32",
+        "prio": "env",
+        "desc": "Fuel density",
+        "unit": "kg/l",
+        "default": 0.75,
+        "usages": [
+            "dash"
+        ]
+    },
+    "available_fuel_for_laps": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Estimated number of laps that can be completed with the current fuel level",
+        "usages": [
+            "dash"
+        ],
+        "default": 0,
+        "unit": "lap"
+    },
+    "delta_to_best": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Delta time in seconds to the best lap time of the player",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "delta_to_optimal": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Delta time in seconds to the optimal lap time of the player",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "delta_to_session_optimal": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Delta time in seconds to the optimal lap time in this session of the player",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "delta_to_last": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Delta time in seconds to the last lap time of the player",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "race_position": {
+        "type": "i8",
+        "prio": "low",
+        "desc": "Race position of the player",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "tire_temperature_fl": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Front left tire temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_temperature_fr": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Front right tire temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_temperature_rl": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Rear left tire temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_temperature_rr": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Rear right tire temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_pressure_fl": {
+        "type": "f32",
+        "compact_type": "u16",
+        "scaling": 1.0,
+        "prio": "low",
+        "desc": "Front left tire pressure",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_pressure_fr": {
+        "type": "f32",
+        "compact_type": "u16",
+        "scaling": 1.0,
+        "prio": "low",
+        "desc": "Front right tire pressure",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_pressure_rl": {
+        "type": "f32",
+        "compact_type": "u16",
+        "scaling": 1.0,
+        "prio": "low",
+        "desc": "Rear left tire pressure",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "tire_pressure_rr": {
+        "type": "f32",
+        "compact_type": "u16",
+        "scaling": 1.0,
+        "prio": "low",
+        "desc": "Rear right tire pressure",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_temperature_fl": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Front left brake temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_temperature_fr": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Front right brake temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_temperature_rl": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Rear left brake temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_temperature_rr": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "low",
+        "desc": "Rear right brake temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_air_pressure": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Current pressure in the brake air tank",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_air_pressure_warning_level": {
+        "type": "f32",
+        "prio": "env",
+        "desc": "Brake air tank pressure below which the warning activates",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_air_pressure_emergency_level": {
+        "type": "f32",
+        "prio": "env",
+        "desc": "Brake air tank pressure below which emergency brakes activate",
+        "unit": "kPa",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "brake_air_pressure_warning_active": {
+        "type": "bool",
+        "prio": "low",
+        "desc": "True, when brake air pressure warning is active",
+        "usages": [
+            "dash"
+        ],
+        "default": false
+    },
+    "brake_air_pressure_emergency_active": {
+        "type": "bool",
+        "prio": "low",
+        "desc": "True, when emergency brakes are active due to low air pressure",
+        "usages": [
+            "dash"
+        ],
+        "default": false
+    },
+    "time_gap_ahead": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Gap to the car ahead in seconds",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "time_gap_behind": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Gap to the car behind in seconds",
+        "unit": "s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "participant_ahead": {
+        "type": "u16",
+        "prio": "low",
+        "desc": "Id of the participant ahead",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "participant_behind": {
+        "type": "u16",
+        "prio": "low",
+        "desc": "Id of the participant behind",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "session_time_remaining": {
+        "type": "f32",
+        "prio": "low",
+        "desc": "Time remaining in current session",
+        "unit": "s",
+        "usages": [
+            "dash"
+        ],
+        "default": -1
+    },
+    "wind_speed": {
+        "type": "f32",
+        "prio": "env",
+        "desc": "Wind speed in the virtual world",
+        "unit": "m/s",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "wind_direction": {
+        "type": "u8",
+        "prio": "env",
+        "desc": "Wind direction. Value increases clockwise, where north is zero, east is 64 etc.",
+        "default": 0,
+        "usages": [
+            "dash"
+        ]
+    },
+    "air_temperature": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "env",
+        "desc": "Air temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "road_temperature": {
+        "type": "f32",
+        "compact_type": "i16",
+        "scaling": 10.0,
+        "prio": "env",
+        "desc": "Road surface temperature",
+        "unit": "C",
+        "usages": [
+            "dash"
+        ],
+        "default": 0
+    },
+    "wheelbase_torque_clipping": {
+        "type": "bool",
+        "prio": "high",
+        "desc": "True when wheelbase torque output is clipping for an extended time",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": false
+    },
+    "wheelbase_torque_output_percent": {
+        "type": "u8",
+        "prio": "high",
+        "desc": "Wheelbase total torque output as percentage (0-100), updated at 10Hz",
+        "usages": [
+            "dash",
+            "tuner"
+        ],
+        "default": 0
     }
 }
