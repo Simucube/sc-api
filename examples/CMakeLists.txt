@@ -22,3 +22,6 @@ target_link_libraries(sc-api-led_control PRIVATE sc-api)
 
 add_executable(sc-api-example-dash_stream dash_stream.cpp)
 target_link_libraries(sc-api-example-dash_stream PRIVATE sc-api)
+
+add_executable(sc-api-example-input_events input_events.cpp)
+target_link_libraries(sc-api-example-input_events PRIVATE sc-api)

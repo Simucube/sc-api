@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <charconv>
+#include <cstdint>
 
 #include "device_info_internal.h"
 #include "sc-api/util/bson_reader.h"
@@ -208,6 +209,13 @@ static std::vector<Input> parseInputs(util::BsonReader& r, DeviceSessionId this_
                     c.type = inputTypeFromString(r.stringValue());
                 } else if (r.key() == "control") {
                     c.control = r.stringValue();
+                }
+            } else if (e == E::ELEMENT_I32 || e == E::ELEMENT_I64) {
+                if (r.key() == "event_id") {
+                    int64_t v = e == E::ELEMENT_I32 ? r.int32Value() : r.int64Value();
+                    if (v >= 0 && v <= UINT16_MAX) {
+                        c.event_id = static_cast<uint16_t>(v);
+                    }
                 }
             }
         }
@@ -448,6 +456,14 @@ const Input& DeviceInfo::getInput(std::string_view id) const {
     static constexpr Input k_default = {};
     for (const auto& input : d_.inputs_) {
         if (input.id == id) return input;
+    }
+    return k_default;
+}
+
+const Input& DeviceInfo::getInputByEventId(uint16_t event_id) const {
+    static constexpr Input k_default = {};
+    for (const auto& input : d_.inputs_) {
+        if (input.event_id == event_id) return input;
     }
     return k_default;
 }

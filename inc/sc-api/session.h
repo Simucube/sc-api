@@ -274,7 +274,8 @@ public:
     /** Get parsed sim data from the most recent refreshSimData call */
     std::shared_ptr<sim_data::SimData> getSimData();
 
-    /** Get the device info of the connected devices */
+    /** Get a device info snapshot of the connected devices. If a newer snapshot is not readable
+     *  yet, the call returns the previous one. */
     std::shared_ptr<device_info::FullInfo> getDeviceInfo();
 
     /** Get a snapshot of the variable definitions of this session */

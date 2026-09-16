@@ -48,6 +48,7 @@ is in one library: `sc-api`. Cryptography code (libeddsa) and the network code
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
 - The same compiler and the same C runtime as the sc-api build (see [Compatibility](@ref compatibility)).
+- Simucube Tuner on the same PC at run time. A Tuner that is too old for the API version gives no session.
 
 ## Integration without CMake
 

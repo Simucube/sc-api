@@ -10,7 +10,8 @@ With this API you can:
 - send telemetry to Tuner and to the devices,
 - give and read simulator state data,
 - control the RGB lights of a device,
-- stream dashboard frames to a wheel display.
+- stream dashboard frames to a wheel display,
+- read every button press and release of a device as an event stream.
 
 The implementation uses C++17 and supports only Windows. Python bindings are available.
 
@@ -24,7 +25,8 @@ arrives later, possibly with different communication methods that make external 
 
 Currently we attempt to keep backwards compatibility with future Tuner versions, but we do not
 guarantee it yet. A newer Tuner version usually supports an older API version. An older Tuner
-version does not necessarily support a newer API version, and its feature set can be limited.
+version does not necessarily support a newer API version, and its feature set can be limited. A
+Tuner that is too old for the API version gives no session at all.
 
 Version 1.0 will be the first stable version. From that version onwards, the ABI between the API
 and Simucube Tuner stays stable. An application that is released against a stable version keeps
@@ -86,9 +88,8 @@ with simucube_api.Api() as api:
             print(f"{device.uid}  {device.session_id}  {device.role}")
 ```
 
-See [docs/Python.md](docs/Python.md) for the full Python guide. The `examples/python/` directory
-holds complete programs that match the C++ examples. Every class and method carries a docstring, so
-`help(simucube_api.Api)` works.
+See [docs/Python.md](docs/Python.md) for the full Python guide and `examples/python/` for usage
+examples. Every class and method carries a docstring, so `help(simucube_api.Api)` works.
 
 # Contributing
 
@@ -150,6 +151,28 @@ A variable definition holds:
 - **name** — ASCII string, for example `ap.force_N`
 - **type** — enum, for example `f32` or `i32`
 - **device session id** — the device that the variable belongs to, or 0 if the variable is global
+
+## Input events
+
+The input event stream reports each button transition that the backend finds. Variables give only
+the last value, so a press and a release between two reads are lost. The event stream keeps them.
+The stream is C++ only.
+
+A reader that stops reading for a long time loses events. The next read call reports how many, and
+returns no events.
+
+An event holds:
+- **timestamp** — PC-side time of the event in `sc_api::Clock` nanoseconds. Events processed
+  together can share a timestamp.
+- **device session id** — the device that owns the input, normally the physical device that holds
+  the control. `FullInfo::getBySessionId` finds it in [device info](#device-info), which tells what
+  the inputs of the device do. A button on a wheel reports the session id of that wheel.
+- **type** — currently `button_pressed` or `button_released`.
+- **input id** — the `event_id` of an input of that device. `DeviceInfo::getInputByEventId` finds
+  the input.
+
+See [examples/input_events.cpp](examples/input_events.cpp) and the
+[InputEventReader documentation](inc/sc-api/input_events.h) for more information.
 
 ## Telemetry data
 

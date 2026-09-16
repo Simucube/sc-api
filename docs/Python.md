@@ -1,7 +1,7 @@
 # Python Bindings {#Python}
 
-The `simucube_api` package gives the features of the C++ API to Python. This guide shows how to
-install it and how to use each part.
+The `simucube_api` package gives the features of the C++ API to Python, except the input event
+stream. This guide shows how to install it and how to use each part.
 
 Every class and method carries a docstring. Use `help(simucube_api.Api)` to read it in the
 interpreter.
@@ -135,6 +135,9 @@ if full_info is not None:
         for feedback in device.feedbacks:
             print(f"    {feedback.id} type={feedback.type}")
 ```
+
+`device.inputs` lists the inputs of a device. `input.event_id` is the id of that input in the C++
+input event stream, or `None`. Python has no reader for the stream.
 
 Search by capability, not by device model:
 

@@ -9,7 +9,8 @@ For the feature overview, see [Features](@ref Features). For build and link inst
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- Simucube Tuner must run on the same PC. Tuner is the backend of this API.
+- Simucube Tuner must run on the same PC. Tuner is the backend of this API. A Tuner that is too old
+  for the API version gives no session.
 - A Simucube device must be connected for the device parts of this guide.
 
 ## Open a session
@@ -192,6 +193,82 @@ During one session the backend only adds definitions. It never changes or remove
 `VariableDefinitionsChanged` event signals that new variables are available.
 
 See `examples/variable_definitions.cpp` and `examples/pedal_state.cpp` for complete programs.
+
+## Read input events
+
+Variables give the last value of an input. A press and a release between two reads are lost.
+[InputEventReader](@ref sc_api::InputEventReader) reports each button transition instead. The
+stream needs no control access.
+
+The reader delivers no history. `open()` starts after the newest event. This example logs resolved
+events. `examples/input_events.cpp` shows how to keep input state and start press and release
+actions, with recovery after a loss.
+
+```cpp
+#include <sc-api/input_events.h>
+
+#include <chrono>
+#include <thread>
+
+sc_api::InputEventReader reader(session);
+if (!reader.open()) {
+    return;  // The session is lost, or the stream is not available.
+}
+
+sc_api::InputEvent events[64];
+
+while (reader.isValid()) {
+    sc_api::InputEventReader::ReadResult result = reader.read(events, 64);
+
+    if (result.lost != 0) {
+        std::cout << "lost " << result.lost << " events\n";  // This call returned no events.
+    }
+
+    // Resolve the events with device info taken after the read call.
+    std::shared_ptr<sc_api::device_info::FullInfo> info = session->getDeviceInfo();
+    for (uint32_t i = 0; i < result.count; ++i) {
+        const sc_api::InputEvent& event = events[i];
+        const sc_api::DeviceSessionId device_id{event.device_session_id};
+
+        auto device = info->getBySessionId(device_id);
+        if (!device || !device->getInputByEventId(event.input_id)) {
+            // Refresh once for an event that does not resolve, then ignore it.
+            info   = session->getDeviceInfo();
+            device = info->getBySessionId(device_id);
+        }
+        if (!device) {
+            continue;
+        }
+        const sc_api::device_info::Input& input = device->getInputByEventId(event.input_id);
+        if (!input) {
+            continue;
+        }
+        const bool pressed = event.type == sc_api::InputEventType::button_pressed;
+        std::cout << device->getUid() << ' ' << input.id << (pressed ? " pressed" : " released")
+                  << '\n';
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+}
+```
+
+`read` does not block. It gives the events oldest first. Read `lost` before `count`, because a
+call that reports a loss returns no events. The lost count stops at its maximum value, so use it
+as an indication, not as an exact number.
+
+An event names an input by its [event_id](@ref sc_api::device_info::Input::event_id). Resolve it
+with `DeviceInfo::getInputByEventId`. Ignore an event that has no matching input after one refresh
+of device info.
+
+An event reports the new state of one input. Read the baseline variables to get the complete input
+state. The [InputEventReader](@ref sc_api::InputEventReader) documentation lists the rules that keep
+your own state correct.
+
+A session loss invalidates the reader, and
+[isValid](@ref sc_api::InputEventReader::isValid) returns false. Create a new reader on the new
+session.
+
+See `examples/input_events.cpp` for a complete program.
 
 ## Send telemetry
 

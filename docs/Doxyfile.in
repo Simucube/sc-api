@@ -1135,7 +1135,19 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which Doxygen is
 # run.
 
-EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/ \
+# The protocol headers are listed one by one, because protocol/input_events.h must stay in: it
+# defines the InputEvent types that InputEventReader returns. A new protocol header is documented
+# unless it is added to this list.
+EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/actions.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/bson_shm_blocks.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/commands.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/core.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/dash_stream.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/security.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/telemetry.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/types.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/variable_types.h \
+                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/variables.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/src/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
@@ -1160,7 +1172,13 @@ EXCLUDE_PATTERNS       =
 # wildcard * is used, a substring. Examples: ANamespace, AClass,
 # ANamespace::AClass, ANamespace::*Test
 
-EXCLUDE_SYMBOLS        =
+# The ring codec in protocol/input_events.h is implementation. A client uses InputEventReader and sees
+# only the record types.
+EXCLUDE_SYMBOLS        = InputEventRing* \
+                         inputEventRing* \
+                         validateInputEventRing \
+                         k_input_event_* \
+                         isKnownInputEventType
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories
 # that contain example code fragments that are included (see the \include

@@ -92,10 +92,21 @@ struct Input {
      */
     InputRole role = InputRole::unknown;
 
+    /** Variable that holds the value of this input. For a wireless wheel, the SC-link Hub holds it. */
     VariableRef variable;
 
     /** Variable value range, if relevant */
     float range_begin = 0.0f, range_end = 0.0f;
+
+    /** Id of this input in the input event stream. Absent if the stream does not report it.
+     *
+     * Matches InputEvent::input_id for events of this device. For a button with event_id N, the
+     * state is bit `N % 32` of word `N / 32` of the `digital_inputs0` to `digital_inputs3`
+     * variables of the device that `variable` names (`ww.digital_inputs0` to `ww.digital_inputs3`
+     * on the SC-link Hub for a wireless wheel).
+     * @see sc-api/input_events.h
+     */
+    std::optional<uint16_t> event_id;
 
     explicit operator bool() const { return !id.empty(); }
 };
@@ -230,6 +241,9 @@ public:
 
     const std::vector<Input>& getInputs() const { return d_.inputs_; }
     const Input&              getInput(std::string_view id) const;
+
+    /** Input whose event_id equals InputEvent::input_id. The result is false if there is none. */
+    const Input& getInputByEventId(uint16_t event_id) const;
 
     const std::vector<Feedback>& getFeedbacks() const { return d_.feedbacks_; }
     const Feedback&              getFeedback(std::string_view id) const;
