@@ -1177,7 +1177,13 @@ EXCLUDE_PATTERNS       =
 EXCLUDE_SYMBOLS        = InputEventRing* \
                          inputEventRing* \
                          validateInputEventRing \
-                         k_input_event_* \
+                         k_input_event_ring_* \
+                         k_input_event_record_granularity \
+                         k_input_event_min_record_size \
+                         k_input_event_max_record_size \
+                         k_input_event_size \
+                         k_input_event_slot_word_size \
+                         k_input_event_word_count \
                          isKnownInputEventType
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories

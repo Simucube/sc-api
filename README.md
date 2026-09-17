@@ -169,7 +169,12 @@ An event holds:
   the inputs of the device do. A button on a wheel reports the session id of that wheel.
 - **type** — currently `button_pressed` or `button_released`.
 - **input id** — the `event_id` of an input of that device. `DeviceInfo::getInputByEventId` finds
-  the input.
+  the input. The `event_id` does not change when the user remaps the button in Tuner.
+- **hid index** — the HID input that the input was mapped to when the event happened, or
+  `k_input_event_no_hid_index` if it had none. For a button event it is the index into
+  `DeviceInfo::getHidButtonInput()` of the event's device. If that list is empty, use the list of
+  the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a wireless
+  wheel.
 
 See [examples/input_events.cpp](examples/input_events.cpp) and the
 [InputEventReader documentation](inc/sc-api/input_events.h) for more information.

@@ -260,6 +260,12 @@ An event names an input by its [event_id](@ref sc_api::device_info::Input::event
 with `DeviceInfo::getInputByEventId`. Ignore an event that has no matching input after one refresh
 of device info.
 
+An event also carries `hid_index`, the HID input that the input was mapped to when the event
+happened. Check for `k_input_event_no_hid_index` before you use it. For a button event it is the
+index into `DeviceInfo::getHidButtonInput()` of the event's device. If that list is empty, use the
+list of the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a
+wireless wheel.
+
 An event reports the new state of one input. Read the baseline variables to get the complete input
 state. The [InputEventReader](@ref sc_api::InputEventReader) documentation lists the rules that keep
 your own state correct.
