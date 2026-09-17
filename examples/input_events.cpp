@@ -24,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <thread>
 
 using namespace sc_api;
@@ -73,7 +74,12 @@ struct DeviceState {
 
 using DeviceMap = std::map<uint16_t, DeviceState>;
 
-void printAction(uint16_t device_session_id, const DeviceState& device, uint16_t event_id, const char* action) {
+std::string hidButtonText(const InputEvent& event) {
+    return event.hid_index == k_input_event_no_hid_index ? "no HID button"
+                                                         : "HID button " + std::to_string(event.hid_index);
+}
+
+void printAction(uint16_t device_session_id, const DeviceState& device, uint16_t event_id, std::string_view action) {
     std::cout << device.name << " (" << device_session_id << "): " << device.inputs.at(event_id) << ' ' << action
               << std::endl;
 }
@@ -243,10 +249,10 @@ void applyEvent(DeviceMap& devices, const InputEvent& event) {
             printAction(event.device_session_id, device, event.input_id, "released (missed)");
         }
         setBit(device.armed, event.input_id, true);
-        printAction(event.device_session_id, device, event.input_id, "pressed");
+        printAction(event.device_session_id, device, event.input_id, "pressed, " + hidButtonText(event));
     } else if (testBit(device.armed, event.input_id)) {
         setBit(device.armed, event.input_id, false);
-        printAction(event.device_session_id, device, event.input_id, "released");
+        printAction(event.device_session_id, device, event.input_id, "released, " + hidButtonText(event));
     }
 }
 

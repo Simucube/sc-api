@@ -27,7 +27,10 @@ namespace sc_api {
  * the `digital_inputs0` to `digital_inputs3` variables that
  * @ref sc_api::device_info::Input::event_id "Input::event_id" describes.
  * @ref sc_api::device_info::DeviceInfo::getInputByEventId "DeviceInfo::getInputByEventId" finds
- * the input of an event. A release event can also mean that the device became unavailable.
+ * the input of an event. A release event can also mean that the device became unavailable. The
+ * `hid_index` of an event is a snapshot from the time of the event and needs no lookup. A remap
+ * between a press and its release changes the `hid_index` of the release, so key press actions
+ * by `input_id`.
  *
  * A reader that does not read for a long time loses events. @ref read then reports how many and
  * returns no events. Read `lost` before `count`.

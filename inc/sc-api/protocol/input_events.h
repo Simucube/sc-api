@@ -62,6 +62,9 @@ constexpr bool isKnownInputEventType(InputEventType type) {
     return type == InputEventType::button_pressed || type == InputEventType::button_released;
 }
 
+/** Value of `InputEvent::hid_index` when the input has no HID input. */
+inline constexpr std::uint16_t k_input_event_no_hid_index = 0xffff;
+
 /** One event record. Events carry absolute state, never a toggle. */
 struct InputEvent {
     /** PC-side time of the event in sc_api::Clock nanoseconds. Events processed together can share
@@ -76,11 +79,16 @@ struct InputEvent {
     InputEventType type;
 
     /** Identifies the input within the device. The meaning is scoped to `type`. For the button
-     *  types it is the `event_id` of an `Input` of `device_session_id` in device_info. */
+     *  types it is the `event_id` of an `Input` of `device_session_id` in device_info. It does not
+     *  change when the user remaps the button. */
     std::uint16_t input_id;
 
-    /** Write zero. */
-    std::uint16_t reserved_;
+    /** The HID input that the input was mapped to when the event happened, or
+     *  `k_input_event_no_hid_index`. For the button types: the 0-based index into
+     *  `DeviceInfo::getHidButtonInput()` of the event's device. If that list is empty, use the list
+     *  of the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a
+     *  wireless wheel. */
+    std::uint16_t hid_index;
 
     /** Payload of `type`. */
     std::uint8_t payload[16];
@@ -93,7 +101,7 @@ static_assert(offsetof(InputEvent, timestamp) == 0, "timestamp must be the first
 static_assert(offsetof(InputEvent, device_session_id) == 8, "device_session_id offset is pinned");
 static_assert(offsetof(InputEvent, type) == 10, "type offset is pinned");
 static_assert(offsetof(InputEvent, input_id) == 12, "input_id offset is pinned");
-static_assert(offsetof(InputEvent, reserved_) == 14, "reserved_ offset is pinned");
+static_assert(offsetof(InputEvent, hid_index) == 14, "hid_index offset is pinned");
 static_assert(offsetof(InputEvent, payload) == 16, "payload offset is pinned");
 
 /** Size of the record this build reads and writes. The stride in the block can differ. */
@@ -148,7 +156,7 @@ constexpr std::uint64_t inputEventRingBlockSize(std::uint32_t capacity,
  *  session. */
 struct InputEventRingReadView {
     const std::atomic<std::uint64_t>* write_seq   = nullptr;
-    const std::uint8_t*               slots       = nullptr;
+    const std::uint8_t*               slot_area   = nullptr;
     std::uint32_t                     capacity    = 0;
     std::uint32_t                     mask        = 0;
     std::uint32_t                     record_size = 0;
@@ -159,7 +167,7 @@ struct InputEventRingReadView {
 /** Validated writable view of a ring. Only the backend holds one. */
 struct InputEventRingWriteView {
     std::atomic<std::uint64_t>* write_seq   = nullptr;
-    std::uint8_t*               slots       = nullptr;
+    std::uint8_t*               slot_area   = nullptr;
     std::uint32_t               capacity    = 0;
     std::uint32_t               mask        = 0;
     std::uint32_t               record_size = 0;
@@ -196,14 +204,15 @@ constexpr bool inputEventRingParamsValid(std::uint32_t capacity, std::uint32_t r
 /** Address of a slot as an array of atomic words. Shared memory holds no C++ objects across
  *  processes, so the words are reached by offset. The stride is a multiple of 32 and the slot area
  *  starts at 128, so every slot base is 8-byte aligned. */
-inline std::atomic<std::uint64_t>* inputEventRingSlot(std::uint8_t* slots, std::uint32_t index,
+inline std::atomic<std::uint64_t>* inputEventRingSlot(std::uint8_t* slot_area, std::uint32_t index,
                                                       std::uint32_t record_size) {
-    return reinterpret_cast<std::atomic<std::uint64_t>*>(slots + static_cast<std::size_t>(index) * record_size);
+    return reinterpret_cast<std::atomic<std::uint64_t>*>(slot_area + static_cast<std::size_t>(index) * record_size);
 }
 
-inline const std::atomic<std::uint64_t>* inputEventRingSlot(const std::uint8_t* slots, std::uint32_t index,
+inline const std::atomic<std::uint64_t>* inputEventRingSlot(const std::uint8_t* slot_area, std::uint32_t index,
                                                             std::uint32_t record_size) {
-    return reinterpret_cast<const std::atomic<std::uint64_t>*>(slots + static_cast<std::size_t>(index) * record_size);
+    return reinterpret_cast<const std::atomic<std::uint64_t>*>(slot_area +
+                                                               static_cast<std::size_t>(index) * record_size);
 }
 
 /** True if the block starts on a cache line. A shared memory mapping is page aligned, so only a
@@ -276,7 +285,7 @@ inline InputEventRingReadView inputEventRingOpen(const void* buffer, std::size_t
     const InputEventRingShm* ring = reinterpret_cast<const InputEventRingShm*>(buffer);
 
     view.write_seq                = &ring->write_seq;
-    view.slots                    = reinterpret_cast<const std::uint8_t*>(buffer) + k_input_event_ring_slot_offset;
+    view.slot_area                = reinterpret_cast<const std::uint8_t*>(buffer) + k_input_event_ring_slot_offset;
     view.capacity                 = layout.capacity;
     view.mask                     = layout.capacity - 1u;
     view.record_size              = layout.record_size;
@@ -295,7 +304,7 @@ inline InputEventRingWriteView inputEventRingOpenForWrite(void* buffer, std::siz
     InputEventRingShm* ring = reinterpret_cast<InputEventRingShm*>(buffer);
 
     view.write_seq          = &ring->write_seq;
-    view.slots              = reinterpret_cast<std::uint8_t*>(buffer) + k_input_event_ring_slot_offset;
+    view.slot_area          = reinterpret_cast<std::uint8_t*>(buffer) + k_input_event_ring_slot_offset;
     view.capacity           = layout.capacity;
     view.mask               = layout.capacity - 1u;
     view.record_size        = layout.record_size;
@@ -352,7 +361,7 @@ inline void inputEventRingWrite(const InputEventRingWriteView& ring, const Input
     // Relaxed is enough: the writer is the only one that advances this counter.
     const std::uint64_t         w = ring.write_seq->load(std::memory_order_relaxed);
     std::atomic<std::uint64_t>* slot =
-        detail::inputEventRingSlot(ring.slots, static_cast<std::uint32_t>(w & ring.mask), ring.record_size);
+        detail::inputEventRingSlot(ring.slot_area, static_cast<std::uint32_t>(w & ring.mask), ring.record_size);
 
     std::uint64_t words[k_input_event_word_count];
     std::memcpy(words, &event, sizeof(event));
@@ -423,8 +432,8 @@ inline InputEventReadResult inputEventRingRead(const InputEventRingReadView& rin
         (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / k_input_event_slot_word_size;
 
     while (result.count < max_events && cursor != w1) {
-        const std::atomic<std::uint64_t>* slot =
-            detail::inputEventRingSlot(ring.slots, static_cast<std::uint32_t>(cursor & ring.mask), ring.record_size);
+        const std::atomic<std::uint64_t>* slot = detail::inputEventRingSlot(
+            ring.slot_area, static_cast<std::uint32_t>(cursor & ring.mask), ring.record_size);
 
         std::uint64_t words[k_input_event_word_count] = {};
         for (std::uint32_t i = 0; i < copy_words; ++i) {

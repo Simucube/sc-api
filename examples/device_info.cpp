@@ -7,7 +7,9 @@
 #include <sc-api/time.h>
 
 #include <cassert>
+#include <cstddef>
 #include <iostream>
+#include <vector>
 
 void printDeviceInfo(const std::shared_ptr<sc_api::device_info::FullInfo> info) {
     std::cout << "Connected devices:\n";
@@ -29,6 +31,17 @@ void printDeviceInfo(const std::shared_ptr<sc_api::device_info::FullInfo> info) 
                     std::cout << " event_id: " << *input.event_id;
                 }
                 std::cout << "\n";
+            }
+        }
+
+        const std::vector<sc_api::device_info::HidButtonInput> hid_buttons = device.getHidButtonInput();
+        if (!hid_buttons.empty()) {
+            std::cout << "\tHID buttons:\n";
+            for (std::size_t i = 0; i < hid_buttons.size(); ++i) {
+                for (const auto& mapping : hid_buttons[i].mappings) {
+                    std::cout << "\t\t" << i << " <- device " << mapping.device_id.id << " input " << mapping.input_id
+                              << "\n";
+                }
             }
         }
 
