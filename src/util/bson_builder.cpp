@@ -138,14 +138,13 @@ std::pair<uint8_t*, int32_t> fillArrayDocKey(uint8_t* buf, int32_t idx) {
         return {buf, 3};
     }
 
+    // Write the digits backwards from the end of the buffer, two at a time
     char* out = (char*)(buf + k_array_doc_key_buf_size - 1);
 
     out[0]    = 0;
     while (idx >= 100) {
         out -= 2;
-
-        const char* digits = digits2((unsigned)idx % 100);
-        copy2(buf, digits);
+        copy2((uint8_t*)out, digits2((unsigned)idx % 100));
         idx /= 100;
     }
 
@@ -153,8 +152,8 @@ std::pair<uint8_t*, int32_t> fillArrayDocKey(uint8_t* buf, int32_t idx) {
         --out;
         *out = (char)('0' + idx);
     } else {
-        const char* digits = digits2((unsigned)idx);
-        copy2(buf, digits);
+        out -= 2;
+        copy2((uint8_t*)out, digits2((unsigned)idx));
     }
 
     return {(uint8_t*)out, (int32_t)((buf + k_array_doc_key_buf_size) - (uint8_t*)out)};
