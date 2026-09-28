@@ -73,6 +73,11 @@ inline constexpr DeviceVariableReference<uint32_t> digital_inputs[4]{
 
 inline constexpr DeviceVariableReference<float> bite_point{"bite_point"};
 
+/** Current state of each multiswitch encoder zone */
+inline constexpr DeviceVariableReference<uint8_t> multiswitch[6]{{"ww.multiswitch0"}, {"ww.multiswitch1"},
+                                                                 {"ww.multiswitch2"}, {"ww.multiswitch3"},
+                                                                 {"ww.multiswitch4"}, {"ww.multiswitch5"}};
+
 }  // namespace wheel
 
 namespace sc2 {
