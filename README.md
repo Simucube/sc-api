@@ -33,7 +33,7 @@ and Simucube Tuner stays stable. An application that is released against a stabl
 working, and it does not have to follow every Tuner and API update. New features arrive, and old
 features stay backwards compatible.
 
-Currently supported Tuner version: [Simucube Tuner 3.1.4](https://downloads.simucube.com/SimucubeTunerSetup-3.1.4.exe)
+Currently supported Tuner version: [Simucube Tuner 3.2.0](https://downloads.simucube.com/SimucubeTunerSetup-3.2.0.exe)
 
 With the [Simucube API tools](https://downloads.simucube.com/sc-api-tools-2025-12-19.7z) you can view the available variable data, the device information and the sim data.
 You can also create simple effect pipelines to test the features. The tools read all information through the API and display it.
