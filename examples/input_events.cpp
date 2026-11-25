@@ -1,11 +1,9 @@
 /**
  * Input event example
  *
- * Prints an action for each button press, and for each release of a button whose press it printed.
- *
- * The program shows the consumer contract of the input event stream. It resolves each event
- * against a device list taken after the read call. After a loss it releases the buttons that the
- * baseline variables show clear. When a device leaves, it releases the armed buttons of the device.
+ * Prints an action for each button press, for each release of a button whose press it printed, and for each
+ * touch contact point that goes down, moves, goes up or is tapped. It also shows recovery after lost events and when a
+ * device leaves.
  */
 
 #include <sc-api/api.h>
@@ -23,6 +21,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -70,6 +69,9 @@ struct DeviceState {
     /** The buttons whose press action this program started. A release action needs a press action
      *  of this program first. The button state itself is in the baseline words. */
     InputWords armed                             = {};
+
+    /** The last touch event of each panel, by input_id. */
+    std::map<uint16_t, TouchEventPayload> last_touch;
 };
 
 using DeviceMap = std::map<uint16_t, DeviceState>;
@@ -84,11 +86,8 @@ void printAction(uint16_t device_session_id, const DeviceState& device, uint16_t
               << std::endl;
 }
 
-/** Does the variable definitions snapshot hold the digital input words of the device?
- *
- * Session::getVariables gives a snapshot that the session refreshes on its own schedule, so the
- * variables of a device can arrive after its device info. Until they do, the baseline reads zero.
- */
+/** Does the variable definitions snapshot hold the digital input words of the device? The session refreshes the
+ *  snapshot on its own schedule, so the words can arrive after the device info. Until then, the baseline reads 0. */
 bool hasBaseline(const DeviceState& device) { return device.baseline_words[0] != nullptr; }
 
 /** Current value of the digital input words. A word that the snapshot does not hold reads zero. */
@@ -102,13 +101,9 @@ InputWords readBaseline(const DeviceState& device) {
     return words;
 }
 
-/** Finds the digital input words that hold the state of the inputs of this device.
- *
- * A wireless wheel has its own device session id in device info and in the events, but its
- * baseline is in the `ww.digital_inputs0` to `ww.digital_inputs3` variables of the SC-link Hub.
- * Input::variable names the device that holds them, so this program treats an input whose variable
- * belongs to another device as a wireless wheel input.
- */
+/** Finds the digital input words of this device. A wireless wheel has its own device session id, but its baseline
+ *  is in the `ww.digital_inputs0` to `ww.digital_inputs3` variables of the SC-link Hub. Input::variable names the
+ *  device that holds the words, so an input whose variable belongs to another device is a wireless wheel input. */
 void resolveBaselineWords(VariableDefinitions& variables, const device_info::VariableRef& input_variable,
                           uint16_t device_session_id, DeviceState& device) {
     const bool wireless = input_variable.device_session_id.id != device_session_id;
@@ -119,7 +114,7 @@ void resolveBaselineWords(VariableDefinitions& variables, const device_info::Var
     }
 }
 
-void releaseArmedButtons(uint16_t device_session_id, DeviceState& device, const char* reason) {
+void releaseArmedButtons(uint16_t device_session_id, DeviceState& device, std::string_view reason) {
     for (uint16_t event_id = 0; event_id < k_bit_count; ++event_id) {
         if (testBit(device.armed, event_id)) {
             setBit(device.armed, event_id, false);
@@ -128,12 +123,48 @@ void releaseArmedButtons(uint16_t device_session_id, DeviceState& device, const 
     }
 }
 
-/** Starts a release action for every armed button that the baseline shows clear.
- *
- * A baseline never starts a press action: a later event can repeat a transition that the baseline
- * already contains. A baseline does start a release action. A button that this program pressed and
- * that the baseline shows clear was released while the events were lost.
- */
+void printTouch(uint16_t device_session_id, const DeviceState& device, unsigned panel, unsigned point,
+                std::string_view state) {
+    std::cout << device.name << " (" << device_session_id << "): panel " << panel << " point " << point << ' ' << state
+              << std::endl;
+}
+
+std::string positionText(const TouchEventPayload& touch, unsigned point) {
+    return std::to_string(touch.x[point]) + ',' + std::to_string(touch.y[point]);
+}
+
+bool isPointDown(const TouchEventPayload& touch, unsigned point) { return ((touch.points_down >> point) & 1u) != 0u; }
+
+bool isPointLifted(const TouchEventPayload& touch, unsigned point) { return ((touch.points_up >> point) & 1u) != 0u; }
+
+bool isPointTapped(const TouchEventPayload& touch, unsigned point) {
+    return ((touch.points_up >> (point + k_touch_event_tap_shift)) & 1u) != 0u;
+}
+
+void printCancelledPoints(uint16_t device_session_id, const DeviceState& device, unsigned panel,
+                          const TouchEventPayload& touch, std::string_view reason) {
+    for (unsigned point = 0; point < k_touch_event_max_points; ++point) {
+        if (isPointDown(touch, point)) {
+            printTouch(device_session_id, device, panel, point, reason);
+        }
+    }
+}
+
+void cancelTouch(uint16_t device_session_id, DeviceState& device, std::string_view reason) {
+    for (const auto& [panel, touch] : device.last_touch) {
+        printCancelledPoints(device_session_id, device, panel, touch, reason);
+    }
+    device.last_touch.clear();
+}
+
+void endAllActions(uint16_t device_session_id, DeviceState& device, const std::string& cause) {
+    releaseArmedButtons(device_session_id, device, "released (" + cause + ')');
+    cancelTouch(device_session_id, device, "cancelled (" + cause + ')');
+}
+
+/** Starts a release action for every armed button that the baseline shows clear, because that button was released
+ *  while the events were lost. A baseline never starts a press action, because a later event can repeat a transition
+ *  that the baseline already contains. */
 void applyBaseline(uint16_t device_session_id, DeviceState& device) {
     const InputWords baseline = readBaseline(device);
     for (uint16_t event_id = 0; event_id < k_bit_count; ++event_id) {
@@ -177,11 +208,8 @@ void releaseRemovedInputs(uint16_t device_session_id, const DeviceState& previou
     }
 }
 
-/** Rebuilds the device table from device info.
- *
- * A device that left releases its armed buttons. A device that stays keeps them, except those
- * whose input was removed.
- */
+/** Rebuilds the device table from device info. A device that left releases its armed buttons and cancels its touch
+ *  contact points. A device that stays keeps them, except the buttons whose input was removed. */
 void refreshDevices(const std::shared_ptr<Session>& session, DeviceMap& devices) {
     auto info = session->getDeviceInfo();
     if (!info) {
@@ -191,22 +219,17 @@ void refreshDevices(const std::shared_ptr<Session>& session, DeviceMap& devices)
     // definitions on every call and not once at start.
     VariableDefinitions variables = session->getVariables();
 
+    // Every listed device stays in the table: a device without button inputs can still report touch.
     DeviceMap next;
     for (const device_info::DeviceInfo& info_entry : *info) {
         const uint16_t device_session_id = info_entry.getSessionId().id;
         DeviceState    device            = makeDeviceState(info_entry, variables);
-        if (device.inputs.empty()) {
-            // The device stays out of the table, so release its armed buttons.
-            if (auto previous_entry = devices.find(device_session_id); previous_entry != devices.end()) {
-                releaseArmedButtons(device_session_id, previous_entry->second, "released (input removed)");
-            }
-            continue;
-        }
 
-        auto previous_entry = devices.find(device_session_id);
+        auto previous_entry              = devices.find(device_session_id);
         if (previous_entry != devices.end()) {
             const DeviceState& previous = previous_entry->second;
             device.armed                = previous.armed;
+            device.last_touch           = previous.last_touch;
             releaseRemovedInputs(device_session_id, previous, device);
             if (!hasBaseline(previous) && hasBaseline(device)) {
                 applyBaseline(device_session_id, device);  // arrived before its variables
@@ -217,7 +240,7 @@ void refreshDevices(const std::shared_ptr<Session>& session, DeviceMap& devices)
 
     for (auto& entry : devices) {
         if (next.count(entry.first) == 0) {
-            releaseArmedButtons(entry.first, entry.second, "released (device gone)");
+            endAllActions(entry.first, entry.second, "device gone");
         }
     }
     devices = std::move(next);
@@ -225,7 +248,38 @@ void refreshDevices(const std::shared_ptr<Session>& session, DeviceMap& devices)
 
 bool resolves(const DeviceMap& devices, const InputEvent& event) {
     auto device_entry = devices.find(event.device_session_id);
-    return device_entry != devices.end() && device_entry->second.inputs.count(event.input_id) != 0;
+    if (device_entry == devices.end()) {
+        return false;
+    }
+    // A touch event names the device and a panel, not an input.
+    return event.type == InputEventType::touch || device_entry->second.inputs.count(event.input_id) != 0;
+}
+
+/** Prints each contact point that went down, moved, went up or was tapped since the panel's previous event. */
+void applyTouch(uint16_t device_session_id, DeviceState& device, uint16_t panel, const TouchEventPayload& touch) {
+    TouchEventPayload& previous = device.last_touch[panel];  // a missing panel starts released
+    if ((touch.flags & k_touch_event_cancelled) != 0) {
+        printCancelledPoints(device_session_id, device, panel, previous, "cancelled (device gone)");
+        device.last_touch.erase(panel);
+        return;
+    }
+    const bool suppressed = (touch.flags & k_touch_event_mouse_suppressed) != 0;
+    for (unsigned point = 0; point < k_touch_event_max_points; ++point) {
+        const bool was_down = isPointDown(previous, point);
+        const bool is_down  = isPointDown(touch, point);
+        const bool moved    = touch.x[point] != previous.x[point] || touch.y[point] != previous.y[point];
+        if (is_down && !was_down) {
+            printTouch(device_session_id, device, panel, point,
+                       "down at " + positionText(touch, point) + (suppressed ? ", kept from the mouse" : ""));
+        } else if (is_down && was_down && moved) {
+            printTouch(device_session_id, device, panel, point, "moved to " + positionText(touch, point));
+        } else if (isPointTapped(touch, point)) {
+            printTouch(device_session_id, device, panel, point, "tapped at " + positionText(touch, point));
+        } else if (isPointLifted(touch, point) && was_down) {
+            printTouch(device_session_id, device, panel, point, "up at " + positionText(touch, point));
+        }
+    }
+    previous = touch;
 }
 
 void applyEvent(DeviceMap& devices, const InputEvent& event) {
@@ -235,9 +289,21 @@ void applyEvent(DeviceMap& devices, const InputEvent& event) {
     }
     DeviceState& device = device_entry->second;
 
-    const bool pressed  = event.type == InputEventType::button_pressed;
+    // The meaning of input_id depends on the type, so the type decides the path first.
+    if (const TouchEventPayload* touch = getEventPayload<TouchEventPayload>(&event)) {
+        applyTouch(event.device_session_id, device, event.input_id, *touch);
+        if (std::optional<TouchPosition> tap = getSingleFingerTap(event)) {
+            std::cout << device.name << " (" << event.device_session_id << "): panel " << event.input_id
+                      << " single-finger tap at " << tap->x << ',' << tap->y << std::endl;
+        }
+        return;
+    }
+    if (event.type != InputEventType::button_pressed && event.type != InputEventType::button_released) {
+        return;
+    }
+    const bool pressed = event.type == InputEventType::button_pressed;
 
-    // The backend reports every covered bit, including a bit that no input of this device uses.
+    // An event can carry an input_id that no input of this device uses.
     if (device.inputs.count(event.input_id) == 0) {
         return;
     }
@@ -282,11 +348,11 @@ int main() {
 
         if (reader && !reader->isValid()) {
             // The session is lost and nothing more arrives. Every event of the last read was
-            // already applied, so every device can release its armed buttons.
+            // already applied, so every device can end its actions.
             reader.reset();
             reader_session.reset();
             for (auto& entry : devices) {
-                releaseArmedButtons(entry.first, entry.second, "released (session lost)");
+                endAllActions(entry.first, entry.second, "session lost");
             }
             devices.clear();
             std::cout << "Session lost" << std::endl;
@@ -299,7 +365,7 @@ int main() {
                 if (opening->open()) {
                     reader         = std::move(opening);
                     reader_session = session;
-                    std::cout << "Reading input events. Press a wheel button." << std::endl;
+                    std::cout << "Reading input events. Press a wheel button or touch the screen." << std::endl;
                 }
             }
             if (!reader) {
@@ -317,14 +383,15 @@ int main() {
 
         const InputEventReader::ReadResult result = reader->read(events, k_batch_size);
 
-        // A call that reports a loss returns no events, so the apply loop below does nothing in
-        // this pass. The next call gives the events after the resync point. The baseline can
-        // already contain some of them, which is harmless because a baseline starts no press action.
+        // A call that reports a loss returns no events. The next call gives the events after the resync point. The
+        // baseline can already contain some of them, which is harmless because a baseline starts no press action.
+        // A panel has no baseline: it counts as released until its next event.
         if (result.lost != 0) {
             std::cout << "Lost " << result.lost << " records" << std::endl;
             refreshDevices(reader_session, devices);
             for (auto& entry : devices) {
                 applyBaseline(entry.first, entry.second);
+                cancelTouch(entry.first, entry.second, "cancelled (missed)");
             }
         }
 
@@ -348,7 +415,7 @@ int main() {
     }
 
     for (auto& entry : devices) {
-        releaseArmedButtons(entry.first, entry.second, "released (exit)");
+        endAllActions(entry.first, entry.second, "exit");
     }
     return 0;
 }

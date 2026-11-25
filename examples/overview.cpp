@@ -1,4 +1,5 @@
 #include <sc-api/api.h>
+#include <sc-api/api_core.h>
 #include <sc-api/command.h>
 #include <sc-api/events.h>
 #include <sc-api/sim_data.h>
@@ -59,6 +60,15 @@ static void telemetryThread(sc_api::Api* api) {
 }
 
 int main(int argc, char* argv[]) {
+    // Empty when no version is available now, for example when Tuner does not run or is starting.
+    // Check it first: an empty value compares less than every version.
+    if (auto backend_version = sc_api::ApiCore::getBackendVersion();
+        backend_version && *backend_version < sc_api::k_min_backend_version) {
+        const auto& min = sc_api::k_min_backend_version;
+        std::cerr << "Update Simucube Tuner to " << min.major << '.' << min.minor << '.' << min.patch
+                  << " or newer. Some features can be missing.\n";
+    }
+
     // Use helper thread to handle background processing of different data sources
     // We could use sc_api::Api directly also
     sc_api::Api api;

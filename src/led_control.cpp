@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+#include "api_internal.h"
 #include "sc-api/command.h"
 #include "sc-api/session.h"
 
@@ -161,7 +162,8 @@ bool LedControl::releaseControl() {
     req.docBeginSubArray("indices");
     req.endArray();
 
-    return session_->asyncCommand(std::move(req), [](const AsyncCommandResult& result) {});
+    // A release must not be lost to a full pending-command table, because the indices are already cleared
+    return session_->getInternal().sendWithoutReply(std::move(req));
 }
 
 }  // namespace sc_api

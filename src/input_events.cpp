@@ -5,6 +5,7 @@
 
 #include "api_internal.h"
 #include "compatibility.h"
+#include "session_alive.h"
 
 namespace sc_api {
 
@@ -19,19 +20,7 @@ struct InputEventReader::Impl {
     Impl& operator=(const Impl&) = delete;
 };
 
-namespace {
-
-/** The block stays mapped after the session is lost, and the backend can still write it, so the
- *  state is what stops the reader. */
-bool isSessionAlive(const std::shared_ptr<sc_api::Session>& session) {
-    if (!session) {
-        return false;
-    }
-    const SessionState state = session->getState();
-    return state == SessionState::connected_monitor || state == SessionState::connected_control;
-}
-
-}  // namespace
+using detail::isSessionAlive;
 
 InputEventReader::InputEventReader(std::shared_ptr<sc_api::Session> session)
     : impl_(std::make_unique<Impl>(std::move(session))) {}

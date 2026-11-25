@@ -1,1 +1,0 @@
-Checks: 'clang-analyzer-*,-clang-analyzer-security.insecureAPI.*'

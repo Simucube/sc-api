@@ -160,7 +160,7 @@ static nb::object read_array(const VariableDefinition& var) {
         case Type::f64:
             return read_array_typed<double>(var);
         case Type::boolean: {
-            // std::vector<bool> is special — use uint8_t and convert
+            // std::vector<bool> is special - use uint8_t and convert
             sc_api::RevisionCountedArrayRef<uint8_t> ref(var.type.getArraySize(), var.value_ptr);
             std::vector<uint8_t>                     data = ref.atomicCopy();
             if (data.empty() && var.type.getArraySize() > 0) {

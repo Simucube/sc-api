@@ -201,7 +201,9 @@ constexpr std::optional<DashPixelFormat> dashPixelFormatFromString(std::string_v
 
 /** Helper struct for accessing streamable screen feedback information
  *
- * Parses the BSON parameters from a FeedbackType::screen Feedback entry into screen geometry.
+ * Parses the BSON parameters of a FeedbackType::screen Feedback entry. max_mouse_suppressed_areas can rise after
+ * the device appears: re-read it on a device info change, or pass the areas anyway and the device applies what it
+ * takes.
  */
 struct ScreenFeedback {
     /** FeedbackType this typed view parses. Lets DeviceInfo::getTypedFeedbacks() select it. */
@@ -209,15 +211,16 @@ struct ScreenFeedback {
 
     std::string_view id;
     std::string_view control;
-    uint16_t         width        = 0;
-    uint16_t         height       = 0;
-    DashPixelFormat  pixel_format = DashPixelFormat::rgb565;
+    uint16_t         width              = 0;
+    uint16_t         height             = 0;
+    DashPixelFormat  pixel_format       = DashPixelFormat::rgb565;
+    uint16_t max_mouse_suppressed_areas = 0;  ///< At most k_max_mouse_suppressed_areas; 0 while unknown or unsupported
 
     /** Construct from a generic Feedback entry
      *
      * @param fb Feedback entry to parse (should have type FeedbackType::screen)
-     * @return ScreenFeedback with parsed geometry, or invalid (width == 0) on type mismatch or
-     *         missing/malformed parameters
+     * @return ScreenFeedback with the parsed values. Invalid (isValid false) on a type mismatch, or
+     *         when width or height is missing, malformed or 0.
      */
     static ScreenFeedback fromFeedback(const Feedback& fb);
 
@@ -254,9 +257,9 @@ public:
     /** Get all feedbacks of FeedbackT's type, parsed into the typed view FeedbackT.
      *
      * Generic form of getRgbLights(). FeedbackT must provide:
-     *   - `static constexpr FeedbackType k_feedback_type` — the FeedbackType it represents,
-     *   - `static FeedbackT fromFeedback(const Feedback&)` — parses a Feedback's parameters,
-     *   - `bool isValid() const` — whether the parse produced a usable value.
+     *   - `static constexpr FeedbackType k_feedback_type` - the FeedbackType it represents,
+     *   - `static FeedbackT fromFeedback(const Feedback&)` - parses a Feedback's parameters,
+     *   - `bool isValid() const` - whether the parse produced a usable value.
      * Only valid parses are returned.
      */
     template <typename FeedbackT>

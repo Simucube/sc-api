@@ -10,8 +10,10 @@ With this API you can:
 - send telemetry to Tuner and to the devices,
 - give and read simulator state data,
 - control the RGB lights of a device,
-- stream dashboard frames to a wheel display,
-- read every button press and release of a device as an event stream.
+- stream dashboard frames to a wheel display, and keep the touches on the buttons of the frames from
+  moving the PC mouse pointer,
+- read every button press and release, and the touch panel states, of a device as an event stream,
+- check whether the running Tuner is older than this API version supports.
 
 The implementation uses C++17 and supports only Windows. Python bindings are available.
 
@@ -26,7 +28,8 @@ arrives later, possibly with different communication methods that make external 
 Currently we attempt to keep backwards compatibility with future Tuner versions, but we do not
 guarantee it yet. A newer Tuner version usually supports an older API version. An older Tuner
 version does not necessarily support a newer API version, and its feature set can be limited. A
-Tuner that is too old for the API version gives no session at all.
+Tuner with an incompatible protocol gives no session at all. For the oldest supported Tuner version,
+see "Check the Tuner version" in [docs/GettingStarted.md](docs/GettingStarted.md).
 
 Version 1.0 will be the first stable version. From that version onwards, the ABI between the API
 and Simucube Tuner stays stable. An application that is released against a stable version keeps
@@ -58,8 +61,8 @@ cmake --install build --config Release
 The install tree keeps integration simple for all build systems:
 
 - All headers are below one directory, `<install-dir>/include`.
-- All object code is in one library, `<install-dir>/lib/sc-api`. Cryptography
-  and network code are already inside it.
+- All object code is in one library, `<install-dir>/lib/sc-api`. Network code
+  is already inside it.
 - Package config files for CMake (`find_package(sc-api)`) and for pkg-config
   are installed too, but they are not necessary.
 
@@ -116,6 +119,11 @@ Pull requests are welcome.
   telemetry and effect pipeline data.
 - **Command** — a BSON request and reply protocol over TCP. Used for two-way asynchronous
   communication and for configuration.
+- **Contact point** — one finger on a touch panel.
+- **Touch** — starts when a contact point goes down on a touch panel with no other contact point
+  down, and ends when all contact points lift. A touch event is one report of the panel state.
+- **Mouse suppressed area** — a screen rectangle sent with a streamed frame. A touch that starts in
+  it does not move the PC mouse pointer.
 
 
 # Features {#Features}
@@ -144,8 +152,8 @@ Variables are the fast changing values from Tuner and from the connected devices
 definitions are session specific.
 
 The variables are in shared memory, and the backend writes each one atomically. It does not sample
-different variables at the same instant, because that keeps the latency at a minimum. Two values can
-therefore be up to 2 ms apart. Average latency of variable data is less than 1 ms.
+different variables at the same instant, so two values can be up to 2 ms apart. Average latency of
+variable data is less than 1 ms.
 
 A variable definition holds:
 - **name** — ASCII string, for example `ap.force_N`
@@ -154,9 +162,9 @@ A variable definition holds:
 
 ## Input events
 
-The input event stream reports each button transition that the backend finds. Variables give only
-the last value, so a press and a release between two reads are lost. The event stream keeps them.
-The stream is C++ only.
+The input event stream reports each button transition that the backend finds, and the state of a
+touch panel each time the device reports it. Variables give only the last value, so a press and a
+release between two reads are lost. The event stream keeps them.
 
 A reader that stops reading for a long time loses events. The next read call reports how many, and
 returns no events.
@@ -167,14 +175,17 @@ An event holds:
 - **device session id** — the device that owns the input, normally the physical device that holds
   the control. `FullInfo::getBySessionId` finds it in [device info](#device-info), which tells what
   the inputs of the device do. A button on a wheel reports the session id of that wheel.
-- **type** — currently `button_pressed` or `button_released`.
-- **input id** — the `event_id` of an input of that device. `DeviceInfo::getInputByEventId` finds
-  the input. The `event_id` does not change when the user remaps the button in Tuner.
+- **type** — `button_pressed`, `button_released` or `touch`.
+- **input id** — for a button event, the `event_id` of an input of that device.
+  `DeviceInfo::getInputByEventId` finds the input. The `event_id` does not change when the user
+  remaps the button in Tuner. For a touch event, the index of the touch panel within the device.
 - **hid index** — the HID input that the input was mapped to when the event happened, or
   `k_input_event_no_hid_index` if it had none. For a button event it is the index into
   `DeviceInfo::getHidButtonInput()` of the event's device. If that list is empty, use the list of
   the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a wireless
   wheel.
+- **payload** — for a touch event, a `TouchEventPayload`, defined and documented in
+  [inc/sc-api/protocol/input_events.h](inc/sc-api/protocol/input_events.h).
 
 See [examples/input_events.cpp](examples/input_events.cpp) and the
 [InputEventReader documentation](inc/sc-api/input_events.h) for more information.
@@ -232,6 +243,14 @@ Dashboard streaming sends frames to a wheel display through shared memory. A str
 display appears in device info as a `screen` feedback. The feedback gives the frame size and the
 pixel format. The only currently supported pixel format is RGB565.
 
-The first sender that delivers a frame owns the device until that sender stops. The backend
-reports ownership and display progress back to every sender. Streaming needs control access. No
-dedicated streaming flag exists.
+The newest sender owns the device: a sender that starts or resumes sending frames takes the device
+from the current owner. The backend reports ownership and display progress back to every sender.
+A sender can set a target frame rate with `DashStreamer::setTargetFps`; a higher target trades picture
+quality for frame rate.
+Streaming needs control access: request `control_display`. Older Tuner versions do not grant it,
+but they still allow streaming for any control registration.
+
+A wheel with a touch panel can move the PC mouse pointer with a touch. A sender that draws buttons
+streams its frames with mouse suppressed areas, so that a touch on a button does not move the
+mouse. See "Stop button touches from moving the mouse" in
+[docs/GettingStarted.md](docs/GettingStarted.md) and [examples/touch_areas.cpp](examples/touch_areas.cpp).

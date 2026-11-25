@@ -77,7 +77,7 @@ public:
     static CommandResult createFromAsync(const AsyncCommandResult& r) {
         if (r.getResultCode() != ResultCode::ok) return createFailure(r.getResultCode(), r.getErrorMessage());
         const uint8_t* payload_bson = r.getPayload();
-        assert(payload_bson != nullptr);
+        if (payload_bson == nullptr) return createSuccess({});  // A successful reply may carry no data document
         int32_t bson_data_size = *(const int32_t*)payload_bson;
         return createSuccess(std::vector<uint8_t>(payload_bson, payload_bson + bson_data_size));
     }
@@ -106,7 +106,7 @@ private:
 /** State of the connection between the API user and Simucube Tuner
  *
  * A session begins in connected_monitor. To reach connected_control, call
- * Session::registerToControl, or let NoAuthControlEnabler or SecureControlEnabler do it.
+ * Session::registerToControl, or let NoAuthControlEnabler do it.
  *
  * A session never returns from session_lost to a connected state. Open a new session instead.
  */

@@ -1,1229 +1,651 @@
 {
     "physics_running": {
         "type": "bool",
-        "prio": "high",
         "desc": "True when game physics is currently running",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "telemetry_emulation": {
         "type": "bool",
-        "prio": "high",
         "desc": "Telemetry is generated for purposes of testing effects. Additional safety limits are applied",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "engine_rpm": {
         "type": "f32",
         "desc": "Engine RPM",
-        "prio": "high",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "unit": "rpm",
         "default": 0
     },
     "engine_idle_rpm": {
         "type": "i16",
         "desc": "Engine idle RPM",
-        "prio": "env",
-        "usages": [
-            "dash"
-        ],
         "unit": "rpm",
         "default": 0
     },
     "engine_max_rpm": {
         "type": "i16",
         "desc": "Max RPM that engine can safely handle",
-        "prio": "env",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "unit": "rpm",
         "default": 0
     },
     "engine_map": {
         "type": "i8",
         "desc": "Currently selected engine map",
-        "prio": "low",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "engine_running": {
         "type": "bool",
         "desc": "True, when the engine is running",
-        "prio": "low",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "ignition_on": {
         "type": "bool",
         "desc": "True, when the ignition is on",
-        "prio": "env",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "transmission_gear": {
         "type": "i8",
-        "prio": "high",
         "desc": "Selected transmission gear (0 == neutral, -1 = reverse, 1 = first gear,...)",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": 0
     },
     "abs_active": {
         "type": "bool",
-        "prio": "high",
         "desc": "True, if ABS is currently reducing brake pressure",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "abs_setting": {
         "type": "i8",
-        "prio": "low",
         "desc": "Current ABS setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "abs_setting_max": {
         "type": "i8",
-        "prio": "env",
         "desc": "Maximum ABS setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "drs_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when drag reduction system is activated",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "drs_available": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when drag reduction system can be activated after the next activation line.",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "drs_activatable": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when drag reduction system can currently be activated by pressing DRS button",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "active_aero_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when active aerodynamics is engaged.",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "active_aero_activatable": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when active aerodynamics can currently be activated.",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "overtake_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when overtake mode (e.g. push-to-pass) is currently active",
-        "usages": [
-            "effects",
-            "tuner",
-            "dash"
-        ],
         "default": false
     },
     "wipers_enabled": {
         "type": "bool",
-        "prio": "env",
         "desc": "True, when wipers are enabled",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "low_beam_enabled": {
         "type": "bool",
-        "prio": "env",
         "desc": "True, when low beam lights are enabled",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "high_beam_enabled": {
         "type": "bool",
-        "prio": "env",
         "desc": "True, when high beam lights are enabled",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "left_blinker_light_on": {
         "type": "bool",
-        "prio": "low",
         "desc": "True when left blinker light is on. Should generally keep toggling while turn signal is active",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "right_blinker_light_on": {
         "type": "bool",
-        "prio": "low",
         "desc": "True when right blinker light is on. Should generally keep toggling while turn signal is active",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "left_turn_signal_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True when left turn signal is active.",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "right_turn_signal_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True when right turn signal is active.",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "pit_limiter_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when pit limiter is activated",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "local_velocity_x": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car forward local velocity in m/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_velocity_y": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car leftwards local velocity in m/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_velocity_z": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car upward local velocity in m/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_acceleration_x": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car forward local acceleration in m/s^2",
-        "usages": [
-            "effects"
-        ],
         "unit": "m/s^2",
         "default": 0.0
     },
     "local_acceleration_y": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car leftwards local acceleration in m/s^2",
-        "usages": [
-            "effects"
-        ],
         "unit": "m/s^2",
         "default": 0.0
     },
     "local_acceleration_z": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car upwards local acceleration in m/s^2",
-        "usages": [
-            "effects"
-        ],
         "unit": "m/s^2",
         "default": 0.0
     },
     "local_rotation_yaw": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car rotation +yaw, clockwise (looking car from up), in radians. Range 0 to 2*PI",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_rotation_pitch": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car rotation +pitch, front upwards, rear down, in radians",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_rotation_roll": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car rotation +roll, left-side up, right-side down, in radians",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_angular_velocity_yaw": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car angular velocity +yaw, clockwise (looking car from up), in rad/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_angular_velocity_pitch": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car angular velocity +pitch, front upwards, rear down, in rad/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "local_angular_velocity_roll": {
         "type": "f32",
-        "prio": "high",
         "desc": "Player car angular velocity +roll, left-side up, right-side down, in rad/s",
-        "usages": [
-            "effects"
-        ],
         "default": 0.0
     },
     "tc_active": {
         "type": "bool",
-        "prio": "high",
         "desc": "Traction control is currently active and braking some wheel.",
-        "usages": [
-            "effects",
-            "tuner"
-        ],
         "default": false
     },
     "tc_setting": {
         "type": "i8",
-        "prio": "low",
         "desc": "Current traction control setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "tc_setting_max": {
         "type": "i8",
-        "prio": "env",
         "desc": "Maximum traction control setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "tc_power_cut_setting": {
         "type": "i8",
-        "prio": "low",
         "desc": "Current traction control power cut setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "tc_power_cut_setting_max": {
         "type": "i8",
-        "prio": "env",
         "desc": "Maximum traction control power cut setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "tc_slip_angle_setting": {
         "type": "i8",
-        "prio": "low",
         "desc": "Current traction control slip angle setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "tc_slip_angle_setting_max": {
         "type": "i8",
-        "prio": "env",
         "desc": "Maximum traction control slip angle setting",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "shift_light_start_rpm": {
         "type": "i16",
-        "prio": "low",
         "desc": "Engine RPM level where first shift light should light up",
-        "usages": [
-            "effects",
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "shift_light_end_rpm": {
         "type": "i16",
-        "prio": "low",
         "desc": "Engine RPM level where last shift light should light up and up shift should be done",
-        "usages": [
-            "effects",
-            "dash",
-            "tuner"
-        ],
         "default": 0.0
     },
     "shift_light_over_rev_rpm": {
         "type": "i16",
-        "prio": "low",
         "desc": "Engine RPM level where shift lights should blink to indicate over-rev",
-        "usages": [
-            "effects",
-            "dash",
-            "tuner"
-        ],
         "default": 0.0
     },
     "wheel_ang_vel_fl": {
         "type": "f32",
-        "prio": "high",
         "desc": "Front-left wheel angular velocity in radians/s",
-        "usages": [
-            "effects"
-        ],
         "unit": "rad/s",
         "default": 0.0
     },
     "wheel_ang_vel_fr": {
         "type": "f32",
-        "prio": "high",
         "desc": "Front-right wheel angular velocity in radians/s",
-        "usages": [
-            "effects"
-        ],
         "unit": "rad/s",
         "default": 0.0
     },
     "wheel_ang_vel_rl": {
         "type": "f32",
-        "prio": "high",
         "desc": "Rear-left wheel angular velocity in radians/s",
-        "usages": [
-            "effects"
-        ],
         "unit": "rad/s",
         "default": 0.0
     },
     "wheel_ang_vel_rr": {
         "type": "f32",
-        "prio": "high",
         "desc": "Rear-right wheel angular velocity in radians/s",
-        "usages": [
-            "effects"
-        ],
         "unit": "rad/s",
         "default": 0.0
     },
     "brake_balance_front": {
         "type": "f32",
-        "prio": "low",
-        "usages": [
-            "dash"
-        ],
         "desc": "Front brake balance percentage (0-100)",
         "default": 55.0
     },
     "brake_input": {
         "type": "f32",
-        "prio": "high",
-        "usages": [
-            "effects",
-            "dash"
-        ],
         "desc": "Brake input value (0-1)",
         "default": 0.0
     },
     "throttle_input": {
         "type": "f32",
-        "prio": "high",
-        "usages": [
-            "dash"
-        ],
         "desc": "Throttle input value (0-1)",
         "default": 0.0
     },
     "shift_light_level": {
         "type": "u8",
-        "prio": "high",
         "desc": "Fraction of the shift lights lit. 0 = all lights off, 255 = all lights on",
         "derived": "scale_to_255(engine_rpm, shift_start_rpm, shift_end_rpm)",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
     },
     "spotter_car_on_left": {
         "type": "bool",
-        "prio": "low",
         "desc": "Spotter detects a car on the left side",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "spotter_car_on_right": {
         "type": "bool",
-        "prio": "low",
         "desc": "Spotter detects a car on the right side",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "spotter_second_car_on_left": {
         "type": "bool",
-        "prio": "low",
         "desc": "Spotter detects a second car on the left side",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "spotter_second_car_on_right": {
         "type": "bool",
-        "prio": "low",
         "desc": "Spotter detects a second car on the right side",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "shift_light_over_rev": {
         "type": "bool",
-        "prio": "low",
         "desc": "True when engine RPM exceeds the over-rev threshold",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_green": {
         "type": "bool",
-        "prio": "low",
         "desc": "Green flag",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_yellow": {
         "type": "bool",
-        "prio": "low",
         "desc": "Yellow flag is active in the current sector",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_full_yellow": {
         "type": "bool",
-        "prio": "low",
         "desc": "Full track yellow flag is active",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_blue": {
         "type": "bool",
-        "prio": "low",
         "desc": "Blue flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_black": {
         "type": "bool",
-        "prio": "low",
         "desc": "Black flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_red": {
         "type": "bool",
-        "prio": "low",
         "desc": "Red flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_white": {
         "type": "bool",
-        "prio": "low",
         "desc": "White flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_checkered": {
         "type": "bool",
-        "prio": "low",
         "desc": "Checkered flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "flag_black_white": {
         "type": "bool",
-        "prio": "low",
         "desc": "Half black, half white flag is waved for the player",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "lap_time_previous": {
         "type": "f32",
-        "prio": "env",
         "desc": "Player lap time in seconds from the previous completed lap",
-        "usages": [
-            "dash"
-        ],
         "unit": "s",
         "default": 0
     },
     "lap_time_best": {
         "type": "f32",
-        "prio": "env",
         "desc": "Player lap time in seconds from the best completed lap",
-        "usages": [
-            "dash"
-        ],
         "unit": "s",
         "default": 0
     },
     "lap_time_current": {
         "type": "f32",
-        "prio": "low",
         "desc": "Player elapsed time on the current lap",
-        "usages": [
-            "dash"
-        ],
         "unit": "s",
         "default": 0
     },
     "lap_time_estimate": {
         "type": "f32",
-        "prio": "low",
         "desc": "Predicted final laptime for the current lap",
-        "usages": [
-            "dash"
-        ],
         "unit": "s",
         "default": 0
     },
     "current_lap_valid": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when current lap is valid",
-        "usages": [
-            "dash"
-        ],
         "default": true
     },
     "speed": {
         "type": "f32",
-        "prio": "high",
         "desc": "Car forward velocity as measured by the speedometer (may differ from the \"gps\" speed local_velocity_x)",
-        "usages": [
-            "effects",
-            "dash"
-        ],
         "unit": "m/s",
         "default": 0
     },
     "time": {
         "type": "f32",
-        "prio": "low",
         "desc": "In-game time of day, seconds from midnight",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "engine_oil_temperature": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Engine oil temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "engine_water_temperature": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Engine water temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "laps_completed": {
         "type": "i16",
-        "prio": "env",
         "desc": "Number of laps completed within the current session",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "fuel_capacity": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "env",
         "desc": "Fuel tank capacity in litres",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "unit": "l",
         "default": 0
     },
     "fuel_capacity_kilos": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "env",
         "desc": "Fuel tank capacity in kilos",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "unit": "kg",
         "default": 0
     },
     "fuel_available": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Current fuel level in litres",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "unit": "l",
         "default": 0
     },
     "fuel_available_kilos": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Current fuel level in kilos",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "unit": "kg",
         "default": 0
     },
     "fuel_density": {
         "type": "f32",
-        "prio": "env",
         "desc": "Fuel density",
         "unit": "kg/l",
-        "default": 0.75,
-        "usages": [
-            "dash"
-        ]
+        "default": 0.75
     },
     "available_fuel_for_laps": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Estimated number of laps that can be completed with the current fuel level",
-        "usages": [
-            "dash"
-        ],
         "default": 0,
         "unit": "lap"
     },
     "delta_to_best": {
         "type": "f32",
-        "prio": "low",
         "desc": "Delta time in seconds to the best lap time of the player",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "delta_to_optimal": {
         "type": "f32",
-        "prio": "low",
         "desc": "Delta time in seconds to the optimal lap time of the player",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "delta_to_session_optimal": {
         "type": "f32",
-        "prio": "low",
         "desc": "Delta time in seconds to the optimal lap time in this session of the player",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "delta_to_last": {
         "type": "f32",
-        "prio": "low",
         "desc": "Delta time in seconds to the last lap time of the player",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "race_position": {
         "type": "i8",
-        "prio": "low",
         "desc": "Race position of the player",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "tire_temperature_fl": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Front left tire temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_temperature_fr": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Front right tire temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_temperature_rl": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Rear left tire temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_temperature_rr": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Rear right tire temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_pressure_fl": {
         "type": "f32",
-        "compact_type": "u16",
-        "scaling": 1.0,
-        "prio": "low",
         "desc": "Front left tire pressure",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_pressure_fr": {
         "type": "f32",
-        "compact_type": "u16",
-        "scaling": 1.0,
-        "prio": "low",
         "desc": "Front right tire pressure",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_pressure_rl": {
         "type": "f32",
-        "compact_type": "u16",
-        "scaling": 1.0,
-        "prio": "low",
         "desc": "Rear left tire pressure",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "tire_pressure_rr": {
         "type": "f32",
-        "compact_type": "u16",
-        "scaling": 1.0,
-        "prio": "low",
         "desc": "Rear right tire pressure",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_temperature_fl": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Front left brake temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_temperature_fr": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Front right brake temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_temperature_rl": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Rear left brake temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_temperature_rr": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "low",
         "desc": "Rear right brake temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_air_pressure": {
         "type": "f32",
-        "prio": "low",
         "desc": "Current pressure in the brake air tank",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_air_pressure_warning_level": {
         "type": "f32",
-        "prio": "env",
         "desc": "Brake air tank pressure below which the warning activates",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_air_pressure_emergency_level": {
         "type": "f32",
-        "prio": "env",
         "desc": "Brake air tank pressure below which emergency brakes activate",
         "unit": "kPa",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "brake_air_pressure_warning_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when brake air pressure warning is active",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "brake_air_pressure_emergency_active": {
         "type": "bool",
-        "prio": "low",
         "desc": "True, when emergency brakes are active due to low air pressure",
-        "usages": [
-            "dash"
-        ],
         "default": false
     },
     "time_gap_ahead": {
         "type": "f32",
-        "prio": "low",
         "desc": "Gap to the car ahead in seconds",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "time_gap_behind": {
         "type": "f32",
-        "prio": "low",
         "desc": "Gap to the car behind in seconds",
         "unit": "s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "participant_ahead": {
         "type": "u16",
-        "prio": "low",
         "desc": "Id of the participant ahead",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "participant_behind": {
         "type": "u16",
-        "prio": "low",
         "desc": "Id of the participant behind",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "session_time_remaining": {
         "type": "f32",
-        "prio": "low",
         "desc": "Time remaining in current session",
         "unit": "s",
-        "usages": [
-            "dash"
-        ],
         "default": -1
     },
     "wind_speed": {
         "type": "f32",
-        "prio": "env",
         "desc": "Wind speed in the virtual world",
         "unit": "m/s",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "wind_direction": {
         "type": "u8",
-        "prio": "env",
         "desc": "Wind direction. Value increases clockwise, where north is zero, east is 64 etc.",
-        "default": 0,
-        "usages": [
-            "dash"
-        ]
+        "default": 0
     },
     "air_temperature": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "env",
         "desc": "Air temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "road_temperature": {
         "type": "f32",
-        "compact_type": "i16",
-        "scaling": 10.0,
-        "prio": "env",
         "desc": "Road surface temperature",
         "unit": "C",
-        "usages": [
-            "dash"
-        ],
         "default": 0
     },
     "wheelbase_torque_clipping": {
         "type": "bool",
-        "prio": "high",
         "desc": "True when wheelbase torque output is clipping for an extended time",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": false
     },
     "wheelbase_torque_output_percent": {
         "type": "u8",
-        "prio": "high",
         "desc": "Wheelbase total torque output as percentage (0-100), updated at 10Hz",
-        "usages": [
-            "dash",
-            "tuner"
-        ],
         "default": 0
+    },
+    "flag_yellow_red": {
+        "type": "bool",
+        "desc": "Yellow and red striped flag is waved for the player",
+        "default": false
     }
 }

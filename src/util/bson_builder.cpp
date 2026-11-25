@@ -295,7 +295,9 @@ bool BsonBuilder::docAddElement(std::string_view name, const uint8_t* bytes, int
     }
     std::memcpy(&buffer_ptr_[offset_], &byte_count, sizeof(int32_t));
     buffer_ptr_[offset_ + sizeof(int32_t)] = subtype;
-    std::memcpy(&buffer_ptr_[offset_ + sizeof(int32_t) + 1], bytes, byte_count);
+    if (byte_count > 0) {  // An empty vector's data() may be null, which memcpy must not take
+        std::memcpy(&buffer_ptr_[offset_ + sizeof(int32_t) + 1], bytes, byte_count);
+    }
 
     offset_ += value_size;
     return true;
@@ -351,7 +353,7 @@ bool BsonBuilder::arrayAddElement(bool value) {
     if (!verifyCapacityAndInsertArrayKey(ELEMENT_BOOL, 1)) {
         return false;
     }
-    buffer_ptr_[offset_] = value ? 0x00 : 0x01;
+    buffer_ptr_[offset_] = value ? 0x01 : 0x00;
     ++offset_;
     return true;
 }
@@ -413,7 +415,9 @@ bool BsonBuilder::arrayAddElement(const uint8_t* bytes, int32_t byte_count, uint
     }
     std::memcpy(&buffer_ptr_[offset_], &byte_count, sizeof(int32_t));
     buffer_ptr_[offset_ + sizeof(int32_t)] = subtype;
-    std::memcpy(&buffer_ptr_[offset_ + sizeof(int32_t) + 1], bytes, byte_count);
+    if (byte_count > 0) {
+        std::memcpy(&buffer_ptr_[offset_ + sizeof(int32_t) + 1], bytes, byte_count);
+    }
 
     offset_ += value_size;
     return true;

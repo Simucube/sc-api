@@ -6,7 +6,7 @@ if (POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
 endif()
 
-project(SimucubeAPI VERSION 0.3.0)
+project(SimucubeAPI VERSION 0.8.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -61,10 +61,6 @@ if (NOT TARGET sc-api-protocol_types)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 endif()
 
-if (NOT TARGET libeddsa)
-    add_subdirectory(src/libeddsa)
-endif()
-
 if (SC_API_SHARED)
     set(SC_API_LIBRARY_TYPE SHARED)
 else()
@@ -84,18 +80,12 @@ add_library(sc-api ${SC_API_LIBRARY_TYPE}
     inc/sc-api/variables.h src/variables.cpp
 
     inc/sc-api/session.h src/session.cpp
+    src/command_channel.h src/command_channel.cpp
     src/compatibility.h src/compatibility.cpp
     src/device_info_internal.h src/device_info.cpp
     src/shm_bson_data_provider.h src/shm_bson_data_provider.cpp
     inc/sc-api/action.h src/action.cpp
 
-    src/crypto/gcm.h
-    src/crypto/gcm.c
-    src/crypto/aes.h
-    src/crypto/aes.c
-    src/crypto/ecdh.h
-    src/crypto/ecdh.c
-    inc/sc-api/protocol/security.h
     inc/sc-api/protocol/variable_types.h
     inc/sc-api/util/bson_builder.h src/util/bson_builder.cpp
     inc/sc-api/util/bson_reader.h src/util/bson_reader.cpp
@@ -105,17 +95,18 @@ add_library(sc-api ${SC_API_LIBRARY_TYPE}
 
     inc/sc-api/telemetry.h
     src/telemetry.cpp
-    src/security_impl.h
-    src/security_impl.cpp
     inc/sc-api/api_core.h
     src/api.cpp
     inc/sc-api/api.h
     src/api_core.cpp
+    src/backend_version.h
+    src/session_alive.h
     inc/sc-api/ffb.h
     src/ffb.cpp
     inc/sc-api/led_control.h
     src/led_control.cpp
     inc/sc-api/dash_stream.h
+    inc/sc-api/touch_areas.h
     src/dash_stream.cpp
     inc/sc-api/protocol/input_events.h
     inc/sc-api/input_events.h
@@ -141,7 +132,6 @@ add_library(sc-api ${SC_API_LIBRARY_TYPE}
 
 # Suppress warnings on 3rd party components
 if (MSVC)
-    set_source_files_properties(src/crypto/gcm.c PROPERTIES COMPILE_FLAGS /wd4267)
     set_source_files_properties(src/util/bson_reader.cpp PROPERTIES COMPILE_FLAGS /wd4018)
 endif()
 
@@ -175,11 +165,6 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/export.h
     @ONLY)
 target_compile_definitions(sc-api PRIVATE SC_API_BUILDING=1)
-
-# $<BUILD_INTERFACE:> keeps libeddsa out of the exported link interface. It is
-# an OBJECT library, so its objects become part of the sc-api binary and there
-# is nothing left to link against at install time.
-target_link_libraries(sc-api PRIVATE $<BUILD_INTERFACE:libeddsa>)
 
 # --- Telemetry references generation ---
 set(TELEMETRY_REFS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/sc-api/telemetry_references.h")

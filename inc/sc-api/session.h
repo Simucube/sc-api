@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Session class, control registration and secure session types.
+ * @brief Session class and control registration.
  *
  * A Session is one connection to Simucube Tuner. It gives access to device info, variables,
  * telemetry definitions and sim data. It also carries the command channel.
@@ -12,6 +12,7 @@
 #ifndef SC_API_SESSION_H_
 #define SC_API_SESSION_H_
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -22,9 +23,9 @@
 
 #include "device.h"
 #include "device_info_fwd.h"
-#include "protocol/security.h"
 #include "result.h"
 #include "session_fwd.h"
+#include "version.h"
 
 namespace sc_api {
 
@@ -38,85 +39,6 @@ class SimDataUpdateBuilder;
 }  // namespace sim_data
 
 class FfbPipeline;
-
-/** Different options for establishing secure session that are supported by the current version of the backend
- */
-struct SecureSessionOptions {
-    uint32_t session_id = 0;
-
-    struct Method {
-        SC_API_PROTOCOL_SecurityMethod_t method;
-        std::vector<uint8_t>             public_key;
-        std::vector<uint8_t>             signature;
-    };
-
-    std::vector<Method> options;
-
-    bool isValid() const { return !options.empty(); }
-};
-
-enum class SecureSessionKeyExchangeResult {
-    ok,
-
-    /** Public key signature wasn't correct */
-    error_signature_verification_failed,
-
-    /** Provided private key wasn't correctly constructed for the key exchange method */
-    error_invalid_private_key,
-
-    /** Provided public key wasn't correctly constructed for the key exchange method */
-    error_invalid_public_key,
-
-    /** Method isn't supported by this implementation */
-    error_not_supported
-};
-
-/**
- * @todo Partial implementation. DO NOT USE
- */
-struct SecureSessionParameters {
-    /** Try to generate secure session parameters by doing key exchange
-     *
-     *  Verifies API backend public key by the signature and does key exchange defined by method by using
-     *  provided private and public keys
-     */
-    SecureSessionKeyExchangeResult tryKeyExchange(uint32_t session_id, const SecureSessionOptions::Method& method,
-                                                  const std::vector<uint8_t>& api_user_private_key,
-                                                  const std::vector<uint8_t>& api_user_public_key);
-
-    SC_API_PROTOCOL_SecurityMethod_t method = SC_API_PROTOCOL_SECURITY_METHOD_NONE;
-
-    /** Sanity check to make sure that SecureSessionParameters are generated based on the correct session options */
-    uint32_t session_id                     = 0;
-
-    /** Public key of the API user that is used to generate shared_secret
-     *
-     * This is sent to the API backend so that it can also generate the shared secret
-     * based on the selected security method
-     */
-    std::vector<uint8_t> controller_public_key;
-
-    /** Shared secret that is generated from API users private key and API backends public key
-     *
-     * This is used to derive the symmetric encryption key that is used to encrypt commands.
-     */
-    std::vector<uint8_t> shared_secret;
-};
-
-class SecureSessionInterface {
-public:
-    virtual ~SecureSessionInterface();
-
-    virtual void generateSymmetricEncryptionKey(const std::string& controller_id_name) = 0;
-
-    virtual void encrypt(uint8_t* iv, uint8_t* aad, uint32_t aad_len, uint8_t* data, uint32_t data_len,
-                         uint8_t* tag)                                                 = 0;
-
-    SecureSessionParameters& getSecureSessionParameters() { return secure_session_params_; }
-
-protected:
-    SecureSessionParameters secure_session_params_;
-};
 
 /** Information about the software that uses the API
  *
@@ -182,13 +104,14 @@ public:
          * This is required to use sim_data_builder
          */
         control_sim_data    = 1 << 2,
+
+        /** Control display output: RGB lights and dashboard streams
+         *
+         * Display output cannot move the device. Request this flag for LedControl and DashStreamer.
+         * Tuner does not require it yet, and older Tuner versions do not grant it.
+         */
+        control_display     = 1 << 3,
     };
-
-    /** Get list of currently supported secure session options for session
-     */
-    SecureSessionOptions getSecureSessionOptions() const;
-
-    SecureSessionInterface* getSecureSession() const;
 
     /** Registers this API user as a controller and allows executing commands
      *
@@ -198,8 +121,8 @@ public:
      * @param id_name Identifying name of this application. Should not change to allow reusing
      *                data and keeping state consistent. Max 16 characters + null-termination.
      * @param user_info Metadata about this application/plugin that interfaces with the API
-     * @param secure_session Optional secure session implementation used to authenticate this
-     *                       controller. nullptr registers without authentication.
+     * @param extra_controls Control names to request in addition to control_flags. The backend grants only the
+     *                       names it knows; getExtraControls() lists the granted ones.
      * @return ResultCode::ok, if registering was sent successfully
      *         ResultCode::error_invalid_argument, if arguments don't fill requirements
      *         ResultCode::error_busy, if there is already one registration in progress
@@ -207,8 +130,8 @@ public:
      *         ResultCode::error_cannot_connect, if connection to backend cannot be created
      */
     ResultCode registerToControl(uint32_t control_flags, const std::string& id_name,
-                                 const ApiUserInformation&               user_info,
-                                 std::unique_ptr<SecureSessionInterface> secure_session = nullptr);
+                                 const ApiUserInformation&       user_info,
+                                 const std::vector<std::string>& extra_controls = {});
 
     /** Get currently active control flags
      *
@@ -218,6 +141,12 @@ public:
      *
      */
     uint32_t getControlFlags() const;
+
+    /** Extra control names that the backend granted in the last registerToControl call
+     *
+     * @note thread-safe
+     */
+    std::vector<std::string> getExtraControls() const;
 
     /** Process functions handle session management and IO to the API
      *
@@ -247,7 +176,10 @@ public:
      */
     void stop();
 
-    /** Return the current state of the session */
+    /** Return the current state of the session
+     *
+     *  Thread-safe. The API thread can change the state right after the call.
+     */
     State getState() const;
 
     /** Closes the session
@@ -271,6 +203,9 @@ public:
     /** Numeric id of this session */
     uint32_t getId() const { return session_id_; }
 
+    /** Version of the Tuner that opened this session; 0.0.0 if Tuner does not report its version */
+    BackendVersion getBackendVersion() const;
+
     /** Get parsed sim data from the most recent refreshSimData call */
     std::shared_ptr<sim_data::SimData> getSimData();
 
@@ -286,23 +221,40 @@ public:
 
     /** Tries to send command to the backend and calls callback asynchronously when result is received
      *
-     * Requires that session has been registered. If session isn't registered or has closed, the function
-     * does nothing and returns false.
+     * Requires that session has been registered. If session isn't registered or has closed, or too many commands
+     * are already waiting for a response, the function does nothing and returns false.
      *
      * @param req Request data that is sent to the backend. Request data is consumed and the request must be
      *            reinitialized and rebuilt if the same instance is reused
-     * @param result_cb Callback function that is called when the command result is received.
-     *                  Callback will be called from the thread that has called one of the run/poll functions.
+     * @param result_cb Callback function that is called exactly once: with the command result, or with
+     *                  ResultCode::error_invalid_session_state when the connection is lost or the session closes
+     *                  first. It is called from the thread that runs one of the run/poll functions, or from the
+     *                  thread that calls close() or destroys the session. Do not use a raw Session pointer in it.
      * @return true, if command could be sent and the callback will be called.
      */
     bool asyncCommand(CommandRequest&& req, std::function<void(const AsyncCommandResult&)> result_cb);
 
-    /** Runs a command and blocks until the reply arrives or the timeout passes */
+    /** Runs a command and blocks until the reply arrives or the timeout passes
+     *
+     * Must not be called from the thread that runs the session, because that thread delivers the reply.
+     */
     CommandResult blockingCommand(CommandRequest&&          req,
                                   std::chrono::milliseconds timeout = std::chrono::milliseconds{1000});
 
-    /** Executes command and blocks until reply is received or connection is lost */
-    ResultCode blockingSimpleCommand(CommandRequest&& req);
+    /** Executes command and blocks until the reply arrives, the connection is lost or the timeout passes
+     *
+     * Must not be called from the thread that runs the session, because that thread delivers the reply.
+     *
+     * @return The result code of the reply, or
+     *         ResultCode::error_timeout, if no reply arrived in time
+     *         ResultCode::error_busy, if too many commands are waiting for a reply; retrying later can succeed
+     *         ResultCode::error_no_control, if the session has no open command channel: it is not registered,
+     *         or it is already closed or lost
+     *         ResultCode::error_invalid_session_state, if the connection is lost or the session closes before the
+     *         reply arrives
+     */
+    ResultCode blockingSimpleCommand(CommandRequest&&          req,
+                                     std::chrono::milliseconds timeout = std::chrono::milliseconds{1000});
 
     /** Execute command to replace Sim data based on the given build
      */
@@ -360,6 +312,7 @@ private:
     bool periodicUpdate();
 
     void disconnected();
+    void closeNoLock();
 
     void checkDefinitions();
 
@@ -369,18 +322,17 @@ private:
 
     std::unique_ptr<Internal> p_;
     uint32_t                  control_flags_ = 0;
-    State                     state_         = State::connected_monitor;
+    std::atomic<State>        state_{State::connected_monitor};  // read from any thread, written by the API thread
 
     std::chrono::steady_clock::time_point prev_keep_alive_;
     uint32_t                              session_id_            = 0;
     uint32_t                              prev_keep_alive_value_ = 0;
 
-    std::string control_id_name_;
-    uint16_t    controller_id_ = 0;
+    std::string              control_id_name_;
+    uint16_t                 controller_id_ = 0;
+    std::vector<std::string> extra_controls_;
 
-    bool is_running_           = false;
-
-    std::unique_ptr<SecureSessionInterface> secure_session_;
+    bool is_running_ = false;
 };
 
 }  // namespace sc_api

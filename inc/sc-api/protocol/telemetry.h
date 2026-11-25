@@ -52,7 +52,7 @@ typedef struct SC_API_PROTOCOL_TelemetryDef_s {
 
     /** Index of the variable that represents the current state of this telemetry
      *
-     * Updating this telemetry will update this variable, if the telemetry update isn't encrypted.
+     * Updating this telemetry will update this variable.
      *
      * 0xffffffffu, if there isn't variable that would directly represent this telemetry
      */

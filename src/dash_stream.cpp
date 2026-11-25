@@ -1,16 +1,21 @@
 #include "sc-api/dash_stream.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "api_internal.h"
 #include "compatibility.h"
 #include "sc-api/command.h"
 #include "sc-api/protocol/dash_stream.h"
 #include "sc-api/util/bson_reader.h"
+#include "session_alive.h"
 
 namespace sc_api {
 
@@ -23,10 +28,11 @@ struct DashStreamer::Impl {
     uint16_t                         device_session_id = 0;
     sc_api::detail::SharedMemory     shm;
     std::size_t                      buffer_size = 0;
+    std::atomic<uint16_t>            target_fps{0};  // written by setTargetFps from any thread
 
     // Backoff for the lazy open() path: open() issues a blocking command (up to a ~1 s timeout on an
-    // unresponsive backend), so without a cooldown a per-frame render loop would re-attempt — and
-    // potentially block — on every frame while disconnected. steady_clock for monotonic local timing
+    // unresponsive backend), so without a cooldown a per-frame render loop would re-attempt - and
+    // potentially block - on every frame while disconnected. steady_clock for monotonic local timing
     // (Clock is QPC/cross-process and stubbed off-Windows, wrong tool for a local cooldown).
     std::optional<std::chrono::steady_clock::time_point> last_failed_open;
     static constexpr auto                                k_open_retry_interval = std::chrono::milliseconds{500};
@@ -43,7 +49,7 @@ struct DashStreamer::Impl {
         // so move-assignment also triggers cleanup of the replaced Impl.
         sc_api::CommandRequest req{dsp::k_service_name, dsp::k_cmd_release_buffer};
         req.docAddElement(dsp::k_field_device_session_id, device_session_id);
-        session->asyncCommand(std::move(req), [](const sc_api::AsyncCommandResult&) {});
+        session->getInternal().sendWithoutReply(std::move(req));
     }
 
     Impl(const Impl&)            = delete;
@@ -66,7 +72,7 @@ DashStreamer::~DashStreamer()                                        = default;
 DashStreamer::DashStreamer(DashStreamer&& other) noexcept            = default;
 DashStreamer& DashStreamer::operator=(DashStreamer&& other) noexcept = default;
 
-bool DashStreamer::isValid() const { return impl_ && impl_->shm.isOpen(); }
+bool DashStreamer::isValid() const { return impl_ && impl_->shm.isOpen() && detail::isSessionAlive(impl_->session); }
 
 bool DashStreamer::open() {
     if (isValid()) return true;
@@ -102,7 +108,12 @@ bool DashStreamer::open() {
 }
 
 FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data) {
-    if (!rgb565_data) {
+    return streamFrame(width, height, rgb565_data, {});
+}
+
+FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data,
+                                      const std::vector<TouchArea>& areas) {
+    if (!rgb565_data || areas.size() > k_max_mouse_suppressed_areas) {
         return FrameResult::failed;
     }
     if (!tryOpenIfNecessary()) return FrameResult::failed;
@@ -110,7 +121,7 @@ FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uin
     // Check whether the requested frame fits the allocated shared-memory buffer.
     // Reject oversize frames instead of corrupting memory past the mapping.
     const std::size_t frame_size    = static_cast<std::size_t>(width) * height * 2;
-    const std::size_t required_size = sizeof(DashFrameShm) + frame_size;
+    const std::size_t required_size = k_dash_frame_pixel_offset + frame_size;
     if (required_size > impl_->buffer_size) {
         return FrameResult::failed;
     }
@@ -124,12 +135,16 @@ FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uin
         return FrameResult::dropped;
     }
 
-    shm_data->offset_x = 0;
-    shm_data->offset_y = 0;
-    shm_data->width    = width;
-    shm_data->height   = height;
+    shm_data->offset_x                    = 0;
+    shm_data->offset_y                    = 0;
+    shm_data->width                       = width;
+    shm_data->height                      = height;
+    shm_data->mouse_suppressed_area_count = static_cast<uint32_t>(areas.size());
+    std::copy(areas.begin(), areas.end(), shm_data->mouse_suppressed_areas);
+    shm_data->target_fps = impl_->target_fps.load(std::memory_order_relaxed);
 
-    std::memcpy(shm_data + 1, rgb565_data, frame_size);
+    // Shared memory holds no C++ objects across processes, so the pixel area is reached by offset
+    std::memcpy(reinterpret_cast<std::uint8_t*>(shm_data) + k_dash_frame_pixel_offset, rgb565_data, frame_size);
 
     // Publish the new frame by flipping revision to odd. The backend's packet timer polls this
     // revision and bumps it back to even on copy-out.
@@ -137,6 +152,12 @@ FrameResult DashStreamer::streamFrame(uint16_t width, uint16_t height, const uin
     shm_data->revision.store(next_revision, std::memory_order_release);
 
     return FrameResult::delivered;
+}
+
+void DashStreamer::setTargetFps(uint16_t fps) {
+    if (impl_) {
+        impl_->target_fps.store(fps, std::memory_order_relaxed);
+    }
 }
 
 void DashStreamer::stop() {
@@ -147,7 +168,7 @@ void DashStreamer::stop() {
     // is harmless because the firmware's autonomous fallback timeout still fires.
     sc_api::CommandRequest req{dsp::k_service_name, dsp::k_cmd_stop_stream};
     req.docAddElement(dsp::k_field_device_session_id, impl_->device_session_id);
-    impl_->session->asyncCommand(std::move(req), [](const sc_api::AsyncCommandResult&) {});
+    impl_->session->getInternal().sendWithoutReply(std::move(req));
 }
 
 bool DashStreamer::isOwner() const {
@@ -164,7 +185,7 @@ StreamFeedback DashStreamer::getStreamFeedback() const {
         return fb;
     }
     // Each feedback field is a single-writer (backend) atomic; acquire-load mirrors the backend's
-    // release-store discipline. Telemetry-rate snapshot — see StreamFeedback docs.
+    // release-store discipline. Telemetry-rate snapshot - see StreamFeedback docs.
     auto* shm_data          = static_cast<DashFrameShm*>(impl_->shm.getBuffer());
     fb.is_owner             = shm_data->is_owner.load(std::memory_order_acquire) != 0;
     fb.device_frame_counter = shm_data->device_frame_counter.load(std::memory_order_acquire);
@@ -184,7 +205,7 @@ bool DashStreamer::tryOpenIfNecessary() {
     if (isValid()) return true;
     if (!impl_) return false;
     // Rate-limit reconnect attempts so a disconnected stream doesn't block the caller's render loop
-    // on a blocking open() every frame. Explicit open() is not throttled — only this lazy path.
+    // on a blocking open() every frame. Explicit open() is not throttled - only this lazy path.
     if (impl_->last_failed_open &&
         (std::chrono::steady_clock::now() - *impl_->last_failed_open) < Impl::k_open_retry_interval) {
         return false;

@@ -4,6 +4,11 @@ import time
 
 import simucube_api
 
+# None when no version is available now, for example when Tuner does not run or is starting.
+version = simucube_api.Api.get_backend_version()
+if version is not None and version < simucube_api.MIN_BACKEND_VERSION:
+    print(f"Update Simucube Tuner to {simucube_api.MIN_BACKEND_VERSION} or newer. Some features can be missing.")
+
 with simucube_api.Api(
     control_flags=(
         simucube_api.ControlFlag.control_telemetry | simucube_api.ControlFlag.control_sim_data

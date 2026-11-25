@@ -15,7 +15,7 @@ def find_led_device(full_info):
 
 
 with simucube_api.Api(
-    control_flags=simucube_api.ControlFlag.control_ffb_effects,
+    control_flags=simucube_api.ControlFlag.control_display,
     id_name="python_led_example",
     user_info=simucube_api.ApiUserInformation(
         display_name="Python LED Example", author="Simucube"

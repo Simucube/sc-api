@@ -1,10 +1,12 @@
 #include "sc-api/device_info.h"
 
+#include <algorithm>
 #include <cassert>
 #include <charconv>
 #include <cstdint>
 
 #include "device_info_internal.h"
+#include "sc-api/touch_areas.h"
 #include "sc-api/util/bson_reader.h"
 
 namespace sc_api::detail {
@@ -102,7 +104,7 @@ ScreenFeedback ScreenFeedback::fromFeedback(const Feedback& fb) {
         return result;
     }
 
-    // Each tryFindAndGet scans the whole parameters sub-doc, so key order is irrelevant —
+    // Each tryFindAndGet scans the whole parameters sub-doc, so key order is irrelevant -
     // same idiom as DeviceInfo::Data::parse.
     util::BsonReader r(fb.parameters);
 
@@ -121,6 +123,12 @@ ScreenFeedback ScreenFeedback::fromFeedback(const Feedback& fb) {
         if (auto parsed = dashPixelFormatFromString(pixel_format)) {
             result.pixel_format = *parsed;
         }
+    }
+
+    int32_t max_mouse_suppressed_areas = 0;
+    if (r.tryFindAndGet("max_mouse_suppressed_areas", max_mouse_suppressed_areas)) {
+        result.max_mouse_suppressed_areas = static_cast<uint16_t>(
+            std::clamp(max_mouse_suppressed_areas, 0, static_cast<int32_t>(k_max_mouse_suppressed_areas)));
     }
 
     return result;

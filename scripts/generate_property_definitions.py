@@ -112,7 +112,7 @@ def parse_properties(properties_file):
 
 def generate_scapi_definitions_header(properties: list[ConfigProperty], property_group: str, output_dir: pathlib.Path):
     header_filename = property_group + ".h"
-    with open(SCAPI_TEMPLATE_DIR / "properties.h") as template_f:
+    with open(SCAPI_TEMPLATE_DIR / "properties.h", encoding="utf-8") as template_f:
         template_str = template_f.read()
 
     prop_class = PROPERTY_GROUP_CLASS_NAMES[property_group]
@@ -128,7 +128,7 @@ def generate_scapi_definitions_header(properties: list[ConfigProperty], property
     output = output.replace("/*PROPERTY_REFERENCES_HERE*/", gen_value_refs)
 
     os.makedirs(output_dir, exist_ok=True)
-    with open(output_dir / header_filename, "w") as out_f:
+    with open(output_dir / header_filename, "w", encoding="utf-8") as out_f:
         out_f.write(output)
 
 

@@ -1,5 +1,7 @@
 #include "bind_exceptions.h"
 
+#include <string>
+
 #include <nanobind/nanobind.h>
 
 namespace nb                                  = nanobind;
@@ -83,7 +85,9 @@ void throw_internal_error(const char* msg) {
     throw nb::python_error();
 }
 
-void throw_on_error(sc_api::ResultCode rc) {
+void throw_on_error(sc_api::ResultCode rc) { throw_on_error(rc, {}); }
+
+void throw_on_error(sc_api::ResultCode rc, std::string_view detail) {
     using RC = sc_api::ResultCode;
     if (rc == RC::ok) return;
 
@@ -153,6 +157,10 @@ void throw_on_error(sc_api::ResultCode rc) {
             break;
     }
 
-    PyErr_SetString(exc_type, msg);
+    if (detail.empty()) {
+        PyErr_SetString(exc_type, msg);
+    } else {
+        PyErr_SetString(exc_type, (std::string(msg) + ": " + std::string(detail)).c_str());
+    }
     throw nb::python_error();
 }

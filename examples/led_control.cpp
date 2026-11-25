@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     api_user_information.author         = "Simucube";
     api_user_information.version_string = "";
 
-    sc_api::NoAuthControlEnabler control_enabler(&api, sc_api::Session::control_ffb_effects, "example2",
+    sc_api::NoAuthControlEnabler control_enabler(&api, sc_api::Session::control_display, "example2",
                                                  api_user_information);
 
     auto session = api.getSession();
@@ -30,9 +30,9 @@ int main(int argc, char* argv[]) {
     while (auto opt_event = event_queue->tryPopUntil(timeout)) {
         const sc_api::Event event = *opt_event;
 
-        // Wait for session to connect and control to be available
+        // Wait for control. Older Tuner versions allow LED control without granting display.
         if (auto* s = sc_api::event::getIfSessionStateChanged(&event)) {
-            if (s->session && (s->control_flags & sc_api::Session::control_ffb_effects) != 0u) {
+            if (s->session && s->state == sc_api::Session::State::connected_control) {
                 session = s->session;
             }
         };

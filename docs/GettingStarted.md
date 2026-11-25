@@ -9,9 +9,38 @@ For the feature overview, see [Features](@ref Features). For build and link inst
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
-- Simucube Tuner must run on the same PC. Tuner is the backend of this API. A Tuner that is too old
-  for the API version gives no session.
+- Simucube Tuner must run on the same PC. Tuner is the backend of this API. For the supported Tuner
+  version, see "Check the Tuner version" below.
 - A Simucube device must be connected for the device parts of this guide.
+
+## Check the Tuner version
+
+[ApiCore::getBackendVersion](@ref sc_api::ApiCore::getBackendVersion) gives the version of the running
+Tuner. It needs no session, so it works also when no session opens. `sc_api::k_min_backend_version`
+is the oldest Tuner version that this API version supports. An older Tuner can still give a session,
+but features of this API version can be missing. Tell the user to update Tuner.
+
+An empty result does not always mean that Tuner does not run: this API can also fail to read the
+version. If [ApiCore::openSession](@ref sc_api::ApiCore::openSession) then returns
+`ResultCode::error_incompatible`, Tuner and this API version do not match.
+
+```cpp
+#include <sc-api/api_core.h>
+
+#include <iostream>
+
+// Empty when no version is available now, for example when Tuner does not run or is starting.
+// Check it first: an empty value compares less than every version.
+if (auto backend_version = sc_api::ApiCore::getBackendVersion();
+    backend_version && *backend_version < sc_api::k_min_backend_version) {
+    const auto& min = sc_api::k_min_backend_version;
+    std::cerr << "Update Simucube Tuner to " << min.major << '.' << min.minor << '.' << min.patch << " or newer.\n";
+}
+```
+
+With an open session, [Session::getBackendVersion](@ref sc_api::Session::getBackendVersion) gives the
+version of the Tuner that opened the session. It is never empty; 0.0.0 means that Tuner does not report
+its version.
 
 ## Open a session
 
@@ -67,9 +96,8 @@ configuration file. Store the device UID instead.
 
 Force feedback, telemetry and sim data need control access. Register the API user to get it.
 
-[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) registers the user without encryption. It
-registers again automatically after a reconnect. Keep the object alive for as long as control is
-needed.
+[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) registers the user. It registers again
+automatically after a reconnect. Keep the object alive for as long as control is needed.
 
 ```cpp
 sc_api::ApiUserInformation user_info;
@@ -92,17 +120,14 @@ Request only the flags that the application uses:
 
 | Flag | What it permits |
 | ---- | --------------- |
-| `control_ffb_effects` | Effect pipelines and LED control |
+| `control_ffb_effects` | Effect pipelines |
 | `control_telemetry` | Telemetry update groups |
 | `control_sim_data` | Sim data updates |
+| `control_display` | LED control and dashboard streaming |
 
 The session reaches `SessionState::connected_control` when the backend accepts the registration.
 Wait for that state before you send commands, telemetry or effects. The `control_flags` field of
 the `SessionStateChanged` event tells which flags the backend granted.
-
-@warning [SecureControlEnabler](@ref sc_api::SecureControlEnabler) is the encrypted variant. It needs
-a key pair that Simucube issues. It is not complete yet, so do not use it. Use
-`NoAuthControlEnabler` until the secure variant is ready.
 
 ## Read device info
 
@@ -197,12 +222,12 @@ See `examples/variable_definitions.cpp` and `examples/pedal_state.cpp` for compl
 ## Read input events
 
 Variables give the last value of an input. A press and a release between two reads are lost.
-[InputEventReader](@ref sc_api::InputEventReader) reports each button transition instead. The
-stream needs no control access.
+[InputEventReader](@ref sc_api::InputEventReader) reports each button transition instead, and the
+state of a touch panel each time the device reports it. The session needs no control access.
 
 The reader delivers no history. `open()` starts after the newest event. This example logs resolved
-events. `examples/input_events.cpp` shows how to keep input state and start press and release
-actions, with recovery after a loss.
+events. `examples/input_events.cpp` shows how to keep input state, start press and release
+actions and track touch contact points, with recovery after a loss.
 
 ```cpp
 #include <sc-api/input_events.h>
@@ -229,14 +254,22 @@ while (reader.isValid()) {
     for (uint32_t i = 0; i < result.count; ++i) {
         const sc_api::InputEvent& event = events[i];
         const sc_api::DeviceSessionId device_id{event.device_session_id};
+        const sc_api::TouchEventPayload* touch =
+            sc_api::getEventPayload<sc_api::TouchEventPayload>(&event);
 
         auto device = info->getBySessionId(device_id);
-        if (!device || !device->getInputByEventId(event.input_id)) {
+        if (!device || (!touch && !device->getInputByEventId(event.input_id))) {
             // Refresh once for an event that does not resolve, then ignore it.
             info   = session->getDeviceInfo();
             device = info->getBySessionId(device_id);
         }
         if (!device) {
+            continue;
+        }
+        if (touch) {
+            if (std::optional<sc_api::TouchPosition> tap = sc_api::getSingleFingerTap(event)) {
+                std::cout << device->getUid() << " tap at " << tap->x << ',' << tap->y << '\n';
+            }
             continue;
         }
         const sc_api::device_info::Input& input = device->getInputByEventId(event.input_id);
@@ -256,9 +289,10 @@ while (reader.isValid()) {
 call that reports a loss returns no events. The lost count stops at its maximum value, so use it
 as an indication, not as an exact number.
 
-An event names an input by its [event_id](@ref sc_api::device_info::Input::event_id). Resolve it
-with `DeviceInfo::getInputByEventId`. Ignore an event that has no matching input after one refresh
-of device info.
+A button event names an input by its [event_id](@ref sc_api::device_info::Input::event_id).
+Resolve it with `DeviceInfo::getInputByEventId`. A touch event resolves by its device alone, and
+its payload is a [TouchEventPayload](@ref sc_api::TouchEventPayload). Ignore an event that does
+not resolve after one refresh of device info.
 
 An event also carries `hid_index`, the HID input that the input was mapped to when the event
 happened. Check for `k_input_event_no_hid_index` before you use it. For a button event it is the
@@ -266,9 +300,9 @@ index into `DeviceInfo::getHidButtonInput()` of the event's device. If that list
 list of the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a
 wireless wheel.
 
-An event reports the new state of one input. Read the baseline variables to get the complete input
-state. The [InputEventReader](@ref sc_api::InputEventReader) documentation lists the rules that keep
-your own state correct.
+A button event reports the new state of one input. Read the baseline variables to get the complete
+button state. The [InputEventReader](@ref sc_api::InputEventReader) documentation lists the rules
+that keep your own state correct.
 
 A session loss invalidates the reader, and
 [isValid](@ref sc_api::InputEventReader::isValid) returns false. Create a new reader on the new
@@ -376,6 +410,7 @@ Build an update with [SimDataUpdateBuilder](@ref sc_api::sim_data::SimDataUpdate
 type exists for each section. A builder only accepts the properties of its own section.
 
 ```cpp
+#include <sc-api/sim_data.h>
 #include <sc-api/sim_data_builder.h>
 
 using namespace sc_api::sim_data;
@@ -422,14 +457,16 @@ See `examples/overview.cpp` for a complete program.
 
 ## Control LEDs
 
-[LedControl](@ref sc_api::LedControl) sets the RGB lights of one device. It needs the
-`control_ffb_effects` flag.
+[LedControl](@ref sc_api::LedControl) sets the RGB lights of one device. Request the
+`control_display` flag for it.
 
 First declare which lights this application controls. Then set their colors. The color order
 matches the index order.
 
 ```cpp
 #include <sc-api/led_control.h>
+
+#include <algorithm>
 
 auto device_with_leds = device_info->findFirstByFilter([](const sc_api::device_info::DeviceInfo& d) {
     return d.hasFeedbackType(sc_api::device_info::FeedbackType::rgb_light);
@@ -461,8 +498,9 @@ See `examples/led_control.cpp` for a complete program.
 memory.
 
 Streaming needs control access. Register with
-[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) first (see Enable control above). No
-dedicated streaming flag exists. Any control registration is enough.
+[NoAuthControlEnabler](@ref sc_api::NoAuthControlEnabler) first (see Enable control above) and
+request `control_display`. Older Tuner versions do not grant `control_display`, but they still
+allow streaming for any control registration.
 
 Find the target display through device info. A device that can show streamed frames has a
 feedback of type `screen`. [ScreenFeedback](@ref sc_api::device_info::ScreenFeedback) gives the frame
@@ -500,17 +538,46 @@ order only by continuing to send frames — pausing while demoted drops it out, 
 on resume. Non-owner frames are still consumed and acknowledged; check ownership with `isOwner()`,
 not the `streamFrame` return value.
 [DashStreamer::getStreamFeedback](@ref sc_api::DashStreamer::getStreamFeedback) reports ownership and
-how many frames the device showed. Poll the feedback about once per second. Adjust the frame rate
-from it. Do not poll it for every frame.
+how many frames the device decoded. Poll the feedback about once per second. Do not poll it for every
+frame. From the feedback you can compute the device frame rate. You can lower your submit rate
+toward it to save work, but stay above it.
 
 The streamer connects to the backend on the first `streamFrame` call, and that call can block.
 To detect a connection failure before the first frame, call
 [DashStreamer::open](@ref sc_api::DashStreamer::open) first.
 
-A session loss invalidates the streamer. Create a new `DashStreamer` for the new session. Find
-the device again, because the device session id can change.
+A session loss invalidates the streamer, and `isValid` returns false. Create a new `DashStreamer`
+for the new session. Find the device again, because the device session id can change.
 
 See `examples/dash_stream.cpp` for a complete program.
+
+## Stop button touches from moving the mouse
+
+A wheel with a touch panel can move the PC mouse pointer with a touch. If your frame draws buttons,
+give their [TouchArea](@ref sc_api::TouchArea) rectangles to the
+[DashStreamer::streamFrame](@ref sc_api::DashStreamer::streamFrame) overload, and a touch on a button
+does not move the mouse. The areas travel with the frame, so a page switch or a pop-up needs no extra
+step.
+
+```cpp
+#include <sc-api/dash_stream.h>
+
+const sc_api::TouchArea close_button{320, 260, 160, 80};  // x, y, w, h in screen pixels
+
+// The pop-up frame shows one button.
+streamer.streamFrame(screen.width, screen.height, popup_frame.data(), {close_button});
+```
+
+[ScreenFeedback::max_mouse_suppressed_areas](@ref sc_api::device_info::ScreenFeedback::max_mouse_suppressed_areas)
+tells how many areas a frame takes on the screen. Design a page against that number:
+`k_max_mouse_suppressed_areas` is only the most any device can report, and a list longer than the
+constant is not sent.
+Handle taps only while `isOwner()` is true.
+Ownership tells which streamer's frames the backend forwards; it does not identify the frame on
+the screen, and a touch event does not name the frame it landed on, so a tap right after an
+ownership change can belong to the previous content.
+
+See `examples/touch_areas.cpp` for a complete program.
 
 ## Where to go next
 

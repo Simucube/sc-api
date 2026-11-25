@@ -12,6 +12,7 @@
 #ifndef SC_API_APICORE_H_
 #define SC_API_APICORE_H_
 #include <memory>
+#include <optional>
 
 #include "events.h"
 #include "session.h"
@@ -45,8 +46,6 @@ public:
      * should be fairly immediate (<50ms), but may block up-to 500ms, if backend is still initializing
      * when this function is called.
      *
-     * This must be called before using any other function in this API.
-     *
      * @param session_handle_out Handle to the opened session
      *
      * @return ResultCode::ok, if initialization and connecting succeeded
@@ -62,6 +61,21 @@ public:
     /** @brief Get currently open session.
      *  @return Currently active session, returns nullptr if there isn't open session active */
     std::shared_ptr<Session> getOpenSession() const;
+
+    /** Get the version of the running Simucube Tuner
+     *
+     * Needs no open session. A Tuner older than k_min_backend_version can still open a session, but
+     * features of this API version can be missing. Check for empty before you compare the result with
+     * k_min_backend_version: an empty std::optional compares less than every version. Returns at once
+     * and is safe to call from any thread, also while openSession runs. With an open session,
+     * Session::getBackendVersion gives the version of the Tuner that opened it.
+     *
+     * @return The version of the running Tuner; 0.0.0 if Tuner does not report its version.
+     *         Empty if no version is available now: Tuner does not run, it is starting or
+     *         stopping, or this API cannot read its version. The value is what Tuner reports,
+     *         not proof that it still runs.
+     */
+    static std::optional<BackendVersion> getBackendVersion();
 
     /** Create an EventQueue that receives session and data events
      *

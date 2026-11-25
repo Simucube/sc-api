@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "sc-api/session.h"
-#include "security_impl.h"
 
 namespace sc_api {
 
@@ -220,8 +219,12 @@ void Api::threadFunc() {
 Api::ListenerInterface::~ListenerInterface() {}
 
 NoAuthControlEnabler::NoAuthControlEnabler(Api* api, uint32_t control_flags, std::string id_name,
-                                           ApiUserInformation user_info)
-    : api_(api), control_flags_(control_flags), id_name_(std::move(id_name)), user_info_(std::move(user_info)) {
+                                           ApiUserInformation user_info, std::vector<std::string> extra_controls)
+    : api_(api),
+      control_flags_(control_flags),
+      id_name_(std::move(id_name)),
+      user_info_(std::move(user_info)),
+      extra_controls_(std::move(extra_controls)) {
     api->addListener(this);
 }
 
@@ -233,7 +236,7 @@ NoAuthControlEnabler::~NoAuthControlEnabler() {
 
 void NoAuthControlEnabler::listenerAdded(Api* api, const std::shared_ptr<Session>& active_session) {
     if (active_session) {
-        active_session->registerToControl(control_flags_, id_name_, user_info_);
+        active_session->registerToControl(control_flags_, id_name_, user_info_, extra_controls_);
     }
 }
 
@@ -241,57 +244,10 @@ void NoAuthControlEnabler::listenerRemoved(Api* api) { api_ = nullptr; }
 
 void NoAuthControlEnabler::sessionStateChanged(const std::shared_ptr<Session>& session, Session::State state) {
     if (state == Session::State::connected_monitor) {
-        session->registerToControl(control_flags_, id_name_, user_info_);
+        session->registerToControl(control_flags_, id_name_, user_info_, extra_controls_);
     }
 }
 
 void NoAuthControlEnabler::controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t control_flags) {}
-
-SecureControlEnabler::SecureControlEnabler(Api* api, uint32_t control_flags, std::string id_name,
-                                           ApiUserInformation user_info, std::vector<uint8_t> public_key,
-                                           std::vector<uint8_t> private_key)
-    : api_(api), control_flags_(control_flags), id_name_(std::move(id_name)), user_info_(std::move(user_info)) {
-    public_key_  = std::move(public_key);
-    private_key_ = std::move(private_key);
-
-    api->addListener(this);
-}
-
-SecureControlEnabler::~SecureControlEnabler() {
-    if (api_) {
-        api_->removeListener(this);
-    }
-}
-void SecureControlEnabler::listenerAdded(Api* api, const std::shared_ptr<Session>& active_session) {
-    if (active_session) {
-        setupSecureSession(active_session);
-    }
-}
-
-void SecureControlEnabler::listenerRemoved(Api* api) { api_ = nullptr; }
-
-void SecureControlEnabler::sessionStateChanged(const std::shared_ptr<Session>& session, Session::State state) {
-    if (state == Session::State::connected_monitor) {
-        setupSecureSession(session);
-    }
-}
-
-void SecureControlEnabler::controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t flags) {}
-
-void SecureControlEnabler::setupSecureSession(const std::shared_ptr<Session>& session) const {
-    SecureSessionOptions secure_session_options = api_->getSession()->getSecureSessionOptions();
-    assert(secure_session_options.isValid() && "Invalid secure session options");
-
-    auto                           secure_session = std::make_unique<security::SecureSession>();
-    SecureSessionKeyExchangeResult r              = secure_session->getSecureSessionParameters().tryKeyExchange(
-        secure_session_options.session_id, secure_session_options.options[0], private_key_, public_key_);
-
-    assert(r == SecureSessionKeyExchangeResult::ok && "Secure session key exchange failed");
-    if (r == SecureSessionKeyExchangeResult::ok) {
-        secure_session->generateSymmetricEncryptionKey(id_name_);
-
-        session->registerToControl(control_flags_, id_name_, user_info_, std::move(secure_session));
-    }
-}
 
 }  // namespace sc_api

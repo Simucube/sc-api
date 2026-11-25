@@ -14,9 +14,11 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "sc-api/session.h"
 #include "sc-api/time.h"
+#include "sc-api/touch_areas.h"
 
 namespace sc_api {
 
@@ -28,7 +30,7 @@ enum class FrameResult {
     delivered,
     /** Frame skipped because previous frame was not yet consumed by the backend. */
     dropped,
-    /** Frame could not be sent due to transport or state error. */
+    /** Frame was not sent: a transport or state error, or an invalid argument (see streamFrame). */
     failed,
 };
 
@@ -36,14 +38,16 @@ enum class FrameResult {
  * @brief Backend-provided feedback for a dash stream, polled by the client.
  *
  * A snapshot of the most recent values the backend published into shared memory (see
- * @ref DashStreamer::getStreamFeedback). The counters are telemetry-rate — the device link adds
- * latency, especially with a wirelessly connected wheel — so they are good for pacing decisions,
+ * @ref DashStreamer::getStreamFeedback). The counters are telemetry-rate - the device link adds
+ * latency, especially with a wirelessly connected wheel - so they are good for pacing decisions,
  * not a hard per-frame sync.
  */
 struct StreamFeedback {
     /** True if this streamer currently owns the device (its frames are being forwarded). */
     bool is_owner                 = false;
-    /** Frames the device has actually decoded/displayed (firmware counter, curated passthrough). */
+    /** Frames the device has decoded, from every sender. It also counts frames the device skipped to show
+     *  a newer one. It reads 0 until the device reports its first count, and it starts again from 0 when
+     *  the device restarts. */
     uint32_t device_frame_counter = 0;
     /** Frames/packets the device dropped. */
     uint32_t dropped_count        = 0;
@@ -58,10 +62,14 @@ struct StreamFeedback {
  * Handles buffer allocation, frame writing, and notification sending automatically.
  *
  * @note Not thread-safe. Serialize calls to @ref streamFrame externally when
- *       sharing a single instance across threads.
+ *       sharing a single instance across threads. The one exception is @ref setTargetFps,
+ *       which another thread may call while @ref streamFrame runs.
  *
- * @note Streaming needs control access: register through @ref NoAuthControlEnabler before
- *       streaming. Any control flag is enough. No dedicated streaming flag exists.
+ * @note Streaming needs control access: register through @ref NoAuthControlEnabler with
+ *       Session::control_display before streaming.
+ *
+ * @note Use one DashStreamer per device in a session. Two streamers of one session for the same
+ *       device share one stream, and destroying one stops the other.
  *
  * The streamer connects lazily: the buffer is requested from the backend on the first
  * @ref streamFrame (and retried with backoff while the backend is unavailable). Call @ref open
@@ -110,12 +118,13 @@ public:
     DashStreamer& operator=(DashStreamer&& other) noexcept;
 
     /**
-     * @brief Whether the shared-memory buffer is open and ready to stream.
+     * @brief Whether the shared-memory buffer is open and the session is alive.
      *
-     * False until the buffer has been opened — either by an explicit @ref open or lazily by the
-     * first @ref streamFrame. Construction alone does not open the buffer.
+     * False until the buffer has been opened - either by an explicit @ref open or lazily by the
+     * first @ref streamFrame. Construction alone does not open the buffer. False again after the
+     * session is lost: create a new streamer for the new session.
      *
-     * @return true if the buffer is allocated and mapped.
+     * @return true if the buffer is mapped and the session is alive.
      */
     bool isValid() const;
 
@@ -138,7 +147,7 @@ public:
      * @param height Frame height in pixels
      * @param rgb565_data Pointer to RGB565 pixel data (width * height * 2 bytes)
      * @return @ref FrameResult::delivered on success, whether or not this streamer owns the
-     *         device — non-owner frames are consumed too, so @ref isOwner, not this return
+     *         device - non-owner frames are consumed too, so @ref isOwner, not this return
      *         value, is the way to check ownership.
      *         @ref FrameResult::dropped if the previous frame has not yet been
      *         consumed by the backend,
@@ -146,6 +155,40 @@ public:
      *         requested frame size exceeds the allocated shared-memory buffer.
      */
     FrameResult streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data);
+
+    /**
+     * @brief Stream a dashboard frame with the screen areas where a touch does not move the PC mouse pointer
+     *
+     * The areas go to the device with this frame and apply while the device shows it. A later frame
+     * without areas removes them. A touch that starts in an area does not move the mouse until all
+     * its contact points lift, and its touch events carry @ref k_touch_event_mouse_suppressed. One area
+     * can cover a group of buttons. Every entry counts toward the limit, also an empty one.
+     *
+     * @param width,height,rgb565_data As for the overload without areas.
+     * @param areas Screen areas where a touch must not move the PC mouse pointer. The device applies the
+     *        first device_info::ScreenFeedback::max_mouse_suppressed_areas of them, at most
+     *        @ref k_max_mouse_suppressed_areas; when that value is 0 the frame shows without the areas.
+     * @return As for the overload without areas. @ref FrameResult::failed also when @p areas has
+     *         more than @ref k_max_mouse_suppressed_areas entries; then the frame is not sent.
+     */
+    FrameResult streamFrame(uint16_t width, uint16_t height, const uint16_t* rgb565_data,
+                            const std::vector<TouchArea>& areas);
+
+    /**
+     * @brief Set the target frame rate of this streamer
+     *
+     * A higher target trades picture quality for frame rate. It is a hint: the device frame rate also
+     * depends on the content and the link. Measure that rate with @ref StreamFeedback::device_frame_counter
+     * while this streamer owns the device. The target does not pace or limit @ref streamFrame, and the
+     * device cannot show more frames than you submit.
+     *
+     * The target applies from the next @ref streamFrame call. A setTargetFps call during a running
+     * @ref streamFrame applies to that frame or the next. A new streamer starts without a target.
+     *
+     * @param fps Frames per second; 0 = no target (default). A target above the display refresh rate
+     *            counts as the refresh rate.
+     */
+    void setTargetFps(uint16_t fps);
 
     /**
      * @brief Stop this streamer
@@ -176,9 +219,9 @@ public:
     /**
      * @brief Latest backend feedback for this stream (ownership + device progress telemetry).
      *
-     * Use it to derive lag (submitted - device_frame_counter), effective device fps, and to drive
-     * your own pacing policy. Returns default-constructed feedback (is_owner=false, counters 0) if
-     * the streamer is invalid.
+     * Use it to measure the device frame rate and to drive your own pacing. Delivered frames minus the
+     * counter does not measure lag, because not every delivered frame reaches the device. Returns
+     * default-constructed feedback (is_owner=false, counters 0) if the streamer is invalid.
      */
     StreamFeedback getStreamFeedback() const;
 
@@ -187,7 +230,7 @@ public:
      *
      * @return The target device session ID, or @c std::nullopt if the streamer
      *         is in a moved-from state (@ref isValid returns false does not
-     *         guarantee @c std::nullopt — buffer allocation may have failed).
+     *         guarantee @c std::nullopt - buffer allocation may have failed).
      */
     std::optional<uint16_t> getDeviceSessionId() const;
 

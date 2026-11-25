@@ -46,7 +46,9 @@ nanobind_add_module(sc-api-python
     bind_events.cpp
     bind_sim_data.cpp
     bind_api.cpp
+    bind_bson.cpp
     bind_device_info.cpp
+    bind_input_events.cpp
     bind_variables.cpp
     bind_telemetry.cpp
     bind_ffb.cpp

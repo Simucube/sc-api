@@ -34,7 +34,8 @@ void bind_enums(nb::module_& m) {
                                     nb::is_flag())
         .value("control_ffb_effects", Session::control_ffb_effects)
         .value("control_telemetry", Session::control_telemetry)
-        .value("control_sim_data", Session::control_sim_data);
+        .value("control_sim_data", Session::control_sim_data)
+        .value("control_display", Session::control_display);
 
     nb::enum_<ResultCode>(
         m, "ResultCode",

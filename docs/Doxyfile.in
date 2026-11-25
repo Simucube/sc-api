@@ -1143,7 +1143,6 @@ EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/actions.
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/commands.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/core.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/dash_stream.h \
-                         @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/security.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/telemetry.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/types.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/inc/sc-api/protocol/variable_types.h \

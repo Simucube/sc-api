@@ -4,6 +4,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/unique_ptr.h>
 #include <sc-api/api.h>
+#include <sc-api/api_core.h>
+#include <sc-api/command.h>
 #include <sc-api/device.h>
 #include <sc-api/device_info.h>
 #include <sc-api/events.h>
@@ -14,11 +16,18 @@
 #include <sc-api/telemetry.h>
 #include <sc-api/util/event_queue.h>
 #include <sc-api/variables.h>
+#include <sc-api/version.h>
 
 #include <chrono>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <thread>
 #include <cmath>
 #include <variant>
+#include <vector>
 
+#include "bind_bson.h"
 #include "bind_exceptions.h"
 #include "bind_sim_data.h"
 #include "bind_util.h"
@@ -27,6 +36,7 @@ namespace nb = nanobind;
 
 using sc_api::Api;
 using sc_api::ApiUserInformation;
+using sc_api::BackendVersion;
 using sc_api::DeviceSessionId;
 using sc_api::Event;
 using sc_api::NoAuthControlEnabler;
@@ -141,6 +151,29 @@ static std::optional<std::chrono::steady_clock::time_point> toDeadline(std::opti
     return std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(seconds);
 }
 
+/** Result slot of one Session.command call, shared with the worker thread that runs it. */
+struct PendingCommand {
+    std::mutex              mutex;
+    std::condition_variable cv;
+    bool                    done = false;
+    sc_api::CommandResult   result;
+
+    void complete(sc_api::CommandResult r) {
+        {
+            std::lock_guard lock(mutex);
+            result = std::move(r);
+            done   = true;
+        }
+        cv.notify_all();
+    }
+
+    /** Waits for the result until `until`; true once it has arrived. */
+    bool waitUntil(std::chrono::steady_clock::time_point until) {
+        std::unique_lock lock(mutex);
+        return cv.wait_until(lock, until, [this] { return done; });
+    }
+};
+
 // --- PyApi wrapper (stores NoAuthControlEnabler alongside Api) ---
 
 struct PyApi {
@@ -213,6 +246,42 @@ void bind_api(nb::module_& m) {
         .def("__int__", [](const DeviceSessionId& d) { return d.id; })
         .def("__repr__", [](const DeviceSessionId& d) { return "DeviceSessionId(" + std::to_string(d.id) + ")"; });
 
+    nb::class_<BackendVersion>(m, "BackendVersion", "Version of Simucube Tuner, in the form major.minor.patch.")
+        .def(
+            "__init__",
+            [](BackendVersion* self, uint16_t major, uint16_t minor, uint16_t patch) {
+                new (self) BackendVersion{major, minor, patch};
+            },
+            nb::arg("major") = 0, nb::arg("minor") = 0, nb::arg("patch") = 0,
+            "Construct a BackendVersion. Each part is 0-65535. 0.0.0 means that Tuner does not report its version.")
+        .def_ro("major", &BackendVersion::major)
+        .def_ro("minor", &BackendVersion::minor)
+        .def_ro("patch", &BackendVersion::patch)
+        .def(
+            "__eq__", [](const BackendVersion& a, const BackendVersion& b) { return a == b; }, nb::is_operator())
+        .def(
+            "__lt__", [](const BackendVersion& a, const BackendVersion& b) { return a < b; }, nb::is_operator())
+        .def(
+            "__le__", [](const BackendVersion& a, const BackendVersion& b) { return a <= b; }, nb::is_operator())
+        .def(
+            "__gt__", [](const BackendVersion& a, const BackendVersion& b) { return a > b; }, nb::is_operator())
+        .def(
+            "__ge__", [](const BackendVersion& a, const BackendVersion& b) { return a >= b; }, nb::is_operator())
+        .def("__hash__",
+             [](const BackendVersion& v) {
+                 return std::hash<uint64_t>()((uint64_t{v.major} << 32) | (uint64_t{v.minor} << 16) | v.patch);
+             })
+        .def("__str__",
+             [](const BackendVersion& v) {
+                 return std::to_string(v.major) + "." + std::to_string(v.minor) + "." + std::to_string(v.patch);
+             })
+        .def("__repr__", [](const BackendVersion& v) {
+            return "BackendVersion(" + std::to_string(v.major) + ", " + std::to_string(v.minor) + ", " +
+                   std::to_string(v.patch) + ")";
+        });
+
+    m.attr("MIN_BACKEND_VERSION") = sc_api::k_min_backend_version;
+
     nb::class_<ApiUserInformation>(m, "ApiUserInformation", "Metadata about the API consumer shown in Simucube Tuner.")
         .def(
             "__init__",
@@ -242,13 +311,13 @@ void bind_api(nb::module_& m) {
         .def(
             "__init__", [](RgbColor* self, uint8_t r, uint8_t g, uint8_t b) { new (self) RgbColor(r, g, b); },
             nb::arg("r") = 0, nb::arg("g") = 0, nb::arg("b") = 0,
-            "Construct an RgbColor from 8-bit channel values (0–255).")
+            "Construct an RgbColor from 8-bit channel values (0-255).")
         .def_prop_ro(
-            "r", [](const RgbColor& c) { return c.r; }, "Red channel (0–255).")
+            "r", [](const RgbColor& c) { return c.r; }, "Red channel (0-255).")
         .def_prop_ro(
-            "g", [](const RgbColor& c) { return c.g; }, "Green channel (0–255).")
+            "g", [](const RgbColor& c) { return c.g; }, "Green channel (0-255).")
         .def_prop_ro(
-            "b", [](const RgbColor& c) { return c.b; }, "Blue channel (0–255).")
+            "b", [](const RgbColor& c) { return c.b; }, "Blue channel (0-255).")
         .def(
             "__eq__", [](const RgbColor& a, const RgbColor& b) { return a == b; }, nb::is_operator())
         .def("__repr__", [](const RgbColor& c) {
@@ -264,6 +333,8 @@ void bind_api(nb::module_& m) {
                         "``connected_control`` (full access) after a successful "
                         "``register_to_control()`` call.")
         .def_prop_ro("state", &Session::getState, "Current session state (``SessionState`` enum).")
+        .def_prop_ro("backend_version", &Session::getBackendVersion,
+                     "Version of the Tuner that opened this session; 0.0.0 if Tuner does not report its version.")
         .def_prop_ro("controller_id", &Session::getControllerId, "Numeric ID assigned to this controller by Tuner.")
         .def_prop_ro(
             "control_flags",
@@ -400,6 +471,65 @@ void bind_api(nb::module_& m) {
             ":param sim_id: Explicit simulator identifier. Overrides ``data['sim']['id']``.\n"
             ":param activate: If ``True``, mark this simulator as the active one in Tuner.\n\n"
             ":raises ValueError: If no sim_id can be resolved or the replace fails.")
+        .def(
+            "command",
+            [](Session& self, const std::string& service, const std::string& command, std::optional<nb::dict> args,
+               double timeout_s) {
+                if (service.find('\0') != std::string::npos || command.find('\0') != std::string::npos) {
+                    throw nb::value_error("service and command must not contain a null character");
+                }
+                if (!(timeout_s > 0.0)) {  // Also catches NaN.
+                    throw nb::value_error("timeout_s must be a positive number");
+                }
+                if (!(timeout_s < max_timeout_seconds)) {  // Also catches positive infinity.
+                    PyErr_SetString(PyExc_OverflowError, "timeout_s is too large");
+                    throw nb::python_error();
+                }
+                const auto timeout =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout_s));
+                std::vector<uint8_t> body = bind_bson::encode(args ? *args : nb::dict());
+
+                // blockingCommand runs on a worker so Ctrl-C can interrupt the wait below. It ends by its own timeout,
+                // which also frees the pending slot, so an interrupted call holds the slot at most timeout_s.
+                auto pending = std::make_shared<PendingCommand>();
+                std::thread([session = self.shared_from_this(), pending, service, command, body = std::move(body),
+                             timeout] {
+                    sc_api::CommandRequest req;
+                    req.initializeFrom(service, command, body.data());
+                    pending->complete(session->blockingCommand(std::move(req), timeout));
+                }).detach();
+
+                while (true) {
+                    bool done;
+                    {
+                        nb::gil_scoped_release release;
+                        done = pending->waitUntil(std::chrono::steady_clock::now() + poll_interval);
+                    }
+                    if (done) break;
+                    if (PyErr_CheckSignals() != 0) throw nb::python_error();
+                }
+
+                if (!pending->result.isSuccess()) {
+                    throw_on_error(pending->result.getResultCode(), pending->result.getErrorMessage());
+                }
+                const std::vector<uint8_t>& payload = pending->result.getPayload();
+                if (payload.empty()) return nb::dict();
+                return bind_bson::decode(payload.data(), payload.size());
+            },
+            nb::arg("service"), nb::arg("command"), nb::arg("args") = nb::none(), nb::arg("timeout_s") = 1.0,
+            "Send a command to a Tuner service and wait for its reply (blocks).\n\n"
+            "A generic call for commands that have no dedicated method. Needs a session that is registered with\n"
+            "``register_to_control()``. ``args`` and the reply are dicts of bool, int, float, str, bytes, None,\n"
+            "dict and list values.\n\n"
+            ":param service: Id name of the service that handles the command, such as ``\"core\"``.\n"
+            ":param command: Command id within that service.\n"
+            ":param args: Command arguments; an empty document when omitted.\n"
+            ":param timeout_s: Seconds to wait for the reply.\n"
+            ":returns: The reply data, or an empty dict when the reply has none.\n\n"
+            ":raises TypeError: If ``args`` holds a value that cannot be sent.\n"
+            ":raises TimeoutError: If no reply arrives within ``timeout_s``.\n"
+            ":raises OverflowError: If ``timeout_s`` is too large.\n"
+            ":raises SimucubeError: If Tuner rejects the command; the message carries Tuner's error message.")
         .def("__repr__", [](const Session& self) {
             return std::string("<Session state=") + session_state_str(self.getState()) +
                    " controller_id=" + std::to_string(self.getControllerId()) + ">";
@@ -478,13 +608,12 @@ void bind_api(nb::module_& m) {
                       "and maintains the current session. Use as a context manager to ensure "
                       "clean shutdown, or call ``close()`` explicitly.\n\n"
                       "The monitor-only constructor connects without requesting device control. "
-                      "The control constructor additionally registers a ``NoAuthControlEnabler`` "
-                      "suitable for development and testing.")
+                      "The control constructor additionally registers a ``NoAuthControlEnabler``.")
         .def(nb::init<>(), "Create an Api instance in monitor-only mode (no device control).")
         .def(nb::init<Session::ControlFlag, std::string, ApiUserInformation>(), nb::arg("control_flags"),
              nb::arg("id_name"), nb::arg("user_info"),
              "Create an Api instance that automatically requests device control.\n\n"
-             "Uses ``NoAuthControlEnabler`` — intended for development/testing only.\n\n"
+             "Uses ``NoAuthControlEnabler``.\n\n"
              ":param control_flags: ``ControlFlag`` bitmask of capabilities to request.\n"
              ":param id_name: Unique string identifier for this controller.\n"
              ":param user_info: Metadata about the application shown in Tuner.")
@@ -557,6 +686,12 @@ void bind_api(nb::module_& m) {
             ":returns: An iterator of event objects or ``None`` (on per-item timeout).\n\n"
             ":raises ValueError: If ``timeout`` is NaN.\n"
             ":raises OverflowError: If ``timeout`` is too large. Pass ``None`` to wait forever.")
+        .def_static("get_backend_version", &sc_api::ApiCore::getBackendVersion,
+                    "Version of the running Tuner. Needs no session. Returns at once and is safe to call from any "
+                    "thread. The value is what Tuner reports, not proof that it still runs.\n\n"
+                    ":returns: The version; 0.0.0 if Tuner does not report its version. ``None`` if no version is "
+                    "available now, for example when Tuner does not run or is starting. Check for ``None`` before "
+                    "you compare the result with ``MIN_BACKEND_VERSION``.")
         .def("close", &PyApi::close,
              "Shut down the background thread and release all resources.\n\n"
              "Safe to call multiple times. Also called automatically by the context manager.")

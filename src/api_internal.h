@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "command_channel.h"
 #include "compatibility.h"
 #include "device_info_internal.h"
 #include "sc-api/api_core.h"
@@ -20,9 +21,10 @@
 namespace sc_api {
 
 struct Session::Internal {
+    static constexpr std::size_t k_max_pending_commands = 256;
+
     Session*                         p_;
     const SC_API_PROTOCOL_Session_t* session_ptr;
-    SecureSessionOptions             secure_session_opts;
 
     detail::SharedMemory session;
     detail::ShmBlock     device_info;
@@ -32,7 +34,6 @@ struct Session::Internal {
     detail::ShmBlock     sim_data;
     detail::ShmBlock     input_events;
 
-    unsigned udp_max_encrypted_payload = 0;
     unsigned udp_max_plaintext_payload = 0;
 
     asio::io_context        io_ctx;
@@ -41,13 +42,14 @@ struct Session::Internal {
     asio::ip::udp::endpoint high_priority_socket_target;
     asio::ip::udp::socket   high_priority_socket{io_ctx};
 
-    asio::ip::tcp::socket                                                   main_socket{io_ctx};
-    std::vector<std::vector<uint8_t>>                                       main_socket_tx_queue;
-    std::unordered_map<int, std::function<void(const AsyncCommandResult&)>> command_result_handlers;
-    std::atomic_int command_id_counter;  // Used to connect request to response
+    asio::ip::tcp::socket             main_socket{io_ctx};
+    std::vector<std::vector<uint8_t>> main_socket_tx_queue;
+    detail::PendingCommands           pending_commands{k_max_pending_commands};
+    std::atomic_int                   command_id_counter;  // Used to connect request to response
 
     std::vector<uint8_t> receive_buffer;
     uint32_t             receive_buffer_used   = 0;
+    uint32_t             max_rx_document_size  = 0;
     bool                 receiving_in_progress = false;
 
     std::mutex main_socket_mutex;
@@ -67,12 +69,18 @@ struct Session::Internal {
 
     bool sendHighPrio(const char* raw_data, std::size_t length);
 
-    bool startSendCommand(std::vector<uint8_t> tx_data, int32_t cmd_id,
-                          std::function<void(const AsyncCommandResult&)> cb);
-    void startNextSend();
-    void startNextSendNoLock();
-    void startReceive();
-    void tryParsePacket();
+    /** @brief Queues a command. error_invalid_session_state when not connected, error_busy when too many pending. */
+    ResultCode startSendCommand(std::vector<uint8_t> tx_data, int32_t cmd_id,
+                                std::function<void(const AsyncCommandResult&)> cb);
+    /** @brief Queues a command and discards its reply, so it needs no pending slot. False when not connected. */
+    bool       sendWithoutReply(CommandRequest&& req);
+    void       startNextSend();
+    void       startNextSendNoLock();
+    void       startReceive();
+    /** @brief Closes the command socket and fails the pending commands. */
+    void connectionLost(std::string_view reason);
+    /** @brief Handles the complete responses in the receive buffer. Returns false when the connection was lost. */
+    bool tryParsePacket();
     void parsePacket(const uint8_t* data, int32_t size);
 
     void startPeriodicTimer(asio::steady_timer& timer, std::chrono::milliseconds period, std::function<void()>&& cb);
@@ -80,19 +88,6 @@ struct Session::Internal {
 
 class ApiCore::Impl {
     friend class Session;
-
-    struct SessionRef {
-        uint32_t id;
-        uint32_t version;
-        uint32_t size;
-        char     path[64];
-    };
-
-    struct PublicKeyData {
-        SC_API_PROTOCOL_PublicKeyHeader_t header;
-        std::vector<uint8_t>              key;
-        std::vector<uint8_t>              signature;
-    };
 
 public:
     Impl(ApiCore* api) : api_(api), event_producer_(std::make_shared<util::EventProducer<Event>>()) {}
@@ -112,13 +107,8 @@ private:
 
     ResultCode openCoreShmHandle();
 
-    ResultCode tryCopySessionRef(SessionRef& session);
-
     /** Tries contructing */
     ResultCode tryOpeningSession(const SC_API_PROTOCOL_Session_t* session_copy, detail::SharedMemory&& shm_buf);
-
-    static ResultCode resolveSecureSessionOptions(const SC_API_PROTOCOL_Session_t* session_copy,
-                                                  SecureSessionOptions&            opts);
 
     static constexpr std::chrono::milliseconds k_keep_alive_timeout{200};
 

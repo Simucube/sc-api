@@ -1,14 +1,6 @@
 /**
  * @file
- * @brief Shared memory layout and codec of the input event ring.
- *
- * These definitions describe the protocol. Application code uses sc-api/input_events.h instead.
- *
- * The block holds one ring of fixed size event records. The backend is the only writer. Any number
- * of reader processes consume the ring with private cursors. The writer never waits on a reader, so
- * a reader that falls a full ring behind loses events and resyncs to the live edge.
- *
- * The codec is pure functions over a caller provided buffer. It does not map, allocate or free.
+ * @brief Layout of the input event record and ring. Applications use sc-api/input_events.h.
  */
 
 #ifndef SC_API_PROTOCOL_INPUT_EVENTS_H_
@@ -22,7 +14,7 @@
 #include "core.h"
 
 #define SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_ID      0x8c41b7d5u
-#define SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_VERSION 0x00000001u
+#define SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_VERSION 0x00000002u
 
 namespace sc_api {
 
@@ -34,9 +26,6 @@ inline constexpr std::size_t k_input_event_ring_cache_align     = 64;
 /** Offset of the first slot from the start of the block. */
 inline constexpr std::uint32_t k_input_event_ring_slot_offset   = 128;
 
-/** Capacity that the v1 backend formats the ring with. */
-inline constexpr std::uint32_t k_input_event_ring_capacity      = 4096;
-
 /** Accepted capacity range. A power of two in this range keeps capacity x record_size below 2^32. */
 inline constexpr std::uint32_t k_input_event_ring_min_capacity  = 64;
 inline constexpr std::uint32_t k_input_event_ring_max_capacity  = 65536;
@@ -46,8 +35,8 @@ inline constexpr std::uint32_t k_input_event_record_granularity = 32;
 inline constexpr std::uint32_t k_input_event_min_record_size    = 32;
 inline constexpr std::uint32_t k_input_event_max_record_size    = 4096;
 
-/** Kind of an input event. Append only: a value is never reused or given a new meaning, and the
- *  payload layout of a value never changes. A reader ignores values it does not know. */
+/** Kind of an input event. Append only: a value is never reused or given a new meaning, and a
+ *  field of a payload never moves or changes its meaning. A reader ignores values it does not know. */
 enum class InputEventType : std::uint16_t {
     /** Not a valid event. */
     invalid         = 0,
@@ -55,11 +44,14 @@ enum class InputEventType : std::uint16_t {
     button_pressed  = 1,
     /** The input went from pressed to released. Empty payload. */
     button_released = 2,
+    /** The state of one touch panel of the device. Payload: TouchEventPayload. */
+    touch           = 3,
 };
 
 /** True for the event types of this API version. */
 constexpr bool isKnownInputEventType(InputEventType type) {
-    return type == InputEventType::button_pressed || type == InputEventType::button_released;
+    return type == InputEventType::button_pressed || type == InputEventType::button_released ||
+           type == InputEventType::touch;
 }
 
 /** Value of `InputEvent::hid_index` when the input has no HID input. */
@@ -80,14 +72,15 @@ struct InputEvent {
 
     /** Identifies the input within the device. The meaning is scoped to `type`. For the button
      *  types it is the `event_id` of an `Input` of `device_session_id` in device_info. It does not
-     *  change when the user remaps the button. */
+     *  change when the user remaps the button. For `touch` it is the index of the touch panel within
+     *  the device, 0 for the first. */
     std::uint16_t input_id;
 
     /** The HID input that the input was mapped to when the event happened, or
      *  `k_input_event_no_hid_index`. For the button types: the 0-based index into
      *  `DeviceInfo::getHidButtonInput()` of the event's device. If that list is empty, use the list
      *  of the device that `getParentSessionId()` names: the SC-link Hub reports the buttons of a
-     *  wireless wheel. */
+     *  wireless wheel. For `touch` it is `k_input_event_no_hid_index`. */
     std::uint16_t hid_index;
 
     /** Payload of `type`. */
@@ -104,7 +97,52 @@ static_assert(offsetof(InputEvent, input_id) == 12, "input_id offset is pinned")
 static_assert(offsetof(InputEvent, hid_index) == 14, "hid_index offset is pinned");
 static_assert(offsetof(InputEvent, payload) == 16, "payload offset is pinned");
 
-/** Size of the record this build reads and writes. The stride in the block can differ. */
+/** Contact points a touch event can carry. */
+inline constexpr std::uint8_t k_touch_event_max_points        = 3;
+
+/** `TouchEventPayload::flags` bit: the device can move the PC mouse pointer with a touch. This touch did not, for
+ *  example because it started in a mouse suppressed area. */
+inline constexpr std::uint8_t k_touch_event_mouse_suppressed  = 0x01;
+
+/** `TouchEventPayload::flags` bit: the device became unavailable; the contact points that were down were not lifted.
+ *  Only set on an event with no contact point down. */
+inline constexpr std::uint8_t k_touch_event_cancelled         = 0x02;
+
+/** `TouchEventPayload::flags` bit: the tap of this event had no other contact point down from its press to its
+ *  lift. Only set on an event with exactly one tap. */
+inline constexpr std::uint8_t k_touch_event_single_finger_tap = 0x04;
+
+/** Shift from the `TouchEventPayload::points_up` bit of a point to its tap bit. */
+inline constexpr std::uint8_t k_touch_event_tap_shift         = 4;
+
+/** Payload of `InputEventType::touch`: the state of the panel at the time of the event. */
+struct TouchEventPayload {
+    /** Event type that carries this payload. */
+    static constexpr InputEventType k_event_type = InputEventType::touch;
+
+    /** Position in pixels of the device screen: origin at the top left corner, x to the right, y down,
+     *  within the size that device_info::ScreenFeedback reports. A lifted point gives the position where
+     *  it was lifted. A point that is neither down nor lifted reads 0. */
+    std::int16_t x[k_touch_event_max_points];
+
+    /** Same as x. */
+    std::int16_t y[k_touch_event_max_points];
+
+    /** Bit N set on the event where contact point N is lifted. Bit N + k_touch_event_tap_shift is also
+     *  set if that contact was a tap: a short touch that stayed near the position where it went down, whatever
+     *  the other contact points did. */
+    std::uint8_t points_up;
+
+    /** Bit N set while contact point N is down. */
+    std::uint8_t points_down;
+
+    /** `k_touch_event_*` bits. A reader ignores a bit it does not know. */
+    std::uint8_t flags;
+
+    std::uint8_t reserved;
+};
+
+/** Size of the record this build reads. The stride in the block can differ. */
 inline constexpr std::uint32_t k_input_event_size           = static_cast<std::uint32_t>(sizeof(InputEvent));
 
 /** Slots are read and written as arrays of 64-bit words. */
@@ -124,7 +162,7 @@ struct alignas(k_input_event_ring_cache_align) InputEventRingShm {
     /** Number of slots. Power of two. */
     std::uint32_t capacity;
 
-    /** Pads the parameter group out to the commit counter cache line. Write zero. */
+    /** Pads the parameter group out to the commit counter cache line. */
     std::uint32_t reserved_[11];
 
     /** Count of committed events. The only sequence counter of the ring. */
@@ -152,25 +190,13 @@ constexpr std::uint64_t inputEventRingBlockSize(std::uint32_t capacity,
 }
 
 /** Validated read-only view of a ring. capacity and record_size are latched at open time and are
- *  never read again, because the backend can write session shared memory for the life of the
- *  session. */
+ *  never read again: the ring header can change during the session. */
 struct InputEventRingReadView {
     const std::atomic<std::uint64_t>* write_seq   = nullptr;
     const std::uint8_t*               slot_area   = nullptr;
     std::uint32_t                     capacity    = 0;
     std::uint32_t                     mask        = 0;
     std::uint32_t                     record_size = 0;
-
-    bool isValid() const { return write_seq != nullptr; }
-};
-
-/** Validated writable view of a ring. Only the backend holds one. */
-struct InputEventRingWriteView {
-    std::atomic<std::uint64_t>* write_seq   = nullptr;
-    std::uint8_t*               slot_area   = nullptr;
-    std::uint32_t               capacity    = 0;
-    std::uint32_t               mask        = 0;
-    std::uint32_t               record_size = 0;
 
     bool isValid() const { return write_seq != nullptr; }
 };
@@ -204,11 +230,6 @@ constexpr bool inputEventRingParamsValid(std::uint32_t capacity, std::uint32_t r
 /** Address of a slot as an array of atomic words. Shared memory holds no C++ objects across
  *  processes, so the words are reached by offset. The stride is a multiple of 32 and the slot area
  *  starts at 128, so every slot base is 8-byte aligned. */
-inline std::atomic<std::uint64_t>* inputEventRingSlot(std::uint8_t* slot_area, std::uint32_t index,
-                                                      std::uint32_t record_size) {
-    return reinterpret_cast<std::atomic<std::uint64_t>*>(slot_area + static_cast<std::size_t>(index) * record_size);
-}
-
 inline const std::atomic<std::uint64_t>* inputEventRingSlot(const std::uint8_t* slot_area, std::uint32_t index,
                                                             std::uint32_t record_size) {
     return reinterpret_cast<const std::atomic<std::uint64_t>*>(slot_area +
@@ -290,96 +311,6 @@ inline InputEventRingReadView inputEventRingOpen(const void* buffer, std::size_t
     view.mask                     = layout.capacity - 1u;
     view.record_size              = layout.record_size;
     return view;
-}
-
-/** Open an already formatted ring for writing. Returns an invalid view if the header does not pass
- *  the checks. */
-inline InputEventRingWriteView inputEventRingOpenForWrite(void* buffer, std::size_t buffer_size) {
-    InputEventRingWriteView            view;
-    const detail::InputEventRingLayout layout = detail::validateInputEventRing(buffer, buffer_size);
-    if (!layout.valid) {
-        return view;
-    }
-
-    InputEventRingShm* ring = reinterpret_cast<InputEventRingShm*>(buffer);
-
-    view.write_seq          = &ring->write_seq;
-    view.slot_area          = reinterpret_cast<std::uint8_t*>(buffer) + k_input_event_ring_slot_offset;
-    view.capacity           = layout.capacity;
-    view.mask               = layout.capacity - 1u;
-    view.record_size        = layout.record_size;
-    return view;
-}
-
-/** Write the header of a fresh block and open it for writing. The slot area is left as the caller
- *  gave it, because a cursor starts at the live edge and no reader ever sees a slot that the writer
- *  has not filled. The buffer must start on a 64-byte boundary. Returns an invalid view if the
- *  parameters do not fit the buffer. */
-inline InputEventRingWriteView inputEventRingFormat(void* buffer, std::size_t buffer_size, std::uint32_t capacity,
-                                                    std::uint32_t record_size = k_input_event_size) {
-    // The parameters are checked before anything is written, so a rejected call leaves the block
-    // exactly as it was.
-    if (buffer == nullptr || !detail::inputEventRingBufferAligned(buffer) ||
-        !detail::inputEventRingParamsValid(capacity, record_size) ||
-        inputEventRingBlockSize(capacity, record_size) > buffer_size) {
-        return InputEventRingWriteView{};
-    }
-
-    InputEventRingShm* ring            = reinterpret_cast<InputEventRingShm*>(buffer);
-
-    ring->header.version               = SC_API_PROTOCOL_INPUT_EVENT_RING_SHM_VERSION;
-    ring->header.data_revision_counter = 0;
-    ring->header.shm_size              = static_cast<std::uint32_t>(inputEventRingBlockSize(capacity, record_size));
-    ring->record_size                  = record_size;
-    ring->capacity                     = capacity;
-    std::memset(ring->reserved_, 0, sizeof(ring->reserved_));
-    ring->write_seq.store(0, std::memory_order_relaxed);
-
-    // Readiness is published last, so a reader that sees the flag sees the parameters behind it.
-    std::atomic_thread_fence(std::memory_order_release);
-    ring->header.data_revision_counter = 2;
-
-    return inputEventRingOpenForWrite(buffer, buffer_size);
-}
-
-/** Commit one event. Single writer only.
- *
- *  The step order and the memory orders of this function and of inputEventRingRead are the
- *  protocol. Do not change them.
- *
- *  1. The release fence keeps the slot stores below the commit store of the previous event. A
- *     release store only holds earlier accesses above itself. Without this fence the stores that
- *     overwrite a slot can become visible before the counter says that the slot is being reused. A
- *     reader then delivers a torn record instead of detecting the overrun.
- *  2. The word stores are relaxed. They carry no order of their own.
- *  3. The commit store is the release that publishes the slot to the acquire load of the reader. */
-inline void inputEventRingWrite(const InputEventRingWriteView& ring, const InputEvent& event) {
-    if (!ring.isValid()) {
-        return;
-    }
-
-    // Relaxed is enough: the writer is the only one that advances this counter.
-    const std::uint64_t         w = ring.write_seq->load(std::memory_order_relaxed);
-    std::atomic<std::uint64_t>* slot =
-        detail::inputEventRingSlot(ring.slot_area, static_cast<std::uint32_t>(w & ring.mask), ring.record_size);
-
-    std::uint64_t words[k_input_event_word_count];
-    std::memcpy(words, &event, sizeof(event));
-
-    const std::uint32_t copy_words =
-        (ring.record_size < k_input_event_size ? ring.record_size : k_input_event_size) / k_input_event_slot_word_size;
-    const std::uint32_t stride_words = ring.record_size / k_input_event_slot_word_size;
-
-    std::atomic_thread_fence(std::memory_order_release);
-    for (std::uint32_t i = 0; i < copy_words; ++i) {
-        slot[i].store(words[i], std::memory_order_relaxed);
-    }
-    // A stride wider than the record keeps zero in the part this build does not know, because zero
-    // is the absent value of every field that a later stride bump adds.
-    for (std::uint32_t i = copy_words; i < stride_words; ++i) {
-        slot[i].store(0, std::memory_order_relaxed);
-    }
-    ring.write_seq->store(w + 1u, std::memory_order_release);
 }
 
 /** Sequence number that the next committed event gets. A cursor set to this value delivers no

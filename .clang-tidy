@@ -4,8 +4,6 @@ Checks: |
     clang-diagnostic-*,
     clang-analyzer-*,
 
-    # Annoying warnings about memset in crypto
-    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     performance-*,
     portability-*,
     concurrency-*,
@@ -50,7 +48,7 @@ Checks: |
     # modernize-use-default-member-init
 
 
-HeaderFilterRegex: '(libs|pal|pc|fw)/(?!crypto).*\.(h|hxx|cxx)$'
+HeaderFilterRegex: '(libs|pal|pc|fw)/.*\.(h|hxx|cxx)$'
 
 FormatStyle:            file
 

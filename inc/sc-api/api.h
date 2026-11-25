@@ -3,8 +3,8 @@
  * @brief Api class that keeps the session open in a background thread.
  *
  * This is the usual entry point. Api creates one background thread that opens the session
- * to Simucube Tuner and keeps its state up to date. This file also holds the two control
- * enablers that register the API user for control access.
+ * to Simucube Tuner and keeps its state up to date. This file also holds NoAuthControlEnabler,
+ * which registers the API user for control access.
  *
  * @see ApiCore for the variant without a background thread.
  */
@@ -121,13 +121,12 @@ private:
     std::thread thread_;
 };
 
-/** Handler that automatically attempts to register this handler as controller when session is established
- *
- * Doesn't attempt to negotiate any encryption method and all API calls are unencrypted.
- */
+/** Handler that automatically attempts to register this handler as controller when session is established */
 class NoAuthControlEnabler : protected Api::ListenerInterface {
 public:
-    NoAuthControlEnabler(Api* api, uint32_t control_flags, std::string id_name, ApiUserInformation user_info);
+    /** @param extra_controls Passed to Session::registerToControl */
+    NoAuthControlEnabler(Api* api, uint32_t control_flags, std::string id_name, ApiUserInformation user_info,
+                         std::vector<std::string> extra_controls = {});
     ~NoAuthControlEnabler();
 
 protected:
@@ -137,34 +136,11 @@ protected:
     void controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t flags) override;
 
 private:
-    Api*               api_;
-    uint32_t           control_flags_;
-    std::string        id_name_;
-    ApiUserInformation user_info_;
-};
-
-class SecureControlEnabler : protected Api::ListenerInterface {
-public:
-    SecureControlEnabler(Api* api, uint32_t control_flags, std::string id_name, ApiUserInformation user_info,
-                         std::vector<uint8_t> public_key, std::vector<uint8_t> private_key);
-    ~SecureControlEnabler();
-
-protected:
-    void listenerAdded(Api* api, const std::shared_ptr<Session>& active_session) override;
-    void listenerRemoved(Api* api) override;
-    void sessionStateChanged(const std::shared_ptr<Session>& session, Session::State state) override;
-    void controlFlagsChanged(const std::shared_ptr<Session>& session, uint32_t flags) override;
-
-private:
-    void setupSecureSession(const std::shared_ptr<Session>& session) const;
-
-    Api*               api_;
-    uint32_t           control_flags_;
-    std::string        id_name_;
-    ApiUserInformation user_info_;
-
-    std::vector<uint8_t> public_key_;
-    std::vector<uint8_t> private_key_;
+    Api*                     api_;
+    uint32_t                 control_flags_;
+    std::string              id_name_;
+    ApiUserInformation       user_info_;
+    std::vector<std::string> extra_controls_;
 };
 
 }  // namespace sc_api

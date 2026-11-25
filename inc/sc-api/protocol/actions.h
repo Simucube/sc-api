@@ -30,23 +30,11 @@ typedef enum SC_API_PROTOCOL_Action_e {
 } SC_API_PROTOCOL_Action_t;
 
 typedef enum SC_API_PROTOCOL_ActionFlag_e {
-    SC_API_PROTOCOL_ACTION_FLAG_NONE      = 0,
+    SC_API_PROTOCOL_ACTION_FLAG_NONE       = 0,
 
-    /** Packet is AES-128-GCM encrypted by secret key generated during registering and exchanging public keys
-     *
-     * Command header is in this case followed by 12 bytes of random IV and 12 byte authentication tag.
-     * These have to be considered when calculating maximum possible packet size.
-     */
-    SC_API_PROTOCOL_ACTION_FLAG_ENCRYPTED = 1 << 0,
+    /** Retired; never reuse this bit. The backend drops actions that set it. */
+    SC_API_PROTOCOL_ACTION_FLAG_RESERVED_0 = 1 << 0,
 } SC_API_PROTOCOL_ActionFlag_t;
-
-typedef struct SC_API_PROTOCOL_EncryptedActionHeader_s {
-    uint8_t iv[12];
-} SC_API_PROTOCOL_EncryptedActionHeader_t;
-
-typedef struct SC_API_PROTOCOL_EncryptedActionFooter_s {
-    uint8_t tag[12];
-} SC_API_PROTOCOL_EncryptedActionFooter_t;
 
 typedef struct SC_API_PROTOCOL_ActionHeader_s {
     /** Controller id that is used in SC_API_PROTOCOL_RegisteredController_t
@@ -62,7 +50,7 @@ typedef struct SC_API_PROTOCOL_ActionHeader_s {
     /** SC_API_PROTOCOL_Action_t action id that defines the content of the data */
     uint16_t action_id;
 
-    /** Size of the action packet. Includes this header and any extra headers related to encrypted packets */
+    /** Size of the action packet, including this header */
     uint16_t size;
 } SC_API_PROTOCOL_ActionHeader_t;
 
@@ -125,7 +113,7 @@ typedef enum SC_API_PROTOCOL_FbSampleFormat_e {
 
 #define SC_API_PROTOCOL_COMMAND_EFFECT_MAX_SAMPLE_COUNT 256
 
-/** Part of the action that is never encrypted, but is part of tag calculation and authenticated */
+/** Pipeline selection part of a feedback action */
 typedef struct SC_API_PROTOCOL_ActionFbEffect_AAD_s {
     /** Index of the feedback pipeline that is this effect is put
      *
@@ -143,7 +131,7 @@ typedef struct SC_API_PROTOCOL_ActionFbEffect_AAD_s {
 
 } SC_API_PROTOCOL_ActionFbEffect_AAD_t;
 
-/** Part of the action that is encrypted */
+/** Sample part of a feedback effect action */
 typedef struct SC_API_PROTOCOL_ActionFbEffect_Enc_s {
     uint8_t sample_format;
 

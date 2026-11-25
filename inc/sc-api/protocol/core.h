@@ -73,24 +73,6 @@ typedef enum SC_API_PROTOCOL_SessionState_e {
     SC_API_PROTOCOL_SESSION_SHUTDOWN     = 2,
 } SC_API_PROTOCOL_SessionState_t;
 
-typedef struct SC_API_PROTOCOL_PublicKeyHeader_s {
-    /** Security method */
-    uint16_t security_method;
-
-    /** Size of the key in bytes */
-    uint16_t key_size;
-
-    /** Offset from the start of this struct to the key data */
-    uint16_t key_offset;
-
-    /** If key isn't signed then 0 */
-    uint16_t signature_size;
-
-    /** Offset from start of this struct to the signature data */
-    uint16_t signature_offset;
-} SC_API_PROTOCOL_PublicKeyHeader_t;
-#define SC_API_PROTOCOL_MAX_PUBLIC_KEYS 8
-
 /** Session specific configuration
  *
  * This data is fully filled and won't change (except keep_alive_counter) when the session shm path and id are added to
@@ -131,9 +113,15 @@ typedef struct SC_API_PROTOCOL_Session_s {
     uint8_t  tcp_core_address[4];
     uint16_t tcp_core_port;
     uint16_t tcp_core_reserved_padding_;
+    /** Largest command document, in bytes, that the backend accepts or sends */
     uint32_t tcp_core_max_packet_size;
+    uint32_t tcp_core_reserved_[2];
 
-    uint32_t tcp_core_reserved_[4];
+    /** Version of the backend. 0.0.0 from a backend that is older than these fields. */
+    uint16_t backend_version_major;
+    uint16_t backend_version_minor;
+    uint16_t backend_version_patch;
+    uint16_t backend_version_reserved_;
 
     /** Version number of the protocol
      *
@@ -149,20 +137,12 @@ typedef struct SC_API_PROTOCOL_Session_s {
     /** Control protocol UDP port. Can change if the default port is reserved by some other program. */
     uint16_t udp_control_port;
 
-    /** Maximum packet size for a command packet
-     *
-     * If encryption is used then udp_control_max_encrypted_packet_size limits the size.
-     */
+    /** Maximum packet size for a command packet */
     uint16_t udp_control_max_plaintext_packet_size;
 
-    /** Max total size of a encrypted packet
-     *
-     * Encrypted packets are decrypted on firmware and there are limitations to the total size packet that
-     * firmware can handle. This includes encryption related header and footer data.
-     *
-     * Always less or equal to the udp_control_max_plaintext_packet_size.
-     */
-    uint16_t udp_control_max_encrypted_packet_size;
+    /** Retired. Backends write SC_API_PROTOCOL_UDP_CONTROL_RESERVED_PACKET_SIZE here, because clients older than
+     * 0.6.0 reject a smaller value. */
+    uint16_t udp_control_reserved_packet_size_;
 
     // Just for alignment purposes now. Maybe used later for something
     uint16_t reserved_padding_;
@@ -182,11 +162,8 @@ typedef struct SC_API_PROTOCOL_Session_s {
     /** Offset from the start of this shared memory block to the start of the first shm reference */
     int32_t shm_reference_offset;
 
-    /** Offset from the start of this shared memory block to the SC_API_PROTOCOL_PublicKeyHeader_t structs
-     *
-     *  Unused entries are 0
-     */
-    uint16_t public_key_offsets[SC_API_PROTOCOL_MAX_PUBLIC_KEYS];
+    /** Retired. Backends write 0, which clients older than 0.6.0 read as no entry. */
+    uint16_t reserved_offsets_[8];
 } SC_API_PROTOCOL_Session_t;
 #define SC_API_PROTOCOL_SESSION_SHM_VERSION 0x00000001u
 
@@ -196,11 +173,8 @@ typedef struct SC_API_PROTOCOL_Session_s {
  */
 #define SC_API_PROTOCOL_UDP_CONTROL_MIN_PLAINTEXT_PACKET_SIZE_LIMIT 4096
 
-/** Minimum valid value for SC_API_PROTOCOL_Session_t::udp_control_max_encrypted_packet_size
- *
- * Actual value is normally more than that
- */
-#define SC_API_PROTOCOL_UDP_CONTROL_MIN_ENCRYPTED_PACKET_SIZE_LIMIT 1400
+/** Value of the retired SC_API_PROTOCOL_Session_t::udp_control_reserved_packet_size_ */
+#define SC_API_PROTOCOL_UDP_CONTROL_RESERVED_PACKET_SIZE 1400
 
 #define SC_API_PROTOCOL_CORE_SHM_SIZE 4096
 

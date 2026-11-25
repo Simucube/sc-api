@@ -68,6 +68,20 @@ inline constexpr DeviceVariableReference<bool> connected{"connected"};
 inline constexpr DeviceVariableReference<float> analog_input[4]{
     {"analog_input0"}, {"analog_input1"}, {"analog_input2"}, {"analog_input3"}};
 
+/** Raw ADC values of the analog inputs, before calibration */
+inline constexpr DeviceVariableReference<uint16_t> analog_input_raw[4]{
+    {"analog_input_raw0"}, {"analog_input_raw1"}, {"analog_input_raw2"}, {"analog_input_raw3"}};
+
+/** Raw ADC values of the analog-to-digital channels */
+inline constexpr DeviceVariableReference<uint16_t> analog_to_digital_raw[4]{
+    {"analog_to_digital_raw0"}, {"analog_to_digital_raw1"},
+    {"analog_to_digital_raw2"}, {"analog_to_digital_raw3"}};
+
+/** Raw ADC values of the analog-to-digital n-state channels */
+inline constexpr DeviceVariableReference<uint16_t> analog_to_digital_n_state_raw[4]{
+    {"analog_to_digital_n_state_raw0"}, {"analog_to_digital_n_state_raw1"},
+    {"analog_to_digital_n_state_raw2"}, {"analog_to_digital_n_state_raw3"}};
+
 inline constexpr DeviceVariableReference<uint32_t> digital_inputs[4]{
     {"digital_inputs0"}, {"digital_inputs1"}, {"digital_inputs2"}, {"digital_inputs3"}};
 

@@ -27,13 +27,12 @@ using namespace sc_api;
 
 namespace {
 
-// The pipeline keeps one frame in flight, so the submit rate is a ceiling on the device
-// frame rate. Submit fast: the backend takes the newest frame, and excess frames only
-// return FrameResult::dropped. Coarse OS timer resolution can lower the real submit rate;
-// that is safe, because any rate above the device rate gives the same result.
-constexpr int k_target_fps = 60;
+// The submit rate caps the device frame rate, so submit fast: a newer frame replaces one still waiting to be sent.
+constexpr int k_submit_fps      = 60;
 
-constexpr int k_ball_count = 4;
+constexpr uint16_t k_target_fps = 0;  // 0 = no target; higher trades quality for frame rate
+
+constexpr int k_ball_count      = 4;
 
 std::atomic<bool> g_running{true};
 
@@ -94,6 +93,20 @@ void renderFrame(std::vector<uint16_t>& buf, int w, int h, double t) {
     }
 }
 
+/** Device frame counter at one feedback poll. */
+struct DeviceSample {
+    uint32_t                              frames = 0;
+    std::chrono::steady_clock::time_point time;
+};
+
+/** Device frame rate between two polls, or nullopt without an earlier poll or when the counter
+ * dropped back (see StreamFeedback::device_frame_counter). */
+std::optional<int> deviceFps(const std::optional<DeviceSample>& earlier, const DeviceSample& later) {
+    if (!earlier || later.frames < earlier->frames) return std::nullopt;
+    const double elapsed_s = std::chrono::duration<double>(later.time - earlier->time).count();
+    return static_cast<int>((later.frames - earlier->frames) / elapsed_s);
+}
+
 struct ScreenDevice {
     uint16_t session_id = 0;
     uint16_t width      = 0;
@@ -143,24 +156,22 @@ int main() {
 
     // Streaming requires a registered controller. Registration runs in the background on the
     // Api thread. When it starts here, it is usually complete before the first open() call.
-    NoAuthControlEnabler control_enabler(&api, Session::control_telemetry, "dash_stream", user_info);
+    NoAuthControlEnabler control_enabler(&api, Session::control_display, "dash_stream", user_info);
 
     std::unique_ptr<DashStreamer> streamer;
     std::shared_ptr<Session>      streamer_session;  // session the streamer was built on
     ScreenDevice                  screen;
     std::vector<uint16_t>         frame;
 
-    uint32_t delivered             = 0;  // frames that the backend accepted (not proof of display)
-    uint32_t dropped               = 0;  // the backend had not consumed the previous frame yet:
-                                         // normal, and constant when another sender owns the device
-    uint32_t    failed             = 0;  // transport or state errors
-    uint32_t    last_device_frames = 0;
-    bool        have_device_count  = false;  // true when last_device_frames holds a valid sample
-    std::string last_status;
+    uint32_t                    delivered = 0;  // frames that the backend accepted (not proof of display)
+    uint32_t                    dropped   = 0;  // the backend had not consumed the previous frame yet: normal
+    uint32_t                    failed    = 0;  // transport or state errors
+    std::optional<DeviceSample> last_device_sample;
+    std::string                 last_status;
 
     // Frame pacing uses steady_clock. sc_api::Clock is only for backend timestamps such as
     // StreamFeedback::last_ack_time. It is not a usable local clock on all platforms.
-    const auto frame_interval = std::chrono::microseconds(1000000 / k_target_fps);
+    const auto frame_interval = std::chrono::microseconds(1000000 / k_submit_fps);
     const auto start_time     = std::chrono::steady_clock::now();
     auto       next_frame     = start_time;
     auto       next_poll      = start_time;
@@ -188,7 +199,6 @@ int main() {
                 // The streamer holds the lost session. A new streamer is built on the next session.
                 streamer.reset();
                 streamer_session.reset();
-                have_device_count = false;
                 printStatus("Waiting for an API session (start Tuner, it hosts the backend)...");
             } else if (session->getState() != SessionState::connected_control) {
                 printStatus("Waiting for control registration...");
@@ -201,7 +211,6 @@ int main() {
                         streamer->stop();
                         streamer.reset();
                         streamer_session.reset();
-                        have_device_count = false;
                     }
                     printStatus("Waiting for a device with a streamable screen...");
                 } else {
@@ -210,10 +219,11 @@ int main() {
                         if (streamer) {
                             streamer->stop();  // tell the old device to exit streaming now
                         }
-                        screen            = *target;
-                        streamer          = std::make_unique<DashStreamer>(session, screen.session_id);
-                        streamer_session  = session;
-                        have_device_count = false;
+                        screen   = *target;
+                        streamer = std::make_unique<DashStreamer>(session, screen.session_id);
+                        streamer->setTargetFps(k_target_fps);
+                        streamer_session = session;
+                        last_device_sample.reset();
                         frame.assign(static_cast<size_t>(screen.width) * screen.height, 0);
                     }
                     if (!streamer->isValid()) {
@@ -226,21 +236,24 @@ int main() {
                                     std::to_string(screen.width) + "x" + std::to_string(screen.height) + ")");
                         StreamFeedback feedback = streamer->getStreamFeedback();
                         // device_frame_counter and dropped_count are global to the device. A
-                        // non-owner sees the owner's progress, so the device rate has meaning
-                        // only for the owner.
+                        // non-owner sees the owner's progress, so the device frame rate has
+                        // meaning only for the owner.
                         std::cout << "owner=" << (feedback.is_owner ? "yes" : "no") << " delivered=" << delivered
                                   << " dropped=" << dropped << " failed=" << failed;
                         if (feedback.is_owner) {
-                            // The device counter can move backwards (device reboot, or a transient
-                            // status gap that reports 0). A rate needs two valid samples in a row.
-                            if (have_device_count && feedback.device_frame_counter >= last_device_frames) {
-                                std::cout << " device_fps=" << (feedback.device_frame_counter - last_device_frames)
+                            const DeviceSample sample{feedback.device_frame_counter, now};
+                            if (const std::optional<int> fps = deviceFps(last_device_sample, sample)) {
+                                std::cout << " target_fps=" << k_target_fps << " device_fps=" << *fps
                                           << " device_drops=" << feedback.dropped_count;
                             }
-                            last_device_frames = feedback.device_frame_counter;
-                            have_device_count  = true;
+                            // The counter reads 0 until the device reports its first count.
+                            if (sample.frames != 0) {
+                                last_device_sample = sample;
+                            } else {
+                                last_device_sample.reset();
+                            }
                         } else {
-                            have_device_count = false;
+                            last_device_sample.reset();
                         }
                         std::cout << std::endl;
                     }

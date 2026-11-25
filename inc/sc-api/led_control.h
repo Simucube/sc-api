@@ -2,6 +2,7 @@
  * @file
  * @brief LED control API for controlling RGB lights on connected devices
  *
+ * Request Session::ControlFlag::control_display for LED control.
  */
 
 #ifndef SC_API_LED_CONTROL_H_

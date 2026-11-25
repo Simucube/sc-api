@@ -181,7 +181,7 @@ void apply_dict_to_builder(Builder& builder, const nb::dict& props,
 }
 
 // ---------------------------------------------------------------------------
-// bind_sim_data — register all Python types
+// bind_sim_data - register all Python types
 // ---------------------------------------------------------------------------
 
 void bind_sim_data(nb::module_& m) {
@@ -343,7 +343,7 @@ void bind_sim_data(nb::module_& m) {
 }
 
 // ---------------------------------------------------------------------------
-// populate_sim_data_builder — walk a Python dict and fill a builder
+// populate_sim_data_builder - walk a Python dict and fill a builder
 // ---------------------------------------------------------------------------
 
 void populate_sim_data_builder(SimDataUpdateBuilder& builder, const nb::dict& data) {

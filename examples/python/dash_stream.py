@@ -5,7 +5,7 @@ device and sends it as RGB565 frames with DashStreamer. The window may be on any
 monitor, and it may be moved between monitors while streaming.
 
     pip install numpy opencv-python "dxcam>=0.3" pywin32
-    python dash_stream.py --window "Assetto Corsa" --fps 30
+    python dash_stream.py --window "Assetto Corsa" --submit-fps 60
 """
 
 from __future__ import annotations
@@ -99,10 +99,10 @@ def find_screen_device(full_info: simucube_api.FullInfo | None) -> simucube_api.
     return full_info.find_first(lambda d: len(d.screens) > 0)
 
 
-def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
+def stream(session, device_id, screen, hwnd: int, submit_fps: float, target_fps: int) -> None:
     camera = None
     camera_display = None
-    frame_period_s = 1.0 / fps
+    frame_period_s = 1.0 / submit_fps
     t0_ns = time.perf_counter_ns()
     frames = 0
     dropped = 0
@@ -111,13 +111,14 @@ def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
     warned = False
 
     with simucube_api.DashStreamer(session, device_id) as dash:
+        dash.set_target_fps(target_fps)
         try:
             while True:
                 # Pace against an ideal timeline so that a late grab does not add drift.
-                target_s = frames * frame_period_s
+                due_s = frames * frame_period_s
                 now_s = (time.perf_counter_ns() - t0_ns) / 1e9
-                if now_s < target_s:
-                    time.sleep(min(target_s - now_s, frame_period_s))
+                if now_s < due_s:
+                    time.sleep(min(due_s - now_s, frame_period_s))
                     continue
 
                 located = client_region(hwnd)
@@ -171,12 +172,14 @@ def stream(session, device_id, screen, hwnd: int, fps: float) -> None:
         feedback = dash.get_stream_feedback()
 
     print(f"Sent {frames} frames, {dropped} dropped by the backend")
-    print(f"Device showed {feedback.device_frame_counter} frames and dropped {feedback.dropped_count}")
+    print(f"Device decoded {feedback.device_frame_counter} frames and dropped {feedback.dropped_count}")
 
 
 parser = argparse.ArgumentParser(description="Stream a window to a Simucube device screen.")
 parser.add_argument("--window", required=True, help="part of the title of the window to capture")
-parser.add_argument("--fps", type=float, default=30.0, help="target frame rate (default: 30)")
+parser.add_argument("--submit-fps", "--fps", dest="submit_fps", type=float, default=30.0,
+                    help="capture and submit rate (default: 30)")
+parser.add_argument("--target-fps", type=int, default=0, help="target frame rate of the streamer; 0 = no target")
 args = parser.parse_args()
 
 set_dpi_awareness()
@@ -189,7 +192,7 @@ hwnd, window_title = found
 print(f"Capturing window {window_title!r}")
 
 with simucube_api.Api(
-    control_flags=simucube_api.ControlFlag.control_telemetry,
+    control_flags=simucube_api.ControlFlag.control_display,
     id_name="python_dash_example",
     user_info=simucube_api.ApiUserInformation(
         display_name="Python Dash Example", author="Simucube"
@@ -216,6 +219,6 @@ with simucube_api.Api(
 
     screen = device_with_screen.screens[0]
     print(f"Streaming to device {device_with_screen.uid} at {screen.width}x{screen.height}")
-    stream(session, device_with_screen.session_id, screen, hwnd, args.fps)
+    stream(session, device_with_screen.session_id, screen, hwnd, args.submit_fps, args.target_fps)
 
 print("Done")

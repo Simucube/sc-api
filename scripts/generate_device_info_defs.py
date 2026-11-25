@@ -90,7 +90,7 @@ def main():
     output = template_str.replace("/*DEVICE_INFO_ENUMS_HERE*/", generated)
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, "w", newline="\n") as f:
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
         f.write(output)
 
     print(f"Generated {len(data['enums'])} device_info enums -> {args.output}")

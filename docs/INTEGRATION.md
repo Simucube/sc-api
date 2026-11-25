@@ -40,15 +40,16 @@ To also install the debug libraries, do the steps again with "Release" replaced 
 MinGW names the files `libsc-api.a` and `libsc-apid.a`.
 
 All headers are below one directory: `<install-dir>/include`. All object code
-is in one library: `sc-api`. Cryptography code (libeddsa) and the network code
-(Asio) are already inside that library.
+is in one library: `sc-api`. The network code (Asio) is already inside that
+library.
 
 ## Requirements for the application
 
 - Windows. There is no support for other operating systems.
 - C++17 or newer.
 - The same compiler and the same C runtime as the sc-api build (see [Compatibility](@ref compatibility)).
-- Simucube Tuner on the same PC at run time. A Tuner that is too old for the API version gives no session.
+- Simucube Tuner on the same PC at run time. A Tuner with an incompatible protocol gives no session. For the
+  oldest supported Tuner version, see "Check the Tuner version" in [GettingStarted.md](GettingStarted.md).
 
 ## Integration without CMake
 

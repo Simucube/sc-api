@@ -6,6 +6,7 @@
 #include <nanobind/stl/string.h>
 #include <sc-api/device_info.h>
 
+#include <optional>
 #include <string>
 
 #include "bind_util.h"
@@ -126,8 +127,8 @@ void bind_device_info(nb::module_& m) {
             "End of the raw value range reported by this input.")
         .def_prop_ro(
             "event_id", [](const Input& self) { return self.event_id; },
-            "Id of this input in the C++ input event stream (sc_api::InputEvent::input_id), or None if the stream "
-            "does not report it. The stream has no Python binding.")
+            "Id of this input in the input event stream (``InputEvent.input_id`` of a button event), or None if the "
+            "stream does not report it.")
         .def("__repr__", [](const Input& self) { return "<Input id='" + std::string(self.id) + "'>"; });
 
     // --- Feedback ---
@@ -174,9 +175,11 @@ void bind_device_info(nb::module_& m) {
 
     nb::class_<ScreenFeedback>(m, "ScreenFeedback",
                                "Describes a streamable screen on a device.\n\n"
-                               "The object is invalid (``width`` is 0) when the screen parameters are\n"
-                               "missing or malformed. ``width`` and ``height`` give the frame size that\n"
-                               "``DashStreamer.stream_frame`` expects.")
+                               "The object is invalid (``is_valid`` False) when the width or height is\n"
+                               "missing, malformed or 0. ``width`` and ``height`` give the frame size that\n"
+                               "``DashStreamer.stream_frame`` expects. ``max_mouse_suppressed_areas`` can rise\n"
+                               "after the device appears: re-read it on a device info change, or pass the areas\n"
+                               "anyway and the device applies what it takes.")
         .def_prop_ro(
             "id", [](const ScreenFeedback& self) { return std::string(self.id); },
             "Unique identifier for this screen feedback.")
@@ -191,12 +194,16 @@ void bind_device_info(nb::module_& m) {
             "pixel_format", [](const ScreenFeedback& self) { return self.pixel_format; },
             "Pixel format that the screen expects.")
         .def_prop_ro(
+            "max_mouse_suppressed_areas", [](const ScreenFeedback& self) { return self.max_mouse_suppressed_areas; },
+            "Areas a streamed frame takes on this screen, at most MAX_MOUSE_SUPPRESSED_AREAS; 0 while unknown\n"
+            "or unsupported.")
+        .def_prop_ro(
             "is_valid", [](const ScreenFeedback& self) { return self.isValid(); },
             "True if this object was successfully constructed from a compatible Feedback.")
         .def_static("from_feedback", &ScreenFeedback::fromFeedback, nb::arg("feedback"), nb::keep_alive<0, 1>(),
                     "Construct a ScreenFeedback from a generic Feedback.\n\n"
-                    "Always check ``is_valid`` on the returned object; it will be False if\n"
-                    "the given feedback is not a screen feedback.")
+                    "Always check ``is_valid`` on the returned object; it is False on a type mismatch,\n"
+                    "or when the width or height is missing, malformed or 0.")
         .def("__repr__", [](const ScreenFeedback& self) {
             return "<ScreenFeedback id='" + std::string(self.id) + "' width=" + std::to_string(self.width) +
                    " height=" + std::to_string(self.height) + ">";
@@ -288,6 +295,16 @@ void bind_device_info(nb::module_& m) {
         .def_prop_ro(
             "inputs", [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getInputs(), self); },
             "List of all input channels on this device.")
+        .def(
+            "get_input_by_event_id",
+            [](const DeviceInfo& self, uint16_t event_id) -> std::optional<Input> {
+                const Input& input = self.getInputByEventId(event_id);
+                if (!input) return std::nullopt;
+                return input;
+            },
+            nb::arg("event_id"), nb::keep_alive<0, 1>(),
+            "Return the input whose ``event_id`` equals ``event_id``, or ``None`` if this device has none.\n\n"
+            ":param event_id: ``InputEvent.input_id`` of a button event of this device.")
         .def_prop_ro(
             "feedbacks",
             [](nb::handle self) { return castViews(nb::cast<const DeviceInfo&>(self).getFeedbacks(), self); },

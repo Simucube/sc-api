@@ -1,11 +1,8 @@
 /**
  * @file
- * @brief Input event stream.
+ * @brief Input event stream: the button transitions and touch panel states of the devices in device info.
  *
- * The backend reports every button transition that it observes on a connected device. A consumer
- * that only polls the input variables misses a press and a release that occur between two reads.
- * This stream does not.
- *
+ * Polling the input variables misses a press and a release between two reads. This stream does not.
  * @see examples/input_events.cpp for a complete program.
  */
 
@@ -14,6 +11,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "sc-api/protocol/input_events.h"
 #include "sc-api/session.h"
@@ -23,34 +21,37 @@ namespace sc_api {
 /**
  * @brief Reads the input events of a session.
  *
- * An event reports a change of one input. To know the state of every input, read the baseline:
- * the `digital_inputs0` to `digital_inputs3` variables that
+ * A button event reports a change of one input. To know the state of every input, read the
+ * baseline: the `digital_inputs0` to `digital_inputs3` variables that
  * @ref sc_api::device_info::Input::event_id "Input::event_id" describes.
  * @ref sc_api::device_info::DeviceInfo::getInputByEventId "DeviceInfo::getInputByEventId" finds
- * the input of an event. A release event can also mean that the device became unavailable. The
- * `hid_index` of an event is a snapshot from the time of the event and needs no lookup. A remap
- * between a press and its release changes the `hid_index` of the release, so key press actions
- * by `input_id`.
+ * the input of a button event. A release event can also mean that the device became unavailable.
+ * The `hid_index` of an event is a snapshot from the time of the event and needs no lookup. A
+ * remap between a press and its release changes the `hid_index` of the release, so key press
+ * actions by `input_id`.
  *
- * A reader that does not read for a long time loses events. @ref read then reports how many and
- * returns no events. Read `lost` before `count`.
+ * A touch event carries a @ref TouchEventPayload that @ref getEventPayload returns. It resolves by
+ * `device_session_id`, and `input_id` names the panel. Touch has no baseline, because the panel
+ * reports a held contact point again and again.
+ *
+ * A reader that does not read for a long time loses events. Read `lost` before `count`.
  *
  * @note Do not use one reader from two threads at the same time.
  * @note A reader delivers no history. @ref open starts after the newest event.
  *
  * Rules for every application:
  *
- * 1. **Read the baseline** after @ref open, when a device appears in device info, and after a
- *    read that reports a loss, before the next read. Take a new
+ * 1. **Read the button baseline** after @ref open, when a device appears in device info, and
+ *    after a read that reports a loss, before the next read. Take a new
  *    @ref sc_api::Session::getVariables "Session::getVariables" snapshot each time. If the
  *    variables of a new device are not in it yet, read its baseline when
  *    `VariableDefinitionsChanged` arrives.
  * 2. **Resolve events against device info that you take after the read call.** If an event does
  *    not resolve, refresh device info once more. Ignore the event if it still does not resolve.
  *    An event carries no device info revision. If an `event_id` moves to another input, an older
- *    event can resolve to the new input.
+ *    button event can resolve to the new input.
  *
- * Rules for an application that starts press and release actions:
+ * Rules for an application that starts press and release actions from button events:
  *
  * 3. **Only an event starts a press action.** A baseline can hold a transition that a later event
  *    repeats.
@@ -63,7 +64,16 @@ namespace sc_api {
  *    events to a removed input. When @ref isValid turns false, discard all pending events, then end
  *    all remaining actions.
  *
- * `examples/input_events.cpp` shows action handling and recovery.
+ * Rules for touch events:
+ *
+ * 8. **A touch event is the state of the panel.** Apply it as a whole. A contact point goes down
+ *    when its `points_down` bit is set and was clear in the previous event of the panel. A lift ends
+ *    only a touch action you started. A tap needs no earlier event.
+ * 9. **Start from a released panel**, after @ref open and when a device appears in device info.
+ *    After a read that reports a loss, cancel the touch actions you started and start from a
+ *    released panel again.
+ * 10. **An event with `k_touch_event_cancelled` set cancels the touch actions of that panel.** End
+ *    the touch actions of a device when it leaves device info or when @ref isValid turns false.
  */
 class InputEventReader {
 public:
@@ -90,9 +100,8 @@ public:
     /**
      * @brief Open the stream and start after the newest event.
      *
-     * Read the baseline of every device after a successful call. A call on a reader that is
-     * already open changes nothing and returns true. Construct a new reader to start again from
-     * the newest event.
+     * A call on a reader that is already open changes nothing and returns true. Construct a new
+     * reader to start again from the newest event.
      *
      * @return true if @ref read can deliver events. False when the session is lost or the stream
      *         is not available.
@@ -120,10 +129,9 @@ public:
      *
      * @param out Array that receives the events. It must hold `max_events` events.
      * @param max_events Size of `out` in events.
-     * @return `count` events written to `out`, and `lost` events that this reader skipped because
-     *         it fell too far behind. Lost events are never delivered and are counted whatever
-     *         their type. The lost count stops at its maximum value, so use it as an indication,
-     *         not as an exact number.
+     * @return `count` events written to `out`, and `lost` events of any type that this reader skipped
+     *         because it fell too far behind. Lost events are never delivered. `lost` saturates, so it
+     *         is an indication, not an exact number.
      */
     [[nodiscard]] ReadResult read(InputEvent* out, uint32_t max_events);
 
@@ -131,6 +139,34 @@ private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
+
+/** The payload of `event` when its type is `Payload::k_event_type`, else nullptr. The pointer points into event. */
+template <typename Payload>
+const Payload* getEventPayload(const InputEvent* event) {
+    if (event->type != Payload::k_event_type) {
+        return nullptr;
+    }
+    return reinterpret_cast<const Payload*>(event->payload);
+}
+
+/** Screen position of a touch contact point. */
+struct TouchPosition {
+    std::int16_t x;
+    std::int16_t y;
+};
+
+/** Where the single-finger tap of `event` was lifted, or nullopt. Other taps are only in `points_up`. */
+inline std::optional<TouchPosition> getSingleFingerTap(const InputEvent& event) {
+    const TouchEventPayload* touch = getEventPayload<TouchEventPayload>(&event);
+    if (touch && (touch->flags & k_touch_event_single_finger_tap) != 0) {
+        for (unsigned point = 0; point < k_touch_event_max_points; ++point) {
+            if (((touch->points_up >> (point + k_touch_event_tap_shift)) & 1u) != 0u) {
+                return TouchPosition{touch->x[point], touch->y[point]};
+            }
+        }
+    }
+    return std::nullopt;
+}
 
 }  // namespace sc_api
 

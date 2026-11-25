@@ -1,8 +1,10 @@
 #include "sc-api/session.h"
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -20,7 +22,6 @@
 #include "sc-api/util/bson_builder.h"
 #include "sc-api/util/bson_reader.h"
 #include "sc-api/version.h"
-#include "security_impl.h"
 
 namespace sc_api {
 
@@ -30,7 +31,7 @@ namespace {
  *  by both the waiting thread and the result callback, so it outlives a timed-out wait: a late
  *  response then writes into live state instead of a dangling stack pointer. Per-call (not a shared
  *  global) so concurrent or reentrant blocking commands never clash. The result callback runs on
- *  the session io thread, a different thread from the caller — everything it touches goes through
+ *  the session io thread, a different thread from the caller - everything it touches goes through
  *  the captured shared_ptr, never thread-local storage. */
 template <typename T>
 struct BlockingCall {
@@ -46,26 +47,35 @@ namespace {
 
 constexpr uint32_t k_rx_buffer_size                                      = 0x10000;
 
+/** Upper bound for the response size the backend declares in the session block */
+constexpr uint32_t k_max_rx_document_size_limit                          = 16 * 1024 * 1024;
+
 constexpr uint32_t k_max_id_name_size                                    = 64;
 
 constexpr auto k_keep_alive_timeout                                      = std::chrono::milliseconds(1000);
 
 static constexpr std::pair<uint32_t, const char*> k_control_flag_names[] = {{Session::control_ffb_effects, "ffb"},
                                                                             {Session::control_telemetry, "telemetry"},
-                                                                            {Session::control_sim_data, "sim_data"}};
+                                                                            {Session::control_sim_data, "sim_data"},
+                                                                            {Session::control_display, "display"}};
 
 }  // namespace
 
-SecureSessionKeyExchangeResult SecureSessionParameters::tryKeyExchange(
-    uint32_t session_id, const SecureSessionOptions::Method& method, const std::vector<uint8_t>& api_user_private_key,
-    const std::vector<uint8_t>& api_user_public_key) {
-    return security::tryKeyExchange(*this, session_id, method, api_user_private_key, api_user_public_key);
+ResultCode Session::close() {
+    {
+        std::lock_guard lock(m_);
+        if (state_ == State::invalid) return ResultCode::error_invalid_session_state;
+        closeNoLock();
+    }
+
+    // Callbacks may call back into this session, so they run without the session lock
+    if (p_) {
+        p_->pending_commands.close(ResultCode::error_invalid_session_state, "Session closed");
+    }
+    return ResultCode::ok;
 }
 
-ResultCode Session::close() {
-    std::lock_guard lock(m_);
-    if (state_ == State::invalid) return ResultCode::error_invalid_session_state;
-
+void Session::closeNoLock() {
     if (state_ == State::connected_control) {
         // TODO: Send controller disconnect command?
     }
@@ -103,7 +113,6 @@ ResultCode Session::close() {
         api_->p_->sessionClosed(this);
         api_ = nullptr;
     }
-    return ResultCode::ok;
 }
 
 std::shared_ptr<sim_data::SimData> Session::getSimData() {
@@ -118,7 +127,7 @@ bool Session::asyncCommand(CommandRequest&& req, std::function<void(const AsyncC
 
     int32_t              cmd_id        = p_->command_id_counter.fetch_add(1, std::memory_order_relaxed);
     std::vector<uint8_t> packet_buffer = req.finalize(cmd_id);
-    return p_->startSendCommand(packet_buffer, cmd_id, std::move(result_cb));
+    return p_->startSendCommand(packet_buffer, cmd_id, std::move(result_cb)) == ResultCode::ok;
 }
 
 CommandResult Session::blockingCommand(CommandRequest&& req, std::chrono::milliseconds timeout) {
@@ -139,19 +148,24 @@ CommandResult Session::blockingCommand(CommandRequest&& req, std::chrono::millis
         state->cv.notify_all();
     };
 
-    if (!p_->startSendCommand(packet_buffer, cmd_id, result_cb)) {
+    if (ResultCode r = p_->startSendCommand(packet_buffer, cmd_id, result_cb); r != ResultCode::ok) {
+        if (r == ResultCode::error_busy) {
+            return CommandResult::createFailure(r, "Too many pending commands");
+        }
         return CommandResult::createFailure(ResultCode::error_no_control, "Not registered to control");
     }
 
     std::unique_lock lock(state->mutex);
     if (!state->cv.wait_for(lock, timeout, [&] { return state->done; })) {
+        lock.unlock();
+        p_->pending_commands.remove(cmd_id);
         return CommandResult::createFailure(ResultCode::error_timeout, "Didn't receive response within timeout");
     }
 
     return state->result;
 }
 
-ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
+ResultCode Session::blockingSimpleCommand(CommandRequest&& req, std::chrono::milliseconds timeout) {
     if (!p_) {
         return ResultCode::error_invalid_state;
     }
@@ -169,12 +183,16 @@ ResultCode Session::blockingSimpleCommand(CommandRequest&& req) {
         state->cv.notify_all();
     };
 
-    if (!p_->startSendCommand(packet_buffer, cmd_id, result_cb)) {
-        return ResultCode::error_no_control;
+    if (ResultCode r = p_->startSendCommand(packet_buffer, cmd_id, result_cb); r != ResultCode::ok) {
+        return r == ResultCode::error_busy ? r : ResultCode::error_no_control;
     }
 
     std::unique_lock lock(state->mutex);
-    state->cv.wait(lock, [&] { return state->done; });
+    if (!state->cv.wait_for(lock, timeout, [&] { return state->done; })) {
+        lock.unlock();
+        p_->pending_commands.remove(cmd_id);
+        return ResultCode::error_timeout;
+    }
 
     return state->result;
 }
@@ -289,6 +307,8 @@ bool Session::periodicUpdate() {
 
 void Session::disconnected() {
     std::lock_guard lock(m_);
+    if (state_ == State::invalid) return;
+
     p_->periodic_update_timer.cancel();
     state_   = State::session_lost;
 
@@ -328,38 +348,13 @@ Session::~Session() {
     }
 }
 
-SecureSessionOptions Session::getSecureSessionOptions() const { return p_->secure_session_opts; }
-
-SecureSessionInterface* Session::getSecureSession() const { return secure_session_.get(); }
-
 ResultCode Session::registerToControl(uint32_t control_flags, const std::string& id_name,
-                                      const ApiUserInformation&               user_info,
-                                      std::unique_ptr<SecureSessionInterface> secure_session) {
+                                      const ApiUserInformation&       user_info,
+                                      const std::vector<std::string>& extra_controls) {
     std::lock_guard lock(m_);
 
-    secure_session_ = std::move(secure_session);
-
-    if (id_name.size() > k_max_id_name_size || control_flags == 0) {
+    if (id_name.size() > k_max_id_name_size || (control_flags == 0 && extra_controls.empty())) {
         return ResultCode::error_invalid_argument;
-    }
-
-    SecureSessionParameters& secure_params = secure_session_->getSecureSessionParameters();
-
-    if (secure_session_) {
-        if (secure_params.method == SC_API_PROTOCOL_SECURITY_METHOD_NONE) {
-            if (!secure_params.shared_secret.empty() || !secure_params.controller_public_key.empty()) {
-                // Shared secret and public key don't make sense if we are not actually trying to establish secure
-                // session
-                return ResultCode::error_invalid_argument;
-            }
-        } else {
-            if (session_id_ != secure_params.session_id) {
-                return ResultCode::error_invalid_argument;
-            }
-            if (secure_params.shared_secret.empty() || secure_params.controller_public_key.empty()) {
-                return ResultCode::error_invalid_argument;
-            }
-        }
     }
 
     std::vector<uint8_t> packet_buffer(1024);
@@ -390,14 +385,10 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
                     builder.arrayAddElement(name);
                 }
             }
-            builder.endArray();
-
-            if (secure_session_ && secure_params.method == SC_API_PROTOCOL_SECURITY_METHOD_X25519_AES128_GCM) {
-                builder.docBeginSubDoc("secure_session");
-                builder.docAddElement("method", "x25519-AES128-GCM");
-                builder.docAddElement("public_key", secure_params.controller_public_key);
-                builder.endDocument();
+            for (const std::string& name : extra_controls) {
+                builder.arrayAddElement(name);
             }
+            builder.endArray();
 
             builder.endDocument();
         }
@@ -427,6 +418,8 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
         return ResultCode::error_cannot_connect;
     }
 
+    p_->max_rx_document_size =
+        std::clamp(p_->session_ptr->tcp_core_max_packet_size, k_rx_buffer_size, k_max_rx_document_size_limit);
     p_->receive_buffer.resize(k_rx_buffer_size);
 
     std::size_t written_bytes = asio::write(p_->main_socket, asio::buffer(ptr, size));
@@ -447,7 +440,7 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
 
         if (read_bytes == needed_bytes) {
             int32_t total_document_size = util::BsonReader::getTotalDocumentSize(p_->receive_buffer.data());
-            if (total_document_size <= 0) {
+            if (total_document_size < 5 || static_cast<std::size_t>(total_document_size) > k_rx_buffer_size) {
                 p_->main_socket.close();
                 return ResultCode::error_protocol;
             }
@@ -473,12 +466,14 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
     }
 
     int32_t ctrl_id = 0;
-    if (!reader.tryFindAndGet("controller_id", ctrl_id)) {
+    if (!reader.tryFindAndGet("controller_id", ctrl_id) || ctrl_id <= 0 ||
+        ctrl_id > std::numeric_limits<uint16_t>::max()) {
         p_->main_socket.close();
         return ResultCode::error_protocol;
     }
 
-    uint32_t received_control_flags = 0;
+    uint32_t                 received_control_flags = 0;
+    std::vector<std::string> received_extra_controls;
     {
         if (reader.seekKey("control") != util::BsonReader::ELEMENT_ARRAY || !reader.beginSub()) {
             p_->main_socket.close();
@@ -488,20 +483,24 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
         util::BsonReader::ElementType e;
         while (!util::BsonReader::isEndOrError(e = reader.next())) {
             if (e == util::BsonReader::ELEMENT_STR) {
-                for (auto [flag, name] : k_control_flag_names) {
-                    if (reader.stringValue() == name) {
-                        received_control_flags |= flag;
-                    }
+                const std::string_view granted = reader.stringValue();
+                const auto* flag_it = std::find_if(std::begin(k_control_flag_names), std::end(k_control_flag_names),
+                                                   [&](const auto& flag_name) { return granted == flag_name.second; });
+                if (flag_it != std::end(k_control_flag_names)) {
+                    received_control_flags |= flag_it->first;
+                } else {
+                    received_extra_controls.emplace_back(granted);
                 }
             }
         }
         reader.endSub();
 
-        control_flags_ = received_control_flags;
+        control_flags_  = received_control_flags;
+        extra_controls_ = std::move(received_extra_controls);
     }
 
     control_id_name_ = id_name;
-    controller_id_   = ctrl_id;
+    controller_id_   = static_cast<uint16_t>(ctrl_id);
     p_->startReceive();
 
     state_ = State::connected_control;
@@ -518,6 +517,11 @@ ResultCode Session::registerToControl(uint32_t control_flags, const std::string&
 uint32_t Session::getControlFlags() const {
     std::lock_guard lock(m_);
     return control_flags_;
+}
+
+std::vector<std::string> Session::getExtraControls() const {
+    std::lock_guard lock(m_);
+    return extra_controls_;
 }
 
 Session::State Session::poll() {
@@ -550,7 +554,12 @@ void Session::stop() {
     }
 }
 
-Session::State Session::getState() const { return state_; }
+Session::State Session::getState() const { return state_.load(); }
+
+BackendVersion Session::getBackendVersion() const {
+    return BackendVersion{p_->session_ptr->backend_version_major, p_->session_ptr->backend_version_minor,
+                          p_->session_ptr->backend_version_patch};
+}
 
 bool Session::Internal::sendHighPrio(const char* raw_data, std::size_t length) {
     std::lock_guard  lock(high_prio_mutex);
@@ -559,12 +568,24 @@ bool Session::Internal::sendHighPrio(const char* raw_data, std::size_t length) {
     return !ec;
 }
 
-bool Session::Internal::startSendCommand(std::vector<uint8_t> tx_data, int32_t cmd_id,
-                                         std::function<void(const AsyncCommandResult&)> cb) {
+ResultCode Session::Internal::startSendCommand(std::vector<uint8_t> tx_data, int32_t cmd_id,
+                                               std::function<void(const AsyncCommandResult&)> cb) {
+    std::lock_guard lock(main_socket_mutex);
+    if (!main_socket.is_open()) return ResultCode::error_invalid_session_state;
+
+    if (ResultCode r = pending_commands.add(cmd_id, std::move(cb)); r != ResultCode::ok) return r;
+    main_socket_tx_queue.push_back(std::move(tx_data));
+    startNextSendNoLock();
+    return ResultCode::ok;
+}
+
+bool Session::Internal::sendWithoutReply(CommandRequest&& req) {
+    // No callback waits for this id, so parsePacket drops the reply
+    std::vector<uint8_t> tx_data = req.finalize(command_id_counter.fetch_add(1, std::memory_order_relaxed));
+
     std::lock_guard lock(main_socket_mutex);
     if (!main_socket.is_open()) return false;
 
-    command_result_handlers[cmd_id] = std::move(cb);
     main_socket_tx_queue.push_back(std::move(tx_data));
     startNextSendNoLock();
     return true;
@@ -597,7 +618,7 @@ void Session::Internal::startNextSendNoLock() {
 }
 
 void Session::Internal::startReceive() {
-    if (receiving_in_progress) return;
+    if (receiving_in_progress || !main_socket.is_open()) return;
 
     receiving_in_progress = true;
     main_socket.async_read_some(
@@ -607,44 +628,41 @@ void Session::Internal::startReceive() {
             if (!ec) {
                 receive_buffer_used += (uint32_t)rx_size;
 
-                tryParsePacket();
-
-                startReceive();
-            } else if ((asio::error::eof == ec) || (asio::error::connection_reset == ec)) {
-                main_socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
-                main_socket.close(ec);
-
-                p_->disconnected();
-            } else {
-                std::cerr << "async_read_some failed: " << ec.message() << std::endl;
+                if (tryParsePacket()) {
+                    startReceive();
+                }
+            } else if (ec != asio::error::operation_aborted) {
+                if ((asio::error::eof != ec) && (asio::error::connection_reset != ec)) {
+                    std::cerr << "async_read_some failed: " << ec.message() << std::endl;
+                }
+                connectionLost("Connection to the backend was lost");
             }
         });
 }
 
-void Session::Internal::tryParsePacket() {
-    static constexpr int32_t k_min_valid_bson_size = 5;
-
-    int32_t offset                                 = 0;
-    while (receive_buffer_used - offset >= k_min_valid_bson_size) {
-        int32_t total_doc_size = util::BsonReader::getTotalDocumentSize(&receive_buffer[offset]);
-        if (total_doc_size <= 0) {
-            // TODO: what to do with corrupted data?
-            break;
-        }
-
-        if (total_doc_size > (int32_t)receive_buffer_used - offset) {
-            // We need more data
-            break;
-        }
-
-        parsePacket(&receive_buffer[offset], total_doc_size);
-        offset += total_doc_size;
+void Session::Internal::connectionLost(std::string_view reason) {
+    {
+        std::lock_guard  lock(main_socket_mutex);
+        asio::error_code ec;
+        main_socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
+        main_socket.close(ec);
     }
 
-    if (offset > 0 && offset < (int32_t)receive_buffer_used) {
-        std::memmove(receive_buffer.data(), receive_buffer.data() + offset, receive_buffer_used);
+    // The state changes first, so a throwing callback cannot leave the session looking connected
+    p_->disconnected();
+    pending_commands.close(ResultCode::error_invalid_session_state, reason);
+}
+
+bool Session::Internal::tryParsePacket() {
+    detail::FramingResult r =
+        detail::consumeDocuments(receive_buffer, receive_buffer_used, max_rx_document_size,
+                                 [this](const uint8_t* data, int32_t size) { parsePacket(data, size); });
+    if (r == detail::FramingResult::invalid) {
+        std::cerr << "SC-API: invalid response document from the backend" << std::endl;
+        connectionLost("Invalid response from the backend");
+        return false;
     }
-    receive_buffer_used -= offset;
+    return true;
 }
 
 void Session::Internal::parsePacket(const uint8_t* data, int32_t size) {
@@ -692,13 +710,7 @@ void Session::Internal::parsePacket(const uint8_t* data, int32_t size) {
     }
 
     if (cmd_id != -1 && !BsonReader::isError(e)) {
-        std::unique_lock lock(main_socket_mutex);
-        auto             callback_it = command_result_handlers.find(cmd_id);
-        if (callback_it != command_result_handlers.end()) {
-            auto callback = std::move(callback_it->second);
-            command_result_handlers.erase(callback_it);
-            lock.unlock();
-
+        if (detail::CommandCallback callback = pending_commands.take(cmd_id)) {
             if (result_code == ResultCode::ok) {
                 callback(AsyncCommandResult::createSuccess(result_payload));
             } else {
@@ -739,7 +751,5 @@ void Session::PeriodicTimerHandle::destroy() noexcept {
 
 Session::PeriodicTimerHandle::PeriodicTimerHandle(Session* session, int32_t handle)
     : session_(session->weak_from_this()), handle_(handle) {}
-
-SecureSessionInterface::~SecureSessionInterface() {}
 
 }  // namespace sc_api

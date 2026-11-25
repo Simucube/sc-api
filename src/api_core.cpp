@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "api_internal.h"
+#include "backend_version.h"
 #include "compatibility.h"
-#include "crypto/gcm.h"
 #include "device_info_internal.h"
 #include "sc-api/protocol/actions.h"
 #include "sc-api/protocol/bson_shm_blocks.h"
@@ -21,14 +21,21 @@
 
 namespace sc_api {
 
-#define SC_API_PROTOCOL_CORE_SHM_FILENAME "$sc-api-core$"
-
 using namespace sc_api::detail;
 
-static std::once_flag s_init_only_once_flag;
-static void           initOnlyOnce() {
-    std::call_once(s_init_only_once_flag, []() { SC_API_gcm_initialize(); });
-}
+namespace {
+
+struct SessionRef {
+    uint32_t id;
+    uint32_t version;
+    uint32_t size;
+    char     path[64];
+};
+
+// Copies the session reference of an active core block. Returns error_busy while the backend writes the core block.
+ResultCode copySessionRef(const SC_API_PROTOCOL_Core_t* core, SessionRef& session);
+
+}  // namespace
 
 ApiCore::Impl::~Impl() {
     if (active_session_) {
@@ -62,7 +69,7 @@ ResultCode ApiCore::Impl::openSession() {
     // and fully initialized
     while (wait_valid_start + timeout_duration > std::chrono::steady_clock::now()) {
         SessionRef session_ref;
-        r = tryCopySessionRef(session_ref);
+        r = copySessionRef(shm_core_ptr_, session_ref);
         if (r == ResultCode::error_busy) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             continue;
@@ -131,35 +138,37 @@ ResultCode ApiCore::Impl::openCoreShmHandle() {
     return ResultCode::ok;
 }
 
-ResultCode ApiCore::Impl::tryCopySessionRef(SessionRef& session) {
-    uint32_t start_revision = shm_core_ptr_->revision_counter;
+namespace {
+
+ResultCode copySessionRef(const SC_API_PROTOCOL_Core_t* core, SessionRef& session) {
+    uint32_t start_revision = core->revision_counter;
     if ((start_revision & 1) != 0) {
         return ResultCode::error_busy;
     }
     std::atomic_thread_fence(std::memory_order_acquire);
 
-    bool valid = SC_API_PROTOCOL_IS_SHM_VERSION_COMPATIBLE(SC_API_PROTOCOL_CORE_SHM_VERSION, shm_core_ptr_->version);
+    bool valid = SC_API_PROTOCOL_IS_SHM_VERSION_COMPATIBLE(SC_API_PROTOCOL_CORE_SHM_VERSION, core->version);
     if (!valid) {
         return ResultCode::error_incompatible;
     }
 
-    if (shm_core_ptr_->state != SC_API_PROTOCOL_CORE_ACTIVE) {
+    if (core->state != SC_API_PROTOCOL_CORE_ACTIVE) {
         return ResultCode::error_cannot_connect;
     }
 
-    session.id      = shm_core_ptr_->session_id;
-    session.version = shm_core_ptr_->session_version;
-    session.size    = shm_core_ptr_->session_shm_size;
+    session.id      = core->session_id;
+    session.version = core->session_version;
+    session.size    = core->session_shm_size;
 
-    static_assert(sizeof(session.path) == sizeof(shm_core_ptr_->session_shm_path));
+    static_assert(sizeof(session.path) == sizeof(core->session_shm_path));
 
-    for (std::size_t i = 0; i < sizeof(shm_core_ptr_->session_shm_path); ++i) {
-        session.path[i] = shm_core_ptr_->session_shm_path[i];
+    for (std::size_t i = 0; i < sizeof(core->session_shm_path); ++i) {
+        session.path[i] = core->session_shm_path[i];
     }
 
     std::atomic_thread_fence(std::memory_order_release);
 
-    if (shm_core_ptr_->revision_counter != start_revision) {
+    if (core->revision_counter != start_revision) {
         return ResultCode::error_busy;
     }
 
@@ -170,6 +179,8 @@ ResultCode ApiCore::Impl::tryCopySessionRef(SessionRef& session) {
     return ResultCode::ok;
 }
 
+}  // namespace
+
 ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* session_copy,
                                             detail::SharedMemory&&           shm_buf) {
     if (session_copy->udp_control_protocol_version >> 16 != SC_API_PROTOCOL_UDP_PROTOCOL_VERSION_MAJOR) {
@@ -177,9 +188,7 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
     }
 
     if (session_copy->udp_control_max_plaintext_packet_size <
-            SC_API_PROTOCOL_UDP_CONTROL_MIN_PLAINTEXT_PACKET_SIZE_LIMIT ||
-        session_copy->udp_control_max_encrypted_packet_size <
-            SC_API_PROTOCOL_UDP_CONTROL_MIN_ENCRYPTED_PACKET_SIZE_LIMIT) {
+        SC_API_PROTOCOL_UDP_CONTROL_MIN_PLAINTEXT_PACKET_SIZE_LIMIT) {
         // This shouldn't really ever happen unless some other program has edited the shared memory or bit flip occurs
         // or what ever weird
         return ResultCode::error_protocol;
@@ -249,11 +258,6 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
     shm_handles->session                   = std::move(shm_buf);
 
     shm_handles->udp_max_plaintext_payload = session_copy->udp_control_max_plaintext_packet_size;
-    shm_handles->udp_max_encrypted_payload = session_copy->udp_control_max_encrypted_packet_size;
-
-    if (auto r = resolveSecureSessionOptions(session_copy, shm_handles->secure_session_opts); r != ResultCode::ok) {
-        return r;
-    }
 
     std::unordered_map<uint32_t, detail::ShmBlock*> shm_blocks_by_id = {
         {SC_API_PROTOCOL_DEVICE_INFO_SHM_ID, &shm_handles->device_info},
@@ -293,41 +297,6 @@ ResultCode ApiCore::Impl::tryOpeningSession(const SC_API_PROTOCOL_Session_t* ses
     return ResultCode::ok;
 }
 
-ResultCode ApiCore::Impl::resolveSecureSessionOptions(const SC_API_PROTOCOL_Session_t* session_copy,
-                                                      SecureSessionOptions&            opts) {
-    auto is_within_session_buffer = [&](uint32_t offset, uint32_t size) {
-        return (uint64_t)offset + (uint64_t)size <= session_copy->session_data_size;
-    };
-
-    for (int i = 0; i < SC_API_PROTOCOL_MAX_PUBLIC_KEYS; ++i) {
-        if (session_copy->public_key_offsets[i] == 0) continue;
-
-        if (!is_within_session_buffer(session_copy->public_key_offsets[i], sizeof(SC_API_PROTOCOL_PublicKeyHeader_t))) {
-            return ResultCode::error_protocol;
-        }
-
-        const uint8_t* hdr_ptr = reinterpret_cast<const uint8_t*>(session_copy) + session_copy->public_key_offsets[i];
-        const SC_API_PROTOCOL_PublicKeyHeader_t& hdr =
-            *reinterpret_cast<const SC_API_PROTOCOL_PublicKeyHeader_t*>(hdr_ptr);
-
-        // Bounds check offsets and sizes
-        if (!is_within_session_buffer(session_copy->public_key_offsets[i] + hdr.key_offset, hdr.key_size) ||
-            !is_within_session_buffer(session_copy->public_key_offsets[i] + hdr.signature_offset, hdr.signature_size)) {
-            return ResultCode::error_protocol;
-        }
-
-        SecureSessionOptions::Method m;
-        m.method = (SC_API_PROTOCOL_SecurityMethod_t)hdr.security_method;
-        m.public_key.resize(hdr.key_size);
-        m.signature.resize(hdr.signature_size);
-        std::memcpy(m.public_key.data(), hdr_ptr + hdr.key_offset, hdr.key_size);
-        std::memcpy(m.signature.data(), hdr_ptr + hdr.signature_offset, hdr.signature_size);
-        opts.options.push_back(std::move(m));
-    }
-    opts.session_id = session_copy->session_id;
-    return ResultCode::ok;
-}
-
 std::unique_ptr<util::EventQueue<Event>> ApiCore::Impl::createEventQueue() {
     auto eq = std::make_unique<util::EventQueue<Event>>();
 
@@ -349,7 +318,7 @@ std::unique_ptr<util::EventQueue<Event>> ApiCore::Impl::createEventQueue() {
     return eq;
 }
 
-ApiCore::ApiCore() : p_(std::make_unique<Impl>(this)) { initOnlyOnce(); }
+ApiCore::ApiCore() : p_(std::make_unique<Impl>(this)) {}
 
 ApiCore::~ApiCore() {}
 
@@ -362,6 +331,42 @@ ResultCode ApiCore::openSession(std::shared_ptr<Session>& session_handle_out) {
 }
 
 std::shared_ptr<Session> ApiCore::getOpenSession() const { return p_->getSession(); }
+
+std::optional<BackendVersion> detail::readBackendVersion(const char* core_shm_name) {
+    SharedMemory core_shm;
+    if (!core_shm.openForReadOnly(core_shm_name, SC_API_PROTOCOL_CORE_SHM_SIZE)) {
+        return std::nullopt;
+    }
+    const auto* core = static_cast<const SC_API_PROTOCOL_Core_t*>(core_shm.getBuffer());
+
+    SessionRef session_ref;
+    if (copySessionRef(core, session_ref) != ResultCode::ok) {
+        return std::nullopt;
+    }
+
+    SharedMemory session_shm;
+    if (!session_shm.openForReadOnly(session_ref.path, session_ref.size)) {
+        return std::nullopt;
+    }
+
+    std::optional<BackendVersion> version =
+        sessionBackendVersion(static_cast<const SC_API_PROTOCOL_Session_t*>(session_shm.getBuffer()),
+                              session_shm.getSize(), session_ref.id, session_ref.version);
+
+    // The backend can replace its session while this function reads the session block.
+    SessionRef ref_after_read;
+    const bool core_still_names_session = copySessionRef(core, ref_after_read) == ResultCode::ok &&
+                                          ref_after_read.id == session_ref.id &&
+                                          ref_after_read.version == session_ref.version;
+    if (!core_still_names_session) {
+        return std::nullopt;
+    }
+    return version;
+}
+
+std::optional<BackendVersion> ApiCore::getBackendVersion() {
+    return detail::readBackendVersion(SC_API_PROTOCOL_CORE_SHM_FILENAME);
+}
 
 std::unique_ptr<util::EventQueue<Event>> ApiCore::createEventQueue() { return p_->createEventQueue(); }
 

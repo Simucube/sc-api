@@ -4,7 +4,7 @@
 #include <cstring>
 #include <functional>
 
-#include "crypto/gcm.h"
+#include "api_internal.h"
 #include "sc-api/command.h"
 #include "sc-api/protocol/actions.h"
 #include "sc-api/session.h"
@@ -22,41 +22,12 @@ bool buildEffectOffsetDataAction(ActionBuilder& builder, EffectPipelineRef pipel
         SC_API_PROTOCOL_ActionFbEffect_Enc_t data;
     };
 
-    uint8_t* payload                       = nullptr;
+    const uint32_t samples_size = sizeof(float) * sample_count;
 
-    Header* hdr                            = nullptr;
+    uint8_t* payload = builder.startBuilding(SC_API_PROTOCOL_ACTION_FB_EFFECT, sizeof(Header) + samples_size);
+    if (!payload) return false;
 
-    uint32_t samples_size                  = sizeof(float) * sample_count;
-
-    bool                    encrypt        = false;
-    SecureSessionInterface* secure_session = builder.getSession()->getSecureSession();
-
-    if (secure_session) {
-        encrypt = true;
-    }
-
-    if (encrypt) {
-        if (samples_size % 16 > 0) {
-            samples_size += 16 - (samples_size % 16);
-        }
-
-        payload =
-            builder.startBuilding(SC_API_PROTOCOL_ACTION_FB_EFFECT,
-                                  sizeof(Header) + samples_size + sizeof(SC_API_PROTOCOL_EncryptedActionHeader_t) +
-                                      sizeof(SC_API_PROTOCOL_EncryptedActionFooter_t),
-                                  SC_API_PROTOCOL_ACTION_FLAG_ENCRYPTED);
-
-        if (!payload) return false;
-
-        hdr = new (payload + sizeof(SC_API_PROTOCOL_EncryptedActionHeader_t)) Header();
-    } else {
-        payload =
-            builder.startBuilding(SC_API_PROTOCOL_ACTION_FB_EFFECT, sizeof(Header) + (sizeof(float) * sample_count));
-
-        if (!payload) return false;
-
-        hdr = new (payload) Header();
-    }
+    Header* hdr                    = new (payload) Header();
 
     hdr->aad.fb_pipeline_idx       = pipeline.pipeline_id;
     hdr->aad.flags                 = 0;
@@ -71,14 +42,7 @@ bool buildEffectOffsetDataAction(ActionBuilder& builder, EffectPipelineRef pipel
     hdr->data.sample_duration      = sample_time.count() & 0xffffffff;
     hdr->data.sample_duration_high = (sample_time.count() >> 32) & 0xff;
 
-    if (encrypt) {
-        std::memcpy(&payload[sizeof(SC_API_PROTOCOL_EncryptedActionHeader_t) + sizeof(Header)], samples, samples_size);
-        secure_session->encrypt(payload, (uint8_t*)&hdr->aad, sizeof(SC_API_PROTOCOL_ActionFbEffect_AAD_t),
-                                (uint8_t*)&hdr->data, sizeof(SC_API_PROTOCOL_ActionFbEffect_Enc_t) + samples_size,
-                                (uint8_t*)&hdr->data + sizeof(SC_API_PROTOCOL_ActionFbEffect_Enc_t) + samples_size);
-    } else {
-        std::memcpy(&payload[sizeof(Header)], samples, samples_size);
-    }
+    std::memcpy(&payload[sizeof(Header)], samples, samples_size);
 
     return true;
 }
@@ -110,7 +74,8 @@ FfbPipeline::~FfbPipeline() {
         sc_api::CommandRequest req("ffb", "free_pipeline");
         req.docAddElement("device_session_id", device_.id);
         req.docAddElement("pipeline_id", pipeline_id_);
-        action_builder_.getSession()->asyncCommand(std::move(req), [](const sc_api::AsyncCommandResult&) {});
+        // The pipeline handle is gone after this, so the free must not be lost to a full pending-command table
+        action_builder_.getSession()->getInternal().sendWithoutReply(std::move(req));
     }
 }
 
